@@ -55,6 +55,9 @@ class AppController extends ChangeNotifier {
 
   bool get isConnected => _source?.isConnected ?? false;
 
+  /// The live transport (BLE or simulated), exposed for the RE scanner UI.
+  DataSource? get activeSource => _source;
+
   void selectVehicle(VehicleEntry v) {
     selectedVehicle = v;
     notifyListeners();

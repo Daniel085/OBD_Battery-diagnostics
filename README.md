@@ -39,6 +39,34 @@ A generic ELM327 BLE clone works for the BMW SME PIDs. For the **Lyriq (29-bit C
 - [JejuSoul/OBD-PIDs-for-HKMC-EVs](https://github.com/JejuSoul/OBD-PIDs-for-HKMC-EVs) — reference EV BMS reverse engineering
 - [Ircama/ELM327-emulator](https://github.com/ircama/ELM327-emulator) — offline test harness
 
+## Running it
+
+```
+flutter pub get
+flutter test           # 54 tests, no device needed
+flutter run            # on a connected iOS/Android device
+```
+
+No adapter or car? Tap **"Try demo mode (no adapter)"** on the home screen — a
+built-in `SimulatedBmwSource` feeds synthetic SME responses through the real
+decode pipeline so the dashboard, report, and PDF/CSV/JSON export all work.
+
 ## Status
 
-Early development. See the phased build plan and per-phase progress in the task list. Protocol/engine layer first (testable offline), then BLE transport + dashboard, then on-vehicle validation, then the Lyriq reverse-engineering toolkit.
+Working end-to-end in software; on-vehicle validation is the remaining step.
+
+Done and tested (offline): ISO-TP + UDS + J1979 protocol layer · OBDb-format
+signal engine · BMW-330e-2018 signal set · battery-health model + PDF/CSV/JSON
+report · time-series logging · reverse-engineering DID scanner + correlation
+identification · BLE transport (`flutter_reactive_ble`) · Flutter UI (connect /
+dashboard / report / scanner) · BMW CarData scaffold (feature-flagged).
+
+Needs hardware to finish:
+- BMW 330e — validate the inferred cell/temperature bit offsets against a real
+  SME (values are trustworthy only after this).
+- Cadillac Lyriq — discover the Ultium HV-BMS DIDs on the 29-bit bus with the
+  in-app scanner (ideally an OBDLink CX/MX+); the J1979 baseline works today.
+
+Native device build here was blocked only on local toolchain setup (a JDK for
+Android; `sudo xcode-select` at Xcode.app + CocoaPods for iOS) — not on any code
+issue. `flutter analyze` is clean and all tests pass.
