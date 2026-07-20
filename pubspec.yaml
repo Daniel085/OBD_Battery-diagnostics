@@ -1,0 +1,16 @@
+name: obd_battery_diagnostics
+description: Cross-platform OBD-II BMS / high-voltage battery diagnostics and health reporting.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+# NOTE: The protocol + engine layers (lib/protocol, lib/engine) are pure Dart
+# and depend only on the SDK, so `dart test` runs them without Flutter or a
+# device. Flutter/BLE/UI dependencies are added in a later phase.
+dependencies: {}
+
+dev_dependencies:
+  test: ^1.24.0
+  lints: ^4.0.0

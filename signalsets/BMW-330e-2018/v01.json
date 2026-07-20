@@ -1,0 +1,119 @@
+{
+  "$schema": "../signalset.schema.json",
+  "vehicle": "BMW-330e-2018",
+  "description": "2018 BMW 330e (F30 PHEV) high-voltage battery (SME) diagnostics. UDS service 0x22 (ReadDataByIdentifier) to the SME battery ECU via tester header 6F1, response 607.",
+  "provenance": {
+    "derivedFrom": "OBDb/BMW-i3s (CC BY-SA 4.0) — shares the SME battery-ECU architecture and addressing with the F30 330e",
+    "confidence": "high for SME DIDs, scales, and the SOC/SOH/voltage/current single-value signals shared with i3. INFERRED and unvalidated: the bit offsets that split the min/max temperature (DDC0) and min/max/avg cell-voltage (DFA0) multi-value responses — the i3 source declared one format per DID, so the 0/16/32-bit field ordering here is an assumption. VALIDATE all offsets against the actual 330e before trusting reported values.",
+    "license": "CC BY-SA 4.0"
+  },
+  "protocol": {
+    "canFormat": "11bit",
+    "obdProtocol": 6,
+    "note": "F30 uses the same tester/response addressing as the i3 SME (6F1 -> 607, extended address 07)."
+  },
+  "commands": [
+    {
+      "hdr": "6F1",
+      "rax": "607",
+      "eax": "07",
+      "cmd": { "22": "6335" },
+      "signals": [
+        {
+          "id": "HVBAT_SOH",
+          "name": "HV battery state of health",
+          "group": "summary",
+          "fmt": { "bix": 24, "len": 8, "max": 100, "unit": "percent" }
+        }
+      ]
+    },
+    {
+      "hdr": "6F1",
+      "rax": "607",
+      "eax": "07",
+      "cmd": { "22": "DDBC" },
+      "signals": [
+        {
+          "id": "HVBAT_SOC",
+          "name": "HV battery state of charge",
+          "group": "summary",
+          "fmt": { "bix": 0, "len": 16, "max": 100, "div": 10, "unit": "percent" }
+        }
+      ]
+    },
+    {
+      "hdr": "6F1",
+      "rax": "607",
+      "eax": "07",
+      "cmd": { "22": "DD68" },
+      "signals": [
+        {
+          "id": "HVBAT_VOLTAGE",
+          "name": "HV battery pack voltage",
+          "group": "summary",
+          "fmt": { "bix": 0, "len": 16, "max": 655.35, "div": 100, "unit": "volts" }
+        }
+      ]
+    },
+    {
+      "hdr": "6F1",
+      "rax": "607",
+      "eax": "07",
+      "cmd": { "22": "DD69" },
+      "signals": [
+        {
+          "id": "HVBAT_CURRENT",
+          "name": "HV battery pack current",
+          "group": "summary",
+          "fmt": { "bix": 0, "len": 32, "max": 10000, "min": -10000, "div": 100, "sign": true, "unit": "amps" }
+        }
+      ]
+    },
+    {
+      "hdr": "6F1",
+      "rax": "607",
+      "eax": "07",
+      "cmd": { "22": "DDC0" },
+      "signals": [
+        {
+          "id": "HVBAT_CELLTEMP_MIN",
+          "name": "HV battery cell temperature (min)",
+          "group": "temperature",
+          "fmt": { "bix": 0, "len": 16, "max": 327.67, "min": -327.67, "div": 100, "sign": true, "unit": "celsius" }
+        },
+        {
+          "id": "HVBAT_CELLTEMP_MAX",
+          "name": "HV battery cell temperature (max)",
+          "group": "temperature",
+          "fmt": { "bix": 16, "len": 16, "max": 327.67, "min": -327.67, "div": 100, "sign": true, "unit": "celsius" }
+        }
+      ]
+    },
+    {
+      "hdr": "6F1",
+      "rax": "607",
+      "eax": "07",
+      "cmd": { "22": "DFA0" },
+      "signals": [
+        {
+          "id": "HVBAT_CELL_V_MIN",
+          "name": "HV battery cell voltage (min)",
+          "group": "cells",
+          "fmt": { "bix": 0, "len": 16, "max": 6.5535, "div": 10000, "unit": "volts" }
+        },
+        {
+          "id": "HVBAT_CELL_V_MAX",
+          "name": "HV battery cell voltage (max)",
+          "group": "cells",
+          "fmt": { "bix": 16, "len": 16, "max": 6.5535, "div": 10000, "unit": "volts" }
+        },
+        {
+          "id": "HVBAT_CELL_V_AVG",
+          "name": "HV battery cell voltage (avg)",
+          "group": "cells",
+          "fmt": { "bix": 32, "len": 16, "max": 6.5535, "div": 10000, "unit": "volts" }
+        }
+      ]
+    }
+  ]
+}

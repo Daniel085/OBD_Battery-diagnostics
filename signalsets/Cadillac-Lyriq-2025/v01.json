@@ -1,0 +1,47 @@
+{
+  "$schema": "../signalset.schema.json",
+  "vehicle": "Cadillac-Lyriq-2025",
+  "description": "2025 Cadillac Lyriq (GM Ultium) diagnostics. WORK IN PROGRESS — the Ultium HV battery data is on a 29-bit CAN bus and is not yet publicly reverse-engineered. Only generic J1979 signals are confirmed. Use the reverse-engineering toolkit (Phase 5) to discover BMS DIDs and add them here.",
+  "provenance": {
+    "derivedFrom": "Generic SAE J1979 (public standard) for the confirmed signals. HV BMS DIDs: UNKNOWN — pending reverse engineering.",
+    "confidence": "J1979 signals: high. HV BMS: none yet — placeholders below are NOT confirmed and are disabled.",
+    "license": "J1979 signals are public-domain protocol facts."
+  },
+  "protocol": {
+    "canFormat": "29bit",
+    "obdProtocol": 7,
+    "note": "GM Ultium battery ECUs use 29-bit CAN. A genuine STN-based adapter (OBDLink CX/MX+) is strongly recommended; many generic ELM327 clones cannot do 29-bit multiframe ISO-TP reliably. Generic J1979 mode-01 PIDs below respond even on the 11-bit-style query and are the confirmed baseline."
+  },
+  "commands": [
+    {
+      "hdr": "7DF",
+      "rax": "7E8",
+      "cmd": { "01": "0D" },
+      "signals": [
+        {
+          "id": "VEHICLE_SPEED",
+          "name": "Vehicle speed",
+          "group": "summary",
+          "fmt": { "bix": 0, "len": 8, "max": 255, "unit": "km/h" }
+        }
+      ]
+    },
+    {
+      "hdr": "7DF",
+      "rax": "7E8",
+      "cmd": { "01": "42" },
+      "signals": [
+        {
+          "id": "CONTROL_MODULE_VOLTAGE",
+          "name": "12V control module voltage",
+          "group": "summary",
+          "fmt": { "bix": 0, "len": 16, "div": 1000, "max": 65.535, "unit": "volts" }
+        }
+      ]
+    }
+  ],
+  "_unconfirmed_hv_bms": {
+    "_comment": "Candidate signals to be discovered/validated by the UDS DID scanner + CAN sniffer. Do NOT load these until confirmed on a real Lyriq. Populated as reverse engineering progresses.",
+    "candidates": []
+  }
+}

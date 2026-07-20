@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/OBD_Battery-diagnostics/signalsets/signalset.schema.json",
+  "title": "Vehicle Signal Set",
+  "description": "OBDb-v3-compatible per-vehicle signal definitions. Declares UDS/J1979 requests to a vehicle ECU and how to decode the byte response into physical signals. Adopted from the OBDb project (CC BY-SA 4.0) so existing community sets can be imported.",
+  "type": "object",
+  "required": ["vehicle", "protocol", "commands"],
+  "properties": {
+    "vehicle": {
+      "type": "string",
+      "description": "Canonical vehicle id, e.g. 'BMW-330e-2018'."
+    },
+    "description": { "type": "string" },
+    "provenance": {
+      "type": "object",
+      "description": "Where these definitions came from and how much to trust them.",
+      "properties": {
+        "derivedFrom": { "type": "string" },
+        "confidence": { "type": "string" },
+        "license": { "type": "string" }
+      }
+    },
+    "protocol": {
+      "type": "object",
+      "required": ["canFormat"],
+      "properties": {
+        "canFormat": {
+          "enum": ["11bit", "29bit"],
+          "description": "ISO-TP addressing width. 11bit for most BMW; 29bit required for GM Ultium (Lyriq)."
+        },
+        "obdProtocol": {
+          "type": "integer",
+          "description": "ELM327 'AT SP' protocol number (e.g. 6 = ISO 15765-4 CAN 11/500, 7 = 29/500, 8 = 11/250, 9 = 29/250)."
+        },
+        "note": { "type": "string" }
+      }
+    },
+    "commands": {
+      "type": "array",
+      "description": "Each command is one request whose response yields one or more signals.",
+      "items": {
+        "type": "object",
+        "required": ["cmd", "signals"],
+        "properties": {
+          "hdr": {
+            "type": "string",
+            "description": "Request CAN id / tester address, hex. Sent to the adapter via 'AT SH'. E.g. '6F1' (BMW tester)."
+          },
+          "rax": {
+            "type": "string",
+            "description": "Expected response CAN id, hex. Sent via 'AT CRA' to filter. E.g. '607' (BMW SME)."
+          },
+          "eax": {
+            "type": "string",
+            "description": "Optional extended (target) address byte for BMW multi-ECU tester addressing, hex. E.g. '07' for the SME."
+          },
+          "cmd": {
+            "type": "object",
+            "description": "Single-entry map of {service: payloadHex}. '22' = UDS ReadDataByIdentifier (payload is the 2-byte DID). '01' = J1979 mode 01 (payload is the 1-byte PID). '19' = UDS ReadDTCInformation.",
+            "minProperties": 1,
+            "maxProperties": 1
+          },
+          "signals": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/signal" }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "signal": {
+      "type": "object",
+      "required": ["id", "name", "fmt"],
+      "properties": {
+        "id": { "type": "string", "description": "Stable signal id, unique within the set." },
+        "name": { "type": "string", "description": "Human-readable name." },
+        "group": {
+          "type": "string",
+          "description": "UI/report grouping, e.g. 'summary', 'cells', 'temperature'."
+        },
+        "fmt": {
+          "type": "object",
+          "description": "Bit-field extraction + linear scaling. Physical = (raw * mul / div) + add. IMPORTANT: 'bix' is the bit offset into the DATA PAYLOAD, i.e. the response bytes AFTER the service echo and the echoed 2-byte DID (for service 0x22) or 1-byte PID (for service 0x01) have been stripped. Big-endian.",
+          "required": ["len"],
+          "properties": {
+            "bix": { "type": "integer", "default": 0, "description": "Start bit offset into the payload (big-endian). Defaults to 0." },
+            "len": { "type": "integer", "description": "Field length in bits." },
+            "sign": { "type": "boolean", "default": false, "description": "Interpret the raw field as two's-complement signed." },
+            "mul": { "type": "number", "default": 1, "description": "Multiplier." },
+            "div": { "type": "number", "default": 1, "description": "Divisor." },
+            "add": { "type": "number", "default": 0, "description": "Offset added after scaling." },
+            "min": { "type": "number", "description": "Documentation only: expected physical minimum." },
+            "max": { "type": "number", "description": "Documentation only: expected physical maximum." },
+            "unit": { "type": "string", "description": "Physical unit, e.g. 'percent', 'volts', 'amps', 'celsius'." }
+          }
+        }
+      }
+    }
+  }
+}
