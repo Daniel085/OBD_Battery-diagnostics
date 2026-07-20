@@ -43,6 +43,7 @@ class AppController extends ChangeNotifier {
   DataSource? _source;
   DiagnosticsClient? _client;
   Timer? _pollTimer;
+  bool _pollInFlight = false;
 
   VehicleEntry? selectedVehicle;
   SignalSet? _signalSet;
@@ -149,6 +150,12 @@ class AppController extends ChangeNotifier {
   Future<void> _pollOnce() async {
     final client = _client;
     if (client == null) return;
+    // Re-entrancy guard: a poll can outlast the poll interval (6 sequential UDS
+    // reads, each up to a 5 s adapter timeout), so a periodic tick may fire
+    // while the previous poll is still in flight. Skip it rather than issue
+    // overlapping commands on the single-command-at-a-time transport.
+    if (_pollInFlight) return;
+    _pollInFlight = true;
     lastFailures.clear();
     try {
       final readings = await client.readAll(onFailure: lastFailures.add);
@@ -159,6 +166,8 @@ class AppController extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _fail('Poll failed: $e');
+    } finally {
+      _pollInFlight = false;
     }
   }
 

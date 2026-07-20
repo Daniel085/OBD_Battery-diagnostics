@@ -60,6 +60,12 @@ class ElmBleSource implements DataSource {
   Completer<String>? _pending;
   bool _connected = false;
 
+  /// Incremented for every command. Notifications are only accepted while a
+  /// command is in flight; on timeout the generation advances so late bytes
+  /// from the abandoned command are dropped instead of leaking into the next
+  /// command's response buffer.
+  int _generation = 0;
+
   ElmBleSource({
     required FlutterReactiveBle ble,
     required this.deviceId,
@@ -123,6 +129,9 @@ class ElmBleSource implements DataSource {
   }
 
   void _onData(List<int> bytes) {
+    // Drop any notification that arrives while no command is in flight (e.g. a
+    // late frame from a command that already timed out).
+    if (_pending == null) return;
     _rx.write(utf8.decode(bytes, allowMalformed: true));
     final text = _rx.toString();
     if (text.contains(elmPrompt)) {
@@ -142,6 +151,7 @@ class ElmBleSource implements DataSource {
       throw StateError('A command is already in flight');
     }
     _rx.clear();
+    final generation = ++_generation;
     final completer = Completer<String>();
     _pending = completer;
 
@@ -153,7 +163,12 @@ class ElmBleSource implements DataSource {
     return completer.future.timeout(
       timeout ?? config.defaultTimeout,
       onTimeout: () {
-        _pending = null;
+        // Only tear down if this timeout belongs to the still-current command
+        // (a response may have raced in and started the next command already).
+        if (_generation == generation) {
+          _pending = null;
+          _rx.clear();
+        }
         throw TimeoutException('ELM327 command timed out: $command');
       },
     );

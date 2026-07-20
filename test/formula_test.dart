@@ -36,6 +36,15 @@ void main() {
       const f = SignalFormat(bix: 0, len: 16);
       expect(() => f.extractRaw([0x12]), throwsRangeError);
     });
+
+    test('64-bit signed field is not corrupted by 1<<64 wraparound', () {
+      const f = SignalFormat(bix: 0, len: 64, sign: true);
+      // 0x7FFF... (max positive) stays positive.
+      expect(f.extractRaw([0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]),
+          0x7FFFFFFFFFFFFFFF);
+      // All-ones reads as -1 in a native 64-bit int (already correct).
+      expect(f.extractRaw([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]), -1);
+    });
   });
 
   group('SignalFormat.decode (scaling)', () {

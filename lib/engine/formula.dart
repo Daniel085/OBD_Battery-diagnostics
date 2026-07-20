@@ -67,8 +67,11 @@ class SignalFormat {
       final bit = (byte >> (7 - (bitIndex & 7))) & 1;
       value = (value << 1) | bit;
     }
-    if (sign && len > 0) {
-      // Two's-complement sign extension.
+    if (sign && len > 0 && len < 64) {
+      // Two's-complement sign extension. Guarded to len < 64 because `1 << 64`
+      // wraps to 0 on Dart's 64-bit int, which would silently skip extension.
+      // A full 64-bit signed field is already correctly signed in a Dart int,
+      // so no adjustment is needed there.
       final signBit = 1 << (len - 1);
       if ((value & signBit) != 0) {
         value -= (1 << len);
