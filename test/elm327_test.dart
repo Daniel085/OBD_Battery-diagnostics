@@ -22,7 +22,7 @@ void main() {
     });
 
     test('parses a multi-line ISO-TP response', () {
-      final raw = '607 10 14 62 DF A0 0F 00\r'
+      const raw = '607 10 14 62 DF A0 0F 00\r'
           '607 21 0F 10 0F 08 00 00\r'
           '>';
       final frames = parseFrames(raw, is29Bit: false);

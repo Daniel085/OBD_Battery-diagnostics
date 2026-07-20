@@ -172,7 +172,7 @@ List<Command> draftCommandsFromHits(
           id: 'UNKNOWN_${h.didHex}',
           name: 'Unknown DID ${h.didHex} (${h.data?.length ?? 0} bytes)',
           group: 'unclassified',
-          fmt: SignalFormat(bix: 0, len: 16),
+          fmt: const SignalFormat(bix: 0, len: 16),
         ),
       ],
     );

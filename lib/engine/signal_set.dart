@@ -90,7 +90,7 @@ class Command {
   factory Command.fromJson(Map<String, dynamic> j) {
     final cmd = (j['cmd'] as Map<String, dynamic>);
     if (cmd.length != 1) {
-      throw FormatException('cmd must have exactly one {service: payload} entry');
+      throw const FormatException('cmd must have exactly one {service: payload} entry');
     }
     final entry = cmd.entries.first;
     return Command(

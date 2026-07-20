@@ -4,13 +4,40 @@ publish_to: none
 version: 0.1.0
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
+  sdk: ">=3.4.0 <4.0.0"
 
-# NOTE: The protocol + engine layers (lib/protocol, lib/engine) are pure Dart
-# and depend only on the SDK, so `dart test` runs them without Flutter or a
-# device. Flutter/BLE/UI dependencies are added in a later phase.
-dependencies: {}
+# The protocol + engine + tools layers (lib/protocol, lib/engine, lib/tools) are
+# pure Dart and import no Flutter — so `flutter test test/<those>` (and plain
+# `dart test`) run them without a device. Flutter is only pulled in by the UI
+# (lib/ui, lib/main.dart) and the BLE transport.
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  # BLE transport to the ELM327 adapter.
+  flutter_reactive_ble: ^5.3.1
+  permission_handler: ^11.3.1
+  # Report export.
+  pdf: ^3.11.1
+  printing: ^5.13.2
+  path_provider: ^2.1.4
+  share_plus: ^10.0.2
+  # Local time-series logging.
+  drift: ^2.20.0
+  sqlite3_flutter_libs: ^0.5.24
+  # State management (lightweight).
+  provider: ^6.1.2
 
 dev_dependencies:
-  test: ^1.24.0
-  lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  test: ^1.25.0
+  drift_dev: ^2.20.0
+  build_runner: ^2.4.12
+
+flutter:
+  uses-material-design: true
+  assets:
+    - signalsets/BMW-330e-2018/v01.json
+    - signalsets/Cadillac-Lyriq-2025/v01.json
