@@ -9,6 +9,8 @@ import 'dart:convert';
 
 import 'formula.dart';
 
+export 'formula.dart' show SignalFormat;
+
 enum CanFormat { bits11, bits29 }
 
 CanFormat _canFormatFromString(String s) {

@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:obd_battery_diagnostics/engine/battery_health.dart';
 import 'package:obd_battery_diagnostics/engine/diagnostics_client.dart';
-import 'package:obd_battery_diagnostics/engine/formula.dart';
 import 'package:obd_battery_diagnostics/engine/logging.dart';
 import 'package:obd_battery_diagnostics/engine/signal_set.dart';
 import 'package:test/test.dart';
