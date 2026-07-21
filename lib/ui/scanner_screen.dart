@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../app/app_controller.dart';
 import '../tools/uds_scanner.dart';
@@ -43,6 +44,27 @@ class _ScannerScreenState extends State<ScannerScreen> {
       _start.text = start;
       _end.text = end;
     });
+  }
+
+  /// Self-documenting CSV of the sweep: header records the addressing used so a
+  /// saved result can be reproduced later.
+  String _resultsCsv() {
+    final rows = <String>[
+      '# DID scan',
+      '# tester_hdr,${_hdr.text}',
+      '# response_filter,${_rax.text}',
+      '# ext_addr,${_eax.text}',
+      '# can_29bit,$_is29',
+      '# range,${_start.text}-${_end.text}',
+      'did,bytes,hex',
+    ];
+    for (final h in _hits) {
+      final hex =
+          h.data?.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ') ??
+              '';
+      rows.add('${h.didHex},${h.data?.length ?? 0},$hex');
+    }
+    return rows.join('\n');
   }
 
   Future<void> _run(AppController c) async {
@@ -97,7 +119,18 @@ class _ScannerScreenState extends State<ScannerScreen> {
   Widget build(BuildContext context) {
     final c = context.read<AppController>();
     return Scaffold(
-      appBar: AppBar(title: const Text('DID Scanner (reverse engineering)')),
+      appBar: AppBar(
+        title: const Text('DID Scanner (reverse engineering)'),
+        actions: [
+          if (_hits.isNotEmpty)
+            IconButton(
+              tooltip: 'Share results',
+              icon: const Icon(Icons.share),
+              onPressed: () => Share.share(_resultsCsv(),
+                  subject: 'DID scan ${_hdr.text} ${_start.text}-${_end.text}'),
+            ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
