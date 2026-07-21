@@ -27,6 +27,24 @@ class _ScannerScreenState extends State<ScannerScreen> {
   bool _running = false;
   String? _error;
 
+  void _applyPreset({
+    required String hdr,
+    required String rax,
+    required String eax,
+    required bool is29,
+    required String start,
+    required String end,
+  }) {
+    setState(() {
+      _hdr.text = hdr;
+      _rax.text = rax;
+      _eax.text = eax;
+      _is29 = is29;
+      _start.text = start;
+      _end.text = end;
+    });
+  }
+
   Future<void> _run(AppController c) async {
     final source = c.activeSource;
     if (source == null) {
@@ -87,6 +105,35 @@ class _ScannerScreenState extends State<ScannerScreen> {
             'Sweeps UDS service 0x22 across a DID range on the target ECU and '
             'lists responders. Read-only. Run with the vehicle stationary.',
             style: TextStyle(fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, children: [
+            ActionChip(
+              label: const Text('BMW SME'),
+              onPressed: () => _applyPreset(
+                  hdr: '6F1', rax: '607', eax: '07', is29: false,
+                  start: 'DD00', end: 'DDFF'),
+            ),
+            ActionChip(
+              label: const Text('GM Lyriq — discover ECUs'),
+              onPressed: () => _applyPreset(
+                  hdr: '18DB33F1', rax: '', eax: '', is29: true,
+                  start: 'F190', end: 'F19F'),
+            ),
+            ActionChip(
+              label: const Text('GM BECM (batt)'),
+              onPressed: () => _applyPreset(
+                  hdr: '18DA07F1', rax: '18DAF107', eax: '', is29: true,
+                  start: '4000', end: '43FF'),
+            ),
+          ]),
+          const SizedBox(height: 8),
+          const Text(
+            'GM 29-bit addressing: functional broadcast 18DB33F1 discovers which '
+            'ECUs answer (their id is 18DAF1xx). Then target an ECU physically '
+            'with 18DAxxF1 / filter 18DAF1xx. BECM (battery) is commonly 07; '
+            'adjust xx to whatever answered.',
+            style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
           ),
           const SizedBox(height: 12),
           Row(children: [
