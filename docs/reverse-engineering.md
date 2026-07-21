@@ -4,6 +4,30 @@ When a vehicle's HV-battery DIDs aren't published, this is the workflow the
 toolkit (`lib/tools/`) supports. It is deliberately **read-only** — a `0x22` DID
 sweep only *reads* — but run it with the vehicle **stationary and safe**.
 
+## GM / Ultium 29-bit addressing cheat-sheet
+
+GM Ultium ECUs use ISO 15765-4 **29-bit** diagnostic addressing (protocol 7,
+`AT SP7`). Layout: `18 <type> <target> <source>`, tester = `F1`.
+
+| Purpose | CAN id | In the scanner |
+| --- | --- | --- |
+| Functional broadcast (all ECUs) | `18DB33F1` | tester hdr, no filter |
+| Physical request to ECU `xx` | `18DAxxF1` | tester hdr |
+| Response from ECU `xx` | `18DAF1xx` | response filter |
+
+The **BECM** (Battery Energy Control Module) is the target for HV-battery data;
+try `xx = 07` first (`18DA07F1` / filter `18DAF107`), but confirm empirically —
+step 1 tells you which `xx` actually answer.
+
+Note: the Ultium pack uses a **wireless BMS** (cells report to the BECM over a
+proprietary RF link), so all cell/temperature data is only reachable *through*
+the BECM's UDS interface — there is no per-module CAN address to sniff.
+
+Scanner presets ("GM Lyriq — discover ECUs", "GM BECM") pre-fill these.
+First sweep `F190–F19F` (identification DIDs: VIN, part/software numbers) — most
+ECUs answer at least one, so it's the reliable "who's on the bus" probe before
+guessing battery DIDs. Then move to `4000–43FF` / `43xx` / `83xx` on the BECM.
+
 ## 0. Get the right adapter
 
 For GM Ultium (Lyriq), the battery ECUs are on **29-bit CAN**. A genuine STN
