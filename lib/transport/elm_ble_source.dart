@@ -137,38 +137,75 @@ class ElmBleSource implements DataSource {
       await _ble.discoverAllServices(deviceId);
       final services = await _ble.getDiscoveredServices(deviceId);
 
-      QualifiedCharacteristic? write;
-      QualifiedCharacteristic? notify;
+      // Record the full GATT table for diagnostics — when an adapter doesn't
+      // match any known layout this is what tells us its real UUIDs.
+      final log = StringBuffer();
       for (final s in services) {
+        log.writeln('service ${s.id}');
         for (final ch in s.characteristics) {
-          final q = QualifiedCharacteristic(
-            serviceId: s.id,
-            characteristicId: ch.id,
-            deviceId: deviceId,
-          );
-          if (notify == null && (ch.isNotifiable || ch.isIndicatable)) {
-            notify = q;
-          }
-          if (write == null &&
-              (ch.isWritableWithoutResponse || ch.isWritableWithResponse)) {
-            write = q;
-          }
+          log.writeln('  char ${ch.id} '
+              'w=${ch.isWritableWithoutResponse || ch.isWritableWithResponse} '
+              'n=${ch.isNotifiable || ch.isIndicatable}');
         }
       }
-      // Prefer a real split; if only one usable characteristic exists, share it.
-      _notifyChar = notify ??
-          write ??
-          _fallback(config.notifyCharUuid);
-      _writeChar = write ??
-          notify ??
-          _fallback(config.writeCharUuid);
-      return;
-    } catch (_) {
-      // Discovery unsupported/failed — use the configured UUIDs verbatim.
+      discoveredGatt = log.toString();
+
+      // Only consider services that plausibly carry the serial link: the
+      // configured one first, then other vendor (non-standard-16-bit) services.
+      // Generic services like Device Information / Battery also expose
+      // notifiable characteristics and must not win.
+      bool isCandidateService(Uuid id) {
+        final s = id.toString().toLowerCase();
+        if (s == config.serviceUuid.toString().toLowerCase()) return true;
+        return s.startsWith('0000fff') || // FFF0 family (Viecar and friends)
+            s.startsWith('0000ffe') || // FFE0 family (common clones)
+            s.startsWith('6e400001'); // Nordic UART
+      }
+
+      QualifiedCharacteristic? write;
+      QualifiedCharacteristic? notify;
+      for (final preferConfigured in [true, false]) {
+        for (final s in services) {
+          final matches = preferConfigured
+              ? s.id.toString().toLowerCase() ==
+                  config.serviceUuid.toString().toLowerCase()
+              : isCandidateService(s.id);
+          if (!matches) continue;
+          for (final ch in s.characteristics) {
+            final q = QualifiedCharacteristic(
+              serviceId: s.id,
+              characteristicId: ch.id,
+              deviceId: deviceId,
+            );
+            if (notify == null && (ch.isNotifiable || ch.isIndicatable)) {
+              notify = q;
+            }
+            if (write == null &&
+                (ch.isWritableWithoutResponse || ch.isWritableWithResponse)) {
+              write = q;
+            }
+          }
+        }
+        if (write != null && notify != null) break;
+      }
+
+      if (write != null || notify != null) {
+        // If only one usable characteristic exists, share it for both roles.
+        _notifyChar = notify ?? write;
+        _writeChar = write ?? notify;
+        return;
+      }
+      // Discovery found nothing usable — fall through to configured UUIDs.
+    } catch (e) {
+      discoveredGatt = 'GATT discovery failed: $e';
     }
     _writeChar = _fallback(config.writeCharUuid);
     _notifyChar = _fallback(config.notifyCharUuid);
   }
+
+  /// Human-readable dump of the last GATT discovery, for troubleshooting an
+  /// adapter whose layout we don't recognise. Surfaced in the UI on failure.
+  String? discoveredGatt;
 
   QualifiedCharacteristic _fallback(Uuid charUuid) => QualifiedCharacteristic(
         serviceId: config.serviceUuid,

@@ -128,9 +128,10 @@ class AppController extends ChangeNotifier {
       return;
     }
     stopScan();
+    ElmBleSource? source;
     try {
       _setPhase(ConnectionPhase.connecting);
-      final source = ElmBleSource(
+      source = ElmBleSource(
         ble: _ble,
         deviceId: device.id,
         deviceName: device.name,
@@ -148,7 +149,11 @@ class AppController extends ChangeNotifier {
       _setPhase(ConnectionPhase.polling);
       _startPolling();
     } catch (e) {
-      _fail('Connect failed: $e');
+      // Include the adapter's GATT table: when a clone doesn't match a known
+      // layout, its real service/characteristic UUIDs are what we need to see.
+      final gatt = source?.discoveredGatt;
+      _fail('Connect failed: $e'
+          '${gatt == null ? '' : '\n\nAdapter GATT:\n$gatt'}');
     }
   }
 

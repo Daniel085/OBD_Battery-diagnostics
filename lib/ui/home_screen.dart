@@ -72,8 +72,14 @@ class HomeScreen extends StatelessWidget {
           if (c.errorMessage != null)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(c.errorMessage!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              child: SelectableText(
+                c.errorMessage!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontSize: 12,
+                  fontFamily: 'monospace',
+                ),
+              ),
             ),
           const SizedBox(height: 8),
           ...c.visibleDevices.map((d) => Card(
