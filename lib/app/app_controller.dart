@@ -40,6 +40,12 @@ class AppController extends ChangeNotifier {
   final List<DiscoveredDevice> discovered = [];
   StreamSubscription<DiscoveredDevice>? _scanSub;
 
+  /// Scan results are coalesced: the BLE stream sets [_scanDirty] and a timer
+  /// notifies listeners at most twice a second, so a busy RF environment can't
+  /// swamp the UI thread with rebuilds.
+  Timer? _scanNotifyTimer;
+  bool _scanDirty = false;
+
   DataSource? _source;
   DiagnosticsClient? _client;
   Timer? _pollTimer;
@@ -59,6 +65,15 @@ class AppController extends ChangeNotifier {
   /// The live transport (BLE or simulated), exposed for the RE scanner UI.
   DataSource? get activeSource => _source;
 
+  /// Devices worth showing: named ones first (OBD adapters always advertise a
+  /// name), strongest signal first, capped so a busy RF environment doesn't
+  /// render dozens of irrelevant beacons.
+  List<DiscoveredDevice> get visibleDevices {
+    final named = discovered.where((d) => d.name.trim().isNotEmpty).toList()
+      ..sort((a, b) => b.rssi.compareTo(a.rssi));
+    return named.take(15).toList();
+  }
+
   void selectVehicle(VehicleEntry v) {
     selectedVehicle = v;
     notifyListeners();
@@ -68,23 +83,37 @@ class AppController extends ChangeNotifier {
 
   void startScan() {
     discovered.clear();
+    _scanDirty = false;
     _setPhase(ConnectionPhase.scanning);
     _scanSub?.cancel();
     _scanSub = _ble.scanForDevices(withServices: []).listen((d) {
-      // Filter to likely OBD adapters by name; keep unnamed too (some clones).
+      // BLE advertisements arrive many times per second per device. Rebuilding
+      // the UI on every packet locks up the main thread, so mutate the list
+      // here and let a throttle timer coalesce the notifications.
       final idx = discovered.indexWhere((e) => e.id == d.id);
       if (idx >= 0) {
         discovered[idx] = d;
       } else {
         discovered.add(d);
       }
-      notifyListeners();
+      _scanDirty = true;
     }, onError: (Object e) => _fail('BLE scan failed: $e'));
+
+    _scanNotifyTimer?.cancel();
+    _scanNotifyTimer =
+        Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (_scanDirty) {
+        _scanDirty = false;
+        notifyListeners();
+      }
+    });
   }
 
   void stopScan() {
     _scanSub?.cancel();
     _scanSub = null;
+    _scanNotifyTimer?.cancel();
+    _scanNotifyTimer = null;
     if (phase == ConnectionPhase.scanning) _setPhase(ConnectionPhase.idle);
   }
 
@@ -207,6 +236,7 @@ class AppController extends ChangeNotifier {
   @override
   void dispose() {
     _scanSub?.cancel();
+    _scanNotifyTimer?.cancel();
     _pollTimer?.cancel();
     _source?.disconnect();
     // Do not touch _ble here — the lazy getter would construct the real plugin.

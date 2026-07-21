@@ -76,7 +76,7 @@ class HomeScreen extends StatelessWidget {
                   style: TextStyle(color: Theme.of(context).colorScheme.error)),
             ),
           const SizedBox(height: 8),
-          ...c.discovered.map((d) => Card(
+          ...c.visibleDevices.map((d) => Card(
                 child: ListTile(
                   leading: const Icon(Icons.bluetooth),
                   title: Text(d.name.isEmpty ? '(unnamed)' : d.name),
