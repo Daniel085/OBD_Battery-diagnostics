@@ -65,13 +65,28 @@ class AppController extends ChangeNotifier {
   /// The live transport (BLE or simulated), exposed for the RE scanner UI.
   DataSource? get activeSource => _source;
 
-  /// Devices worth showing: named ones first (OBD adapters always advertise a
-  /// name), strongest signal first, capped so a busy RF environment doesn't
-  /// render dozens of irrelevant beacons.
+  /// Devices worth showing: named ones only (OBD adapters always advertise a
+  /// name), in **stable first-seen order** so rows never reorder under the
+  /// user's finger — RSSI fluctuates constantly and sorting by it made the list
+  /// jump around and become impossible to tap. Likely OBD adapters are hoisted
+  /// to the top once, by name, which is stable.
   List<DiscoveredDevice> get visibleDevices {
-    final named = discovered.where((d) => d.name.trim().isNotEmpty).toList()
-      ..sort((a, b) => b.rssi.compareTo(a.rssi));
-    return named.take(15).toList();
+    final named =
+        discovered.where((d) => d.name.trim().isNotEmpty).toList(growable: false);
+    final likely = named.where((d) => looksLikeObdName(d.name)).toList();
+    final rest = named.where((d) => !looksLikeObdName(d.name)).toList();
+    return [...likely, ...rest].take(20).toList();
+  }
+
+  static const _obdNameHints = [
+    'viecar', 'obd', 'elm', 'vlink', 'vgate', 'obdii', 'konnwei', 'veepeak',
+    'obdlink', 'scan',
+  ];
+
+  /// True if a BLE advertised name looks like an OBD adapter.
+  static bool looksLikeObdName(String name) {
+    final n = name.toLowerCase();
+    return _obdNameHints.any(n.contains);
   }
 
   void selectVehicle(VehicleEntry v) {
@@ -92,11 +107,15 @@ class AppController extends ChangeNotifier {
       // here and let a throttle timer coalesce the notifications.
       final idx = discovered.indexWhere((e) => e.id == d.id);
       if (idx >= 0) {
+        // Existing device: only a metadata refresh, let the timer coalesce it.
         discovered[idx] = d;
+        _scanDirty = true;
       } else {
+        // A newly-seen device changes the list contents, so show it right away
+        // rather than making the user wait (or tap Scan again) for a tick.
         discovered.add(d);
+        notifyListeners();
       }
-      _scanDirty = true;
     }, onError: (Object e) => _fail('BLE scan failed: $e'));
 
     _scanNotifyTimer?.cancel();

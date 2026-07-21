@@ -83,10 +83,20 @@ class HomeScreen extends StatelessWidget {
             ),
           const SizedBox(height: 8),
           ...c.visibleDevices.map((d) => Card(
+                // Stable key so Flutter reuses the row rather than rebuilding
+                // it as the underlying advertisement data refreshes.
+                key: ValueKey(d.id),
                 child: ListTile(
-                  leading: const Icon(Icons.bluetooth),
+                  leading: Icon(
+                    Icons.bluetooth,
+                    color: AppController.looksLikeObdName(d.name)
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                  ),
                   title: Text(d.name.isEmpty ? '(unnamed)' : d.name),
-                  subtitle: Text('${d.id}   rssi ${d.rssi}'),
+                  // Deliberately no RSSI here: it changes every packet and made
+                  // the rows visibly churn.
+                  subtitle: Text(d.id, maxLines: 1, overflow: TextOverflow.ellipsis),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: c.selectedVehicle == null
                       ? null
