@@ -37,6 +37,15 @@ class ElmBleConfig {
         notifyCharUuid: Uuid.parse('0000ffe1-0000-1000-8000-00805f9b34fb'),
       );
 
+  /// Viecar / many "BT 4.0" clones: FFF0 service with FFF1 (notify) and FFF2
+  /// (write). Some units combine both on FFF1 — connect-time discovery
+  /// (see ElmBleSource._resolveCharacteristics) corrects the split if needed.
+  factory ElmBleConfig.fff0() => ElmBleConfig(
+        serviceUuid: Uuid.parse('0000fff0-0000-1000-8000-00805f9b34fb'),
+        writeCharUuid: Uuid.parse('0000fff2-0000-1000-8000-00805f9b34fb'),
+        notifyCharUuid: Uuid.parse('0000fff1-0000-1000-8000-00805f9b34fb'),
+      );
+
   /// Nordic UART Service layout (some BLE adapters / OBDLink CX).
   factory ElmBleConfig.nordicUart() => ElmBleConfig(
         serviceUuid: Uuid.parse('6e400001-b5a3-f393-e0a9-e50e24dcca9e'),
@@ -72,7 +81,7 @@ class ElmBleSource implements DataSource {
     required this.deviceName,
     ElmBleConfig? config,
   })  : _ble = ble,
-        config = config ?? ElmBleConfig.ffe0();
+        config = config ?? ElmBleConfig.fff0();
 
   @override
   String get name => deviceName.isEmpty ? deviceId : deviceName;
@@ -108,16 +117,7 @@ class ElmBleSource implements DataSource {
 
     await ready.future;
 
-    _writeChar = QualifiedCharacteristic(
-      serviceId: config.serviceUuid,
-      characteristicId: config.writeCharUuid,
-      deviceId: deviceId,
-    );
-    _notifyChar = QualifiedCharacteristic(
-      serviceId: config.serviceUuid,
-      characteristicId: config.notifyCharUuid,
-      deviceId: deviceId,
-    );
+    await _resolveCharacteristics();
 
     _notifySub =
         _ble.subscribeToCharacteristic(_notifyChar!).listen(_onData, onError: (Object e) {
@@ -127,6 +127,54 @@ class ElmBleSource implements DataSource {
 
     _connected = true;
   }
+
+  /// Discover the adapter's GATT layout and pick the write + notify
+  /// characteristics automatically, so we adapt to whatever this particular
+  /// clone exposes (FFF1/FFF2 split, single FFF1, FFE1, etc.). Falls back to
+  /// the configured UUIDs if discovery yields nothing usable.
+  Future<void> _resolveCharacteristics() async {
+    try {
+      await _ble.discoverAllServices(deviceId);
+      final services = await _ble.getDiscoveredServices(deviceId);
+
+      QualifiedCharacteristic? write;
+      QualifiedCharacteristic? notify;
+      for (final s in services) {
+        for (final ch in s.characteristics) {
+          final q = QualifiedCharacteristic(
+            serviceId: s.id,
+            characteristicId: ch.id,
+            deviceId: deviceId,
+          );
+          if (notify == null && (ch.isNotifiable || ch.isIndicatable)) {
+            notify = q;
+          }
+          if (write == null &&
+              (ch.isWritableWithoutResponse || ch.isWritableWithResponse)) {
+            write = q;
+          }
+        }
+      }
+      // Prefer a real split; if only one usable characteristic exists, share it.
+      _notifyChar = notify ??
+          write ??
+          _fallback(config.notifyCharUuid);
+      _writeChar = write ??
+          notify ??
+          _fallback(config.writeCharUuid);
+      return;
+    } catch (_) {
+      // Discovery unsupported/failed — use the configured UUIDs verbatim.
+    }
+    _writeChar = _fallback(config.writeCharUuid);
+    _notifyChar = _fallback(config.notifyCharUuid);
+  }
+
+  QualifiedCharacteristic _fallback(Uuid charUuid) => QualifiedCharacteristic(
+        serviceId: config.serviceUuid,
+        characteristicId: charUuid,
+        deviceId: deviceId,
+      );
 
   void _onData(List<int> bytes) {
     // Drop any notification that arrives while no command is in flight (e.g. a
