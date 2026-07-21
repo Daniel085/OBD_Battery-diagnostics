@@ -96,10 +96,30 @@ class AppController extends ChangeNotifier {
 
   // ---- BLE discovery ---------------------------------------------------------
 
-  void startScan() {
+  Future<void> startScan() async {
     discovered.clear();
     _scanDirty = false;
     _setPhase(ConnectionPhase.scanning);
+
+    // The BLE stack reports `unknown` until iOS finishes initialising it (and
+    // until the user answers the permission prompt). Scanning during that
+    // window silently returns nothing — which is why the first tap used to do
+    // nothing and only the second one worked. Wait for a settled state first.
+    try {
+      if (_ble.status != BleStatus.ready) {
+        await _ble.statusStream
+            .firstWhere((s) => s == BleStatus.ready)
+            .timeout(const Duration(seconds: 10));
+      }
+    } on TimeoutException {
+      _fail('Bluetooth not ready. Check that Bluetooth is on and this app has '
+          'permission in Settings > Privacy & Security > Bluetooth.');
+      return;
+    } catch (e) {
+      _fail('Bluetooth unavailable: $e');
+      return;
+    }
+
     _scanSub?.cancel();
     _scanSub = _ble.scanForDevices(withServices: []).listen((d) {
       // BLE advertisements arrive many times per second per device. Rebuilding

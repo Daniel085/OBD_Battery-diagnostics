@@ -6,6 +6,7 @@ import '../app/app_controller.dart';
 import '../app/signal_set_repository.dart';
 import '../transport/simulated_source.dart';
 import 'dashboard_screen.dart';
+import 'terminal_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -22,7 +23,19 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.watch<AppController>();
     return Scaffold(
-      appBar: AppBar(title: const Text('OBD Battery Diagnostics')),
+      appBar: AppBar(
+        title: const Text('OBD Battery Diagnostics'),
+        actions: [
+          if (c.activeSource != null)
+            IconButton(
+              tooltip: 'Adapter terminal',
+              icon: const Icon(Icons.terminal),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const TerminalScreen()),
+              ),
+            ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

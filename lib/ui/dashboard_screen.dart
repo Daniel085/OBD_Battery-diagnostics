@@ -5,6 +5,7 @@ import '../app/app_controller.dart';
 import '../engine/diagnostics_client.dart';
 import 'report_screen.dart';
 import 'scanner_screen.dart';
+import 'terminal_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -33,6 +34,13 @@ class DashboardScreen extends StatelessWidget {
             icon: const Icon(Icons.assignment),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const ReportScreen()),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Adapter terminal',
+            icon: const Icon(Icons.terminal),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const TerminalScreen()),
             ),
           ),
           IconButton(
