@@ -48,10 +48,21 @@
   .socbar > i{display:block;height:100%;width:49%;
     background:linear-gradient(90deg,var(--accent-dim),var(--accent))}
 
-  .sec{margin:34px 0 14px;display:flex;align-items:baseline;gap:12px}
-  .sec h2{font-size:14px;font-weight:600;letter-spacing:.02em;margin:0}
+  .sec{margin:34px 0 14px;display:flex;align-items:center;gap:12px}
+  .sec h2{font-size:14px;font-weight:600;letter-spacing:.02em;margin:0;align-self:baseline}
   .sec .rule{flex:1;height:1px;background:var(--edge)}
-  .sec .count{font-family:var(--mono);font-size:11px;color:var(--faint)}
+  .sec .count{font-family:var(--mono);font-size:11px;color:var(--faint);align-self:baseline}
+  .grouphint{margin:12px 2px 0;font-size:12px;color:var(--muted);max-width:66ch;line-height:1.5}
+
+  .unit-toggle{display:inline-flex;border:1px solid var(--edge);border-radius:8px;overflow:hidden;
+    background:var(--panel)}
+  .unit-toggle button{font-family:var(--mono);font-size:11px;letter-spacing:.05em;
+    padding:5px 11px;border:0;background:transparent;color:var(--muted);cursor:pointer;
+    transition:background .12s,color .12s}
+  .unit-toggle button + button{border-left:1px solid var(--edge)}
+  .unit-toggle button.on{background:var(--accent);color:#07100e;font-weight:600}
+  .unit-toggle button:not(.on):hover{color:var(--ink);background:var(--panel-2)}
+  .unit-toggle button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
   .card{background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:16px 16px 14px}
@@ -127,36 +138,43 @@
     </div>
     <div class="cell">
       <span class="lab">Pack temp</span>
-      <span class="big">30<span class="u">°C</span></span>
+      <span class="big" data-c="30"><span class="tv">30</span><span class="u tu">°C</span></span>
       <span class="lab" style="color:var(--faint)">ECU 40 · DID 434F</span>
     </div>
   </div>
 
-  <div class="sec"><h2>Section voltages</h2><span class="rule"></span><span class="count">ECU 40 · confirmed</span></div>
+  <div class="sec"><h2>Pack group voltages</h2><span class="rule"></span><span class="count">ECU 40 · confirmed</span></div>
   <div class="grid">
     <div class="card">
-      <div class="top"><span class="name">Section 1</span><span class="chip ok">live</span></div>
+      <div class="top"><span class="name">Group 1</span><span class="chip ok">live</span></div>
       <div class="val">51.08<span class="u">V</span></div>
       <div class="did"><span>DID 416C</span><span class="f">u16 ÷ 100</span></div>
     </div>
     <div class="card">
-      <div class="top"><span class="name">Section 2</span><span class="chip ok">live</span></div>
+      <div class="top"><span class="name">Group 2</span><span class="chip ok">live</span></div>
       <div class="val">51.03<span class="u">V</span></div>
       <div class="did"><span>DID 416D</span><span class="f">u16 ÷ 100</span></div>
     </div>
     <div class="card">
-      <div class="top"><span class="name">Section 3</span><span class="chip ok">live</span></div>
+      <div class="top"><span class="name">Group 3</span><span class="chip ok">live</span></div>
       <div class="val">51.08<span class="u">V</span></div>
       <div class="did"><span>DID 416E</span><span class="f">u16 ÷ 100</span></div>
     </div>
     <div class="card" style="background:var(--panel-2)">
       <div class="top"><span class="name">Spread (max−min)</span><span class="chip ok">healthy</span></div>
       <div class="val">0.05<span class="u">V</span></div>
-      <div class="did"><span>3 sections matched</span><span class="f">&lt; 0.1 V</span></div>
+      <div class="did"><span>3 groups matched</span><span class="f">&lt; 0.1 V</span></div>
     </div>
   </div>
+  <p class="grouphint">Three ~51&nbsp;V measurements reported inside the ~355&nbsp;V / 96-cell pack. The exact physical grouping is unconfirmed — labelled “groups”, not modules.</p>
 
-  <div class="sec"><h2>Battery temperatures</h2><span class="rule"></span><span class="count">5 sensors · confirmed</span></div>
+  <div class="sec">
+    <h2>Battery temperatures</h2><span class="rule"></span>
+    <div class="unit-toggle" role="group" aria-label="Temperature unit">
+      <button type="button" id="btnC" class="on" aria-pressed="true">°C</button>
+      <button type="button" id="btnF" aria-pressed="false">°F</button>
+    </div>
+  </div>
   <div class="temps" id="temps"></div>
 
   <div class="sec"><h2>Signal map</h2><span class="rule"></span><span class="count">what the port exposes</span></div>
@@ -192,17 +210,40 @@
     {n:"Coolant loop", did:"40E6", v:21.5},
   ];
   const tmin=15, tmax=45, tw=document.getElementById("temps");
+  const cardVals=[]; // {c:celsius, valNode, unitNode}
   for(const t of temps){
     const c=el("div","tcard");
     c.append(el("div","tn",t.n));
-    const val=el("div","val"); val.append(document.createTextNode(t.v.toFixed(1)));
-    const u=el("span","u","°C"); val.append(u); c.append(val);
+    const val=el("div","val");
+    const num=document.createTextNode("");
+    val.append(num);
+    const u=el("span","u"); val.append(u); c.append(val);
     const m=el("div","tmeter"), fill=el("i");
     fill.style.width=Math.max(4,Math.min(100,(t.v-tmin)/(tmax-tmin)*100))+"%";
     m.append(fill); c.append(m);
     c.append(el("div","tdid","DID "+t.did));
     tw.append(c);
+    cardVals.push({c:t.v, num, u});
   }
+
+  // Temperature unit toggle (°C / °F) — converts every temp readout + the hero.
+  const heroTemp = document.querySelector('.big[data-c]');
+  const heroC = parseFloat(heroTemp.dataset.c);
+  const heroNum = heroTemp.querySelector('.tv');
+  const heroUnit = heroTemp.querySelector('.tu');
+  const btnC = document.getElementById("btnC"), btnF = document.getElementById("btnF");
+  function render(unit){
+    const toF = unit==="F";
+    const conv = c => toF ? c*9/5+32 : c;
+    const uStr = toF ? "°F" : "°C";
+    for(const cv of cardVals){ cv.num.textContent = conv(cv.c).toFixed(1); cv.u.textContent = uStr; }
+    heroNum.textContent = Math.round(conv(heroC)); heroUnit.textContent = uStr;
+    btnC.classList.toggle("on", !toF); btnF.classList.toggle("on", toF);
+    btnC.setAttribute("aria-pressed", String(!toF)); btnF.setAttribute("aria-pressed", String(toF));
+  }
+  btnC.addEventListener("click", ()=>render("C"));
+  btnF.addEventListener("click", ()=>render("F"));
+  render("C");
 
   // Signal map — confirmed vs gateway-blocked/open.
   const rows = [
