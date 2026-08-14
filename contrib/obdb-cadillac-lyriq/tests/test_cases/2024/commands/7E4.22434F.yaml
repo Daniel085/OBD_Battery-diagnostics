@@ -1,0 +1,5 @@
+command_id: 7E4.22434F
+test_cases:
+- expected_values:
+    CADILLAC_HVBAT_TEMP: 30
+    response: 18DAF1400462434F46

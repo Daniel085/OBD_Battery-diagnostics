@@ -1,0 +1,112 @@
+{ "commands": [
+  {
+    "hdr": "7E4", "rax": "7EC", "eax": "40", "fcm1": true,
+    "cmd": {"22": "33E5"}, "freq": 5,
+    "signals": [
+      {
+        "id": "CADILLAC_HVBAT_V",
+        "path": "Battery",
+        "name": "HV battery pack voltage",
+        "suggestedMetric": "hvBatteryVoltage",
+        "fmt": {"len": 8, "mul": 2.7, "max": 450, "unit": "volts"}
+      }
+    ]
+  },
+  {
+    "hdr": "7E4", "rax": "7EC", "fcm1": true,
+    "cmd": {"22": "416C"}, "freq": 5,
+    "signals": [
+      {
+        "id": "CADILLAC_HVBAT_GRP1_V",
+        "path": "Battery",
+        "name": "HV battery group 1 voltage",
+        "fmt": {"len": 16, "div": 100, "max": 65, "unit": "volts"}
+      }
+    ]
+  },
+  {
+    "hdr": "7E4", "rax": "7EC", "fcm1": true,
+    "cmd": {"22": "416D"}, "freq": 5,
+    "signals": [
+      {
+        "id": "CADILLAC_HVBAT_GRP2_V",
+        "path": "Battery",
+        "name": "HV battery group 2 voltage",
+        "fmt": {"len": 16, "div": 100, "max": 65, "unit": "volts"}
+      }
+    ]
+  },
+  {
+    "hdr": "7E4", "rax": "7EC", "fcm1": true,
+    "cmd": {"22": "416E"}, "freq": 5,
+    "signals": [
+      {
+        "id": "CADILLAC_HVBAT_GRP3_V",
+        "path": "Battery",
+        "name": "HV battery group 3 voltage",
+        "fmt": {"len": 16, "div": 100, "max": 65, "unit": "volts"}
+      }
+    ]
+  },
+  {
+    "hdr": "7E4", "rax": "7EC", "fcm1": true,
+    "cmd": {"22": "434F"}, "freq": 10,
+    "signals": [
+      {
+        "id": "CADILLAC_HVBAT_TEMP",
+        "path": "Battery",
+        "name": "HV battery temperature",
+        "suggestedMetric": "hvBatteryTemperature",
+        "fmt": {"len": 8, "add": -40, "min": -40, "max": 100, "unit": "celsius"}
+      }
+    ]
+  },
+  {
+    "hdr": "7E4", "rax": "7EC", "fcm1": true,
+    "cmd": {"22": "4127"}, "freq": 10,
+    "signals": [
+      {
+        "id": "CADILLAC_HVBAT_TEMP_A",
+        "path": "Battery",
+        "name": "HV battery temperature (sensor A)",
+        "fmt": {"len": 16, "div": 32, "min": -40, "max": 100, "unit": "celsius"}
+      }
+    ]
+  },
+  {
+    "hdr": "7E4", "rax": "7EC", "fcm1": true,
+    "cmd": {"22": "4124"}, "freq": 10,
+    "signals": [
+      {
+        "id": "CADILLAC_HVBAT_TEMP_B",
+        "path": "Battery",
+        "name": "HV battery temperature (sensor B)",
+        "fmt": {"len": 16, "div": 32, "min": -40, "max": 100, "unit": "celsius"}
+      }
+    ]
+  },
+  {
+    "hdr": "7E4", "rax": "7EC", "fcm1": true,
+    "cmd": {"22": "40E5"}, "freq": 10,
+    "signals": [
+      {
+        "id": "CADILLAC_HVBAT_COOLANT_T1",
+        "path": "Battery",
+        "name": "HV battery coolant temperature 1",
+        "fmt": {"len": 16, "div": 32, "min": -40, "max": 100, "unit": "celsius"}
+      }
+    ]
+  },
+  {
+    "hdr": "7E4", "rax": "7EC", "fcm1": true,
+    "cmd": {"22": "40E6"}, "freq": 10,
+    "signals": [
+      {
+        "id": "CADILLAC_HVBAT_COOLANT_T2",
+        "path": "Battery",
+        "name": "HV battery coolant temperature 2",
+        "fmt": {"len": 16, "div": 32, "min": -40, "max": 100, "unit": "celsius"}
+      }
+    ]
+  }
+] }

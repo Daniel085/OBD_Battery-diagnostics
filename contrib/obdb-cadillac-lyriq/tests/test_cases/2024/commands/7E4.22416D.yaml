@@ -1,0 +1,5 @@
+command_id: 7E4.22416D
+test_cases:
+- expected_values:
+    CADILLAC_HVBAT_GRP2_V: 51.03
+    response: 18DAF1400562416D13EF
