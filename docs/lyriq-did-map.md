@@ -8,7 +8,32 @@ Sources: OBDb/Cadillac-LYRIQ test cases (github.com/OBDb) + our Pi captures.
 Formulas marked ✓ are derived from OBDb sample response/value pairs or confirmed
 on our vehicle; ⚠ = ours, hypothesis.
 
-## Battery — ECU CB (DACB) — the canonical BMS
+## ⚠️ The ECU CB gateway limitation (root cause found)
+
+**ECU CB (BSM — Battery System Manager) is blocked at the gateway for UDS.**
+Proven on-vehicle by comparing who answers each request type:
+
+| Request | CB answers? |
+| --- | --- |
+| `0100` (J1979 mode 01, functional) | ✅ **yes** |
+| `22F190` / any `22xxxx` (UDS) | ❌ **no** |
+
+So the vehicle's central gateway **bridges legislated OBD (J1979) frames to/from
+CB but filters UDS (service 0x22) requests to it.** This is not an adapter defect
+and is **not fixable via AT headers/flow-control/session** (12+ combinations
+tried) — a better ELM327 (OBDLink CX) won't change it either, because the block
+is on the *request type through the gateway*, not the adapter.
+
+The OBDb `DACB.*` SOC/cell captures therefore came from a tool that bypasses the
+gateway (different OBD pin / internal bus tap / GM MDI2), not a standard
+OBD-port ELM327. Reaching CB needs bus access behind the gateway (hardware), not
+software.
+
+**Workaround:** SOC can be estimated from the confirmed **pack voltage**
+(`1D.2233E5`) via the Ultium voltage↔SOC curve (≈268 V at 0%, ≈400 V at 100%),
+so CB is not strictly required for a useful SOC readout.
+
+## Battery — ECU CB (DACB) — the canonical BMS (gateway-blocked for UDS)
 
 | Signal | DID | Formula | Source |
 | --- | --- | --- | --- |
