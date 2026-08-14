@@ -3,14 +3,19 @@
   "vehicle": "Cadillac-Lyriq-2025",
   "description": "2025 Cadillac Lyriq (GM Ultium) diagnostics. WORK IN PROGRESS — the Ultium HV battery data is on a 29-bit CAN bus and is not yet publicly reverse-engineered. Only generic J1979 signals are confirmed. Use the reverse-engineering toolkit (Phase 5) to discover BMS DIDs and add them here.",
   "provenance": {
-    "derivedFrom": "Generic SAE J1979 (public standard) for the confirmed signals. HV BMS DIDs: UNKNOWN — pending reverse engineering.",
-    "confidence": "J1979 signals: high. HV BMS: none yet — placeholders below are NOT confirmed and are disabled.",
+    "derivedFrom": "Confirmed on a live 2025 Lyriq (VIN 1GYKPTRL5SZ302606) via a Pi BLE bridge + Viecar ELM327 clone. Transport + ECU map verified; HV-BMS analog DIDs (SOC/V/A/temp) still pending. See docs/lyriq-re-log.md.",
+    "confidence": "Protocol (ISO 15765-4 29/500) and battery ECU address (40) CONFIRMED on-vehicle. J1979 baseline: high. Specific SOC/voltage/temp DIDs: NOT yet identified.",
     "license": "J1979 signals are public-domain protocol facts."
   },
   "protocol": {
     "canFormat": "29bit",
     "obdProtocol": 7,
-    "note": "GM Ultium battery ECUs use 29-bit CAN. A genuine STN-based adapter (OBDLink CX/MX+) is strongly recommended; many generic ELM327 clones cannot do 29-bit multiframe ISO-TP reliably. Generic J1979 mode-01 PIDs below respond even on the 11-bit-style query and are the confirmed baseline."
+    "note": "CONFIRMED on-vehicle: ISO 15765-4 CAN 29-bit/500k, force with ATSP7 (auto-detect ATSP0 FAILS on the Lyriq). Battery/propulsion controller (BECM) is ECU 40: request header 18DA40F1, response filter 18DAF140. A Viecar ELM327 clone DID handle 29-bit multiframe here, though an STN adapter (OBDLink CX/MX+) is still recommended for reliability."
+  },
+  "ecuMap": {
+    "_comment": "ECUs seen answering the 0100 functional broadcast (18DB33F1) on this Lyriq. Battery data lives on ECU 40.",
+    "battery": "40",
+    "responders": ["45", "CB", "1D", "17", "40", "28"]
   },
   "commands": [
     {
