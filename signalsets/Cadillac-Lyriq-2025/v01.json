@@ -249,6 +249,142 @@
           }
         }
       ]
+    },
+    {
+      "_source": "OBDb DA28.224A7A (0x64=100 -> direct); addressing 18DA28F1/18DAF128",
+      "hdr": "18DA28F1",
+      "rax": "18DAF128",
+      "cmd": {
+        "22": "4A7A"
+      },
+      "signals": [
+        {
+          "id": "WHEEL_SPEED_FL",
+          "name": "Wheel speed front-left",
+          "group": "dynamics",
+          "fmt": {
+            "bix": 0,
+            "len": 8,
+            "unit": "km/h"
+          }
+        },
+        {
+          "id": "WHEEL_SPEED_FR",
+          "name": "Wheel speed front-right",
+          "group": "dynamics",
+          "fmt": {
+            "bix": 8,
+            "len": 8,
+            "unit": "km/h"
+          }
+        },
+        {
+          "id": "WHEEL_SPEED_RL",
+          "name": "Wheel speed rear-left",
+          "group": "dynamics",
+          "fmt": {
+            "bix": 16,
+            "len": 8,
+            "unit": "km/h"
+          }
+        },
+        {
+          "id": "WHEEL_SPEED_RR",
+          "name": "Wheel speed rear-right",
+          "group": "dynamics",
+          "fmt": {
+            "bix": 24,
+            "len": 8,
+            "unit": "km/h"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb DA28.224C2F samples: FF50=-0.28033, FFFC=-0.00637 -> s16/627.9",
+      "hdr": "18DA28F1",
+      "rax": "18DAF128",
+      "cmd": {
+        "22": "4C2F"
+      },
+      "signals": [
+        {
+          "id": "ACCEL_LATERAL",
+          "name": "Lateral acceleration",
+          "group": "dynamics",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "sign": true,
+            "div": 627.9,
+            "unit": "g"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb DA28.224C30 samples: FF68=-0.24211, FFFC=-0.00637 -> s16/627.9",
+      "hdr": "18DA28F1",
+      "rax": "18DAF128",
+      "cmd": {
+        "22": "4C30"
+      },
+      "signals": [
+        {
+          "id": "ACCEL_LONGITUDINAL",
+          "name": "Longitudinal acceleration",
+          "group": "dynamics",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "sign": true,
+            "div": 627.9,
+            "unit": "g"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb DA28.224C2D (steering angle) - formula UNVERIFIED, s16/scale TBD; verify on-car",
+      "hdr": "18DA28F1",
+      "rax": "18DAF128",
+      "cmd": {
+        "22": "4C2D"
+      },
+      "signals": [
+        {
+          "id": "STEERING_ANGLE",
+          "name": "Steering wheel angle",
+          "group": "dynamics",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "sign": true,
+            "div": 10,
+            "unit": "degrees"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb DA1A.22448F (odometer) - formula UNVERIFIED (no capture); GM often u24 km. Verify on-car.",
+      "hdr": "18DA1AF1",
+      "rax": "18DAF11A",
+      "cmd": {
+        "22": "448F"
+      },
+      "signals": [
+        {
+          "id": "ODOMETER",
+          "name": "Odometer",
+          "group": "vehicle",
+          "fmt": {
+            "bix": 0,
+            "len": 24,
+            "unit": "km"
+          }
+        }
+      ]
     }
   ],
   "_unconfirmed_hv_bms": {
