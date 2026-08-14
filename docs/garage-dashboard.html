@@ -1,0 +1,276 @@
+<title>Two-Car Battery Readout</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --ground:#0E1214; --panel:#161C1F; --panel-2:#1B2327; --edge:#2A353A;
+    --ink:#E6EDEF; --muted:#8A9AA0; --faint:#5C6B71;
+    --accent:#38E1C6; --accent-dim:#1F6F63;
+    --good:#4ADE80; --warn:#F5B841; --blocked:#F0776C;
+    --mono:"SFMono-Regular",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --car:var(--accent);
+  }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{background:radial-gradient(1200px 600px at 80% -12%, color-mix(in srgb, var(--car) 8%, transparent), transparent 60%), var(--ground);
+    color:var(--ink); font-family:var(--sans); line-height:1.5; -webkit-font-smoothing:antialiased;
+    padding:clamp(16px,3.5vw,40px); transition:background .3s}
+  .wrap{max-width:1120px;margin:0 auto}
+
+  header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 24px;
+    padding-bottom:18px;border-bottom:1px solid var(--edge)}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--car);margin:0 0 6px;transition:color .3s}
+  h1{font-size:clamp(24px,4vw,38px);font-weight:640;letter-spacing:-.02em;margin:0;line-height:1.02;text-wrap:balance}
+  .sub{color:var(--muted);font-size:12.5px;margin:8px 0 0;font-family:var(--mono)}
+
+  .switch{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden;background:var(--panel)}
+  .switch button{font-family:var(--sans);font-size:13px;font-weight:560;padding:9px 16px;border:0;background:transparent;
+    color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s,color .15s}
+  .switch button + button{border-left:1px solid var(--edge)}
+  .switch button.on{color:var(--ink)}
+  .switch button.on .swdot{background:var(--car)}
+  .switch button:not(.on):hover{background:var(--panel-2);color:var(--ink)}
+  .swdot{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+  .switch button:focus-visible{outline:2px solid var(--car);outline-offset:-2px}
+
+  .hero{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:1px;background:var(--edge);
+    border:1px solid var(--edge);border-radius:14px;overflow:hidden;margin:22px 0}
+  .hero .cell{background:var(--panel);padding:22px 24px;display:flex;flex-direction:column;gap:6px}
+  .hero .cell.pri{background:linear-gradient(160deg,var(--panel-2),var(--panel))}
+  .lab{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .big{font-size:clamp(34px,6.5vw,54px);font-weight:660;letter-spacing:-.03em;line-height:.95;font-variant-numeric:tabular-nums}
+  .big .u{font-size:.34em;font-weight:600;color:var(--muted);margin-left:6px;letter-spacing:0}
+  .tag{font-family:var(--mono);font-size:11px}
+  .tag.est{color:var(--warn)} .tag.ok{color:var(--good)} .tag.faint{color:var(--faint)}
+  .socbar{height:7px;border-radius:4px;background:#0c0f10;overflow:hidden;margin-top:6px;border:1px solid var(--edge)}
+  .socbar>i{display:block;height:100%;background:linear-gradient(90deg,var(--accent-dim),var(--car));transition:width .4s,background .3s}
+
+  .sec{margin:32px 0 14px;display:flex;align-items:center;gap:12px}
+  .sec h2{font-size:14px;font-weight:600;margin:0}
+  .sec .rule{flex:1;height:1px;background:var(--edge)}
+  .sec .count{font-family:var(--mono);font-size:11px;color:var(--faint)}
+  .unit-toggle{display:inline-flex;border:1px solid var(--edge);border-radius:8px;overflow:hidden;background:var(--panel)}
+  .unit-toggle button{font-family:var(--mono);font-size:11px;padding:5px 11px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+  .unit-toggle button+button{border-left:1px solid var(--edge)}
+  .unit-toggle button.on{background:var(--car);color:#07100e;font-weight:600}
+  .unit-toggle button:focus-visible{outline:2px solid var(--car);outline-offset:2px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+  .card{background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:16px 16px 14px}
+  .card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .card .name{font-size:13px;color:var(--muted)}
+  .card .val{font-size:28px;font-weight:640;letter-spacing:-.02em;margin-top:10px;font-variant-numeric:tabular-nums}
+  .card .val .u{font-size:.44em;color:var(--muted);font-weight:600;margin-left:4px}
+  .card .did{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-top:10px;display:flex;
+    justify-content:space-between;gap:8px;border-top:1px solid var(--edge);padding-top:9px}
+  .card .did .f{color:var(--car);opacity:.85}
+  .chip{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;padding:3px 7px;border-radius:20px;border:1px solid;white-space:nowrap}
+  .chip.ok{color:var(--good);border-color:rgba(74,222,128,.35);background:rgba(74,222,128,.08)}
+
+  .status{border:1px solid var(--edge);border-radius:12px;overflow:hidden;background:var(--panel)}
+  .srow{display:grid;grid-template-columns:1.5fr 1fr 1.5fr auto;gap:12px;align-items:center;padding:11px 16px;border-top:1px solid var(--edge);font-size:13px}
+  .srow.head{border-top:none;background:var(--panel-2);color:var(--muted);font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
+  .srow .sdid{font-family:var(--mono);font-size:12px;color:var(--ink)}
+  .srow .formula{font-family:var(--mono);font-size:11.5px;color:var(--car);opacity:.85}
+  .srow.blk .sdid,.srow.blk .sig{color:var(--muted)}
+  .chip.ok2{color:var(--good);border-color:rgba(74,222,128,.35);background:rgba(74,222,128,.08)}
+  .chip.blk2{color:var(--blocked);border-color:rgba(240,119,108,.35);background:rgba(240,119,108,.08)}
+
+  .note{margin-top:14px;border:1px solid color-mix(in srgb,var(--blocked) 28%,transparent);background:color-mix(in srgb,var(--blocked) 6%,transparent);
+    border-radius:12px;padding:15px 18px;font-size:13px}
+  .note b{color:var(--blocked)} .note .m{font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+  footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--edge);font-family:var(--mono);font-size:11px;color:var(--faint);display:flex;flex-wrap:wrap;gap:6px 20px;justify-content:space-between}
+  @media(max-width:640px){
+    .hero{grid-template-columns:1fr 1fr}.hero .cell.pri{grid-column:1/-1}
+    .srow{grid-template-columns:1fr auto;gap:6px 12px}.srow .formula{grid-column:1/-1;order:5}
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <p class="eyebrow" id="eyebrow">HV battery diagnostics · on-vehicle</p>
+      <h1 id="title">Two-Car Battery Readout</h1>
+      <p class="sub" id="sub"></p>
+    </div>
+    <div class="switch" role="group" aria-label="Select vehicle">
+      <button type="button" id="tabLyriq" class="on" aria-pressed="true"><span class="swdot"></span>Cadillac Lyriq</button>
+      <button type="button" id="tabBmw" aria-pressed="false"><span class="swdot"></span>BMW 330e</button>
+    </div>
+  </header>
+
+  <div class="hero" id="hero"></div>
+
+  <div class="sec"><h2 id="gridTitle"></h2><span class="rule"></span><span class="count" id="gridCount"></span></div>
+  <div class="grid" id="grid"></div>
+
+  <div class="sec">
+    <h2>Temperatures</h2><span class="rule"></span>
+    <div class="unit-toggle" role="group" aria-label="Temperature unit">
+      <button type="button" id="btnC" class="on" aria-pressed="true">°C</button>
+      <button type="button" id="btnF" aria-pressed="false">°F</button>
+    </div>
+  </div>
+  <div class="grid" id="temps"></div>
+
+  <div class="sec"><h2>Signal map</h2><span class="rule"></span><span class="count">what the port exposes</span></div>
+  <div class="status" id="status"></div>
+  <div class="note" id="note"></div>
+
+  <footer><span id="footL"></span><span id="footR"></span></footer>
+</div>
+
+<script>
+  const el=(t,c,x)=>{const n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n;};
+
+  const CARS = {
+    lyriq: {
+      accent:"#38E1C6",
+      title:"Cadillac Lyriq — Live Pack Readout",
+      sub:"VIN 1GYKPTRL5SZ302606 · CAN 29/500 · ECU 40/1D · via ELM327→Pi",
+      hero:[
+        {lab:"State of charge", val:"49", u:"%", tag:{cls:"est",txt:"estimated from pack voltage — BSM gateway-blocked"}, bar:49},
+        {lab:"Pack voltage", val:"356", u:"V", tag:{cls:"faint",txt:"ECU 1D · DID 33E5"}},
+        {lab:"Pack temp", val:"30", u:"°C", c:30, tag:{cls:"faint",txt:"ECU 40 · DID 434F"}},
+      ],
+      gridTitle:"Pack group voltages", gridCount:"ECU 40 · confirmed",
+      cards:[
+        {n:"Group 1", v:"51.08", u:"V", did:"DID 416C", f:"u16 ÷ 100"},
+        {n:"Group 2", v:"51.03", u:"V", did:"DID 416D", f:"u16 ÷ 100"},
+        {n:"Group 3", v:"51.08", u:"V", did:"DID 416E", f:"u16 ÷ 100"},
+      ],
+      temps:[
+        {n:"Sensor A (4127)", c:32.8},{n:"Sensor B (4124)", c:30.9},
+        {n:"Main (434F)", c:30.0},{n:"Coolant loop (40E5)", c:24.2},{n:"Coolant loop (40E6)", c:21.5},
+      ],
+      status:[
+        ["Pack voltage","1D · 33E5","8-bit × 2.7 → V","ok"],
+        ["Group voltage ×3","40 · 416C–E","u16 ÷ 100 → V","ok"],
+        ["Battery temp ×5","40 · 4124/27/E5/E6/4F","u16 ÷ 32 → °C","ok"],
+        ["Wheel speeds ×4","28 · 4A7A","byte → km/h","ok"],
+        ["Accelerometers","28 · 4C2F/30","s16 ÷ 627.9 → g","ok"],
+        ["State of charge","CB · 2B43","byte0 ÷ 255 × 100","blk"],
+        ["Cell V avg/max/min","CB · 2AF5","u16 ÷ 10000 → V","blk"],
+        ["Pack current","—","not located","blk"],
+      ],
+      note:[{b:"SOC & per-cell voltages sit behind the gateway."},{t:" The Battery System Manager (ECU CB) answers J1979 "},{m:"0100"},{t:" but the gateway filters UDS "},{m:"22xxxx"},{t:" to it. SOC here is derived from the confirmed pack voltage."}],
+      foot:["8 signals confirmed on-vehicle · SOC/cells from OBDb","captured 2026-08-14 · charging 9 kW"],
+    },
+    bmw: {
+      accent:"#4EA1FF",
+      title:"BMW 330e — Live Battery Readout",
+      sub:"F30 PHEV · CAN 11/500 · standard J1979 on ECU 7EB/7E8 · via ELM327→Pi",
+      hero:[
+        {lab:"HV battery charge", val:"78", u:"%", tag:{cls:"ok",txt:"PID 015B · byte × 100 ÷ 255"}, bar:78},
+        {lab:"Fault codes", val:"0", u:"", tag:{cls:"ok",txt:"mode 03 · clean · MIL never on"}},
+        {lab:"12V bus", val:"14.0", u:"V", tag:{cls:"faint",txt:"PID 0142 · charging"}},
+      ],
+      gridTitle:"Vehicle state", gridCount:"standard J1979 · confirmed",
+      cards:[
+        {n:"Fuel level", v:"52.9", u:"%", did:"PID 012F", f:"byte × 100 ÷ 255"},
+        {n:"Engine RPM", v:"898", u:"rpm", did:"PID 010C", f:"u16 ÷ 4"},
+        {n:"Engine load", v:"10.2", u:"%", did:"PID 0104", f:"byte × 100 ÷ 255"},
+      ],
+      temps:[
+        {n:"Oil temp (015C)", c:51},{n:"Ambient sensor (0146)", c:50},
+      ],
+      status:[
+        ["HV battery charge","7EB · 015B","byte × 100 ÷ 255","ok"],
+        ["Fault codes (DTC)","7Ex · mode 03","43 00 = none","ok"],
+        ["Oil / ambient temp","7E8 · 015C/46","byte − 40 → °C","ok"],
+        ["Module voltage","7E8 · 0142","u16 ÷ 1000 → V","ok"],
+        ["Fuel / RPM / load","7E8 · 012F/0C/04","standard","ok"],
+        ["State of health (SOH)","SME","not on OBD bus","blk"],
+        ["Per-cell voltages","SME","not on OBD bus","blk"],
+        ["Cell temperatures","SME","not on OBD bus","blk"],
+      ],
+      note:[{b:"Deep pack health needs the SME."},{t:" SOH, per-cell voltage and cell temps live on the SME battery ECU, which the 330e does "},{b:"not"},{t:" bridge to the OBD-II port — reachable only via BMW ISTA/ENET. The clean DTC scan means “no diagnosed fault”, not a certified capacity."}],
+      foot:["6 signals confirmed on-vehicle · no stored faults","captured 2026 · engine running, 14.1 V"],
+    },
+  };
+
+  let cur="lyriq", unit="C";
+  const tmin=15,tmax=55;
+
+  function buildNote(segs){
+    const n=document.getElementById("note"); n.textContent="";
+    for(const s of segs){
+      if(s.b!=null) n.append(el("b",null,s.b));
+      else if(s.m!=null) n.append(el("span","m",s.m));
+      else n.append(document.createTextNode(s.t));
+    }
+  }
+
+  function renderCar(key){
+    cur=key; const car=CARS[key];
+    document.documentElement.style.setProperty("--car", car.accent);
+    document.getElementById("title").textContent=car.title;
+    document.getElementById("sub").textContent=car.sub;
+    document.getElementById("gridTitle").textContent=car.gridTitle;
+    document.getElementById("gridCount").textContent=car.gridCount;
+    document.getElementById("footL").textContent=car.foot[0];
+    document.getElementById("footR").textContent=car.foot[1];
+    buildNote(car.note);
+
+    const hero=document.getElementById("hero"); hero.textContent="";
+    car.hero.forEach((h,i)=>{
+      const cell=el("div","cell"+(i===0?" pri":""));
+      cell.append(el("span","lab",h.lab));
+      const big=el("span","big"); const num=el("span","hnum", h.val); big.append(num);
+      if(h.u) big.append(el("span","u",h.u));
+      cell.append(big);
+      if(h.tag) cell.append(el("span","tag "+h.tag.cls, h.tag.txt));
+      if(h.bar!=null){const bar=el("span","socbar"),f=el("i");f.style.width=h.bar+"%";bar.append(f);cell.append(bar);}
+      if(h.c!=null){big.dataset.c=h.c;}
+      hero.append(cell);
+    });
+
+    const grid=document.getElementById("grid"); grid.textContent="";
+    for(const cd of car.cards){
+      const c=el("div","card");
+      const top=el("div","top"); top.append(el("span","name",cd.n)); top.append(el("span","chip ok","live")); c.append(top);
+      const val=el("div","val"); val.append(document.createTextNode(cd.v)); val.append(el("span","u",cd.u)); c.append(val);
+      const did=el("div","did"); did.append(el("span",null,cd.did)); did.append(el("span","f",cd.f)); c.append(did); grid.append(c);
+    }
+
+    renderTemps();
+
+    const sw=document.getElementById("status"); sw.textContent="";
+    const head=el("div","srow head"); ["Signal","ECU · DID","Formula","Status"].forEach(h=>head.append(el("span",null,h))); sw.append(head);
+    for(const [sig,did,f,st] of car.status){
+      const r=el("div","srow"+(st==="blk"?" blk":""));
+      r.append(el("span","sig",sig)); r.append(el("span","sdid",did)); r.append(el("span","formula",f));
+      const wrap=el("span"); wrap.append(el("span","chip "+(st==="ok"?"ok2":"blk2"), st==="ok"?"confirmed":"not on port")); r.append(wrap); sw.append(r);
+    }
+
+    document.getElementById("tabLyriq").classList.toggle("on",key==="lyriq");
+    document.getElementById("tabBmw").classList.toggle("on",key==="bmw");
+    document.getElementById("tabLyriq").setAttribute("aria-pressed",String(key==="lyriq"));
+    document.getElementById("tabBmw").setAttribute("aria-pressed",String(key==="bmw"));
+  }
+
+  function renderTemps(){
+    const car=CARS[cur], tw=document.getElementById("temps"); tw.textContent="";
+    const toF=unit==="F", conv=c=>toF?c*9/5+32:c, uStr=toF?"°F":"°C";
+    for(const t of car.temps){
+      const c=el("div","card"); c.append(el("div","name",t.n));
+      const val=el("div","val"); val.append(document.createTextNode(conv(t.c).toFixed(1))); val.append(el("span","u",uStr)); c.append(val);
+      const bar=el("div","did"); const meter=el("span");
+      meter.style.cssText="flex:1;height:5px;border-radius:3px;background:#0c0f10;border:1px solid var(--edge);overflow:hidden";
+      const fill=el("i"); fill.style.cssText="display:block;height:100%;width:"+Math.max(4,Math.min(100,(t.c-tmin)/(tmax-tmin)*100))+"%;background:linear-gradient(90deg,#3aa0ff,var(--good),var(--warn))";
+      meter.append(fill); bar.append(meter); c.append(bar); tw.append(c);
+    }
+    document.querySelectorAll(".big[data-c]").forEach(h=>{
+      const cN=parseFloat(h.dataset.c), n=h.querySelector(".hnum"), u=h.querySelector(".u");
+      if(n) n.textContent=Math.round(conv(cN)); if(u) u.textContent=uStr;
+    });
+    document.getElementById("btnC").classList.toggle("on",!toF);
+    document.getElementById("btnF").classList.toggle("on",toF);
+  }
+
+  document.getElementById("tabLyriq").addEventListener("click",()=>renderCar("lyriq"));
+  document.getElementById("tabBmw").addEventListener("click",()=>renderCar("bmw"));
+  document.getElementById("btnC").addEventListener("click",()=>{unit="C";renderTemps();});
+  document.getElementById("btnF").addEventListener("click",()=>{unit="F";renderTemps();});
+  renderCar("lyriq");
+</script>
