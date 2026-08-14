@@ -87,6 +87,24 @@ OBDb documents `CADILLAC_HVBAT_CMU01_VOLT`…`CMU96_VOLT` (96 = the 96S pack). T
 are the per-cell voltages — location is the multiframe `222AF5`-family / `424x`
 blocks. DID/offset mapping still to pin down (many read zero unless balancing).
 
+## HVAC / heat-pump — not accessible (hunted 2026-08-14)
+
+Cabin climate / heat-pump telemetry is **not reachable** via the OBD port:
+
+- **No HVAC ECU in the normal roster.** Only 6 modules answer the functional
+  broadcast (17, 1D, 28, 40, 45, CB). None carry cabin-climate data.
+- **A hidden ECU `53` exists** (physical `18DA53F1` / resp `18DAF153`) — it does
+  *not* appear in the broadcast but acks tester-present (`3E00` → `7E00`). This
+  is the likely HVAC/body module. **But it is locked:** rejects all ID DIDs
+  (`7F 22 31`), rejects the extended session (`1003` → `7F 10 12`
+  subFunctionNotSupported), and exposes no readable DIDs in the ranges swept. It
+  needs authenticated (seed/key) diagnostic access we can't provide.
+- OBDb documents **zero** HVAC/heat-pump DIDs for the Lyriq.
+
+**What we do have of thermal management:** the battery **coolant-loop temps**
+(`40.40E5`/`40E6` ≈ 21–24 °C) and pack temps — i.e. the loop the heat pump
+regulates, just not the heat pump's own controls.
+
 ## Other useful (non-battery) DIDs from OBDb
 
 - `DA1A.22448F` — odometer
