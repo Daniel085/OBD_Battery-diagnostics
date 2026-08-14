@@ -42,7 +42,36 @@ class SimulatedBmwSource implements DataSource {
       if (resp != null) return resp;
       return 'NO DATA\r>';
     }
+    // Standard J1979 mode-01 PIDs (what the real 330e answers on 7Ex).
+    if (cmd.startsWith('01') && cmd.length >= 4) {
+      final resp = _responseForPid(cmd.substring(2, 4));
+      if (resp != null) return resp;
+      return 'NO DATA\r>';
+    }
     return 'NO DATA\r>';
+  }
+
+  /// Standard J1979 mode-01 responses on 7E8, matching what the 330e returns.
+  String? _responseForPid(String pid) {
+    int? b0, b1;
+    switch (pid) {
+      case '5B': // HV battery charge, x100/255 %
+        b0 = 195 + _rng.nextInt(8); // ~78%
+      case '5C': // oil temp, raw-40
+        b0 = 90 + _rng.nextInt(3); // ~51C
+      case '46': // ambient temp, raw-40
+        b0 = 65;
+      case '2F': // fuel level, x100/255
+        b0 = 128;
+      case '42': // control module voltage, /1000 (2 bytes)
+        b0 = 0x36;
+        b1 = 0xD8;
+    }
+    if (b0 == null) return null;
+    // SOC (5B) answers from 7EB on the real car; others from 7E8.
+    final respId = pid == '5B' ? '7EB' : '7E8';
+    final bytes = [0x41, int.parse(pid, radix: 16), b0, if (b1 != null) b1];
+    return '$respId ${_hex([bytes.length, ...bytes])}\r>';
   }
 
   /// Build a 607 response for a DID, framed as ISO-TP over the ELM line format.
