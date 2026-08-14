@@ -1,11 +1,11 @@
 {
   "$schema": "../signalset.schema.json",
   "vehicle": "Cadillac-Lyriq-2025",
-  "description": "2025 Cadillac Lyriq (GM Ultium) diagnostics. WORK IN PROGRESS — the Ultium HV battery data is on a 29-bit CAN bus and is not yet publicly reverse-engineered. Only generic J1979 signals are confirmed. Use the reverse-engineering toolkit (Phase 5) to discover BMS DIDs and add them here.",
+  "description": "2025 Cadillac Lyriq (GM Ultium) diagnostics. 29-bit CAN (ISO 15765-4, ATSP7). Confirmed on-vehicle: pack voltage, module voltages, and battery temperatures on ECUs 40 & 1D. SOC/cell-voltage DIDs (ECU CB, from OBDb) have derived formulas but ECU CB does not answer via a single-bus ELM327 clone. See docs/lyriq-did-map.md.",
   "provenance": {
-    "derivedFrom": "Confirmed on a live 2025 Lyriq (VIN 1GYKPTRL5SZ302606) via a Pi BLE bridge + Viecar ELM327 clone. Transport + ECU map verified; HV-BMS analog DIDs (SOC/V/A/temp) still pending. See docs/lyriq-re-log.md.",
-    "confidence": "Protocol (ISO 15765-4 29/500) and battery ECU address (40) CONFIRMED on-vehicle. J1979 baseline: high. Specific SOC/voltage/temp DIDs: NOT yet identified.",
-    "license": "J1979 signals are public-domain protocol facts."
+    "derivedFrom": "Live 2025 Lyriq (VIN 1GYKPTRL5SZ302606) via a Pi BLE bridge + Viecar ELM327 clone, cross-referenced with the community OBDb/Cadillac-LYRIQ database. See docs/lyriq-re-log.md and docs/lyriq-did-map.md.",
+    "confidence": "CONFIRMED on-vehicle: protocol, ECU map, pack voltage (1D.33E5 x2.7), module voltages (40.416C-E /100), temps (40.4127/4124/40E5/40E6 /32, 40.434F -40). SOC/cell-V formulas derived from OBDb but ECU CB unreachable on our adapter (likely separate CAN bus). Pack current still unknown.",
+    "license": "Battery signals cross-referenced with OBDb/Cadillac-LYRIQ (CC BY-SA). J1979 signals are public-domain."
   },
   "protocol": {
     "canFormat": "29bit",
@@ -15,32 +15,54 @@
   "ecuMap": {
     "_comment": "ECUs seen answering the 0100 functional broadcast (18DB33F1) on this Lyriq. Battery data lives on ECU 40.",
     "battery": "40",
-    "responders": ["45", "CB", "1D", "17", "40", "28"]
+    "responders": [
+      "45",
+      "CB",
+      "1D",
+      "17",
+      "40",
+      "28"
+    ]
   },
   "commands": [
     {
       "hdr": "7DF",
       "rax": "7E8",
-      "cmd": { "01": "0D" },
+      "cmd": {
+        "01": "0D"
+      },
       "signals": [
         {
           "id": "VEHICLE_SPEED",
           "name": "Vehicle speed",
           "group": "summary",
-          "fmt": { "bix": 0, "len": 8, "max": 255, "unit": "km/h" }
+          "fmt": {
+            "bix": 0,
+            "len": 8,
+            "max": 255,
+            "unit": "km/h"
+          }
         }
       ]
     },
     {
       "hdr": "7DF",
       "rax": "7E8",
-      "cmd": { "01": "42" },
+      "cmd": {
+        "01": "42"
+      },
       "signals": [
         {
           "id": "CONTROL_MODULE_VOLTAGE",
           "name": "12V control module voltage",
           "group": "summary",
-          "fmt": { "bix": 0, "len": 16, "div": 1000, "max": 65.535, "unit": "volts" }
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 1000,
+            "max": 65.535,
+            "unit": "volts"
+          }
         }
       ]
     },
@@ -48,62 +70,259 @@
       "_confirmed": "on-vehicle 2026-08-13: rose 51.14V charging -> 50.98V idle",
       "hdr": "18DA40F1",
       "rax": "18DAF140",
-      "cmd": { "22": "416C" },
+      "cmd": {
+        "22": "416C"
+      },
       "signals": [
-        { "id": "HVBAT_MODULE_V_1", "name": "HV battery module voltage 1", "group": "cells", "fmt": { "bix": 0, "len": 16, "div": 100, "unit": "volts" } }
+        {
+          "id": "HVBAT_MODULE_V_1",
+          "name": "HV battery module voltage 1",
+          "group": "cells",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 100,
+            "unit": "volts"
+          }
+        }
       ]
     },
     {
-      "hdr": "18DA40F1", "rax": "18DAF140", "cmd": { "22": "416D" },
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "416D"
+      },
       "signals": [
-        { "id": "HVBAT_MODULE_V_2", "name": "HV battery module voltage 2", "group": "cells", "fmt": { "bix": 0, "len": 16, "div": 100, "unit": "volts" } }
+        {
+          "id": "HVBAT_MODULE_V_2",
+          "name": "HV battery module voltage 2",
+          "group": "cells",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 100,
+            "unit": "volts"
+          }
+        }
       ]
     },
     {
-      "hdr": "18DA40F1", "rax": "18DAF140", "cmd": { "22": "416E" },
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "416E"
+      },
       "signals": [
-        { "id": "HVBAT_MODULE_V_3", "name": "HV battery module voltage 3", "group": "cells", "fmt": { "bix": 0, "len": 16, "div": 100, "unit": "volts" } }
+        {
+          "id": "HVBAT_MODULE_V_3",
+          "name": "HV battery module voltage 3",
+          "group": "cells",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 100,
+            "unit": "volts"
+          }
+        }
       ]
     },
     {
       "_confirmed": "on-vehicle 2026-08-13: ~23-33C spread, u16/32, rose under charge",
-      "hdr": "18DA40F1", "rax": "18DAF140", "cmd": { "22": "4127" },
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "4127"
+      },
       "signals": [
-        { "id": "HVBAT_TEMP_1", "name": "HV battery temperature 1", "group": "temperature", "fmt": { "bix": 0, "len": 16, "div": 32, "unit": "celsius" } }
+        {
+          "id": "HVBAT_TEMP_1",
+          "name": "HV battery temperature 1",
+          "group": "temperature",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 32,
+            "unit": "celsius"
+          }
+        }
       ]
     },
     {
-      "hdr": "18DA40F1", "rax": "18DAF140", "cmd": { "22": "4124" },
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "4124"
+      },
       "signals": [
-        { "id": "HVBAT_TEMP_2", "name": "HV battery temperature 2", "group": "temperature", "fmt": { "bix": 0, "len": 16, "div": 32, "unit": "celsius" } }
+        {
+          "id": "HVBAT_TEMP_2",
+          "name": "HV battery temperature 2",
+          "group": "temperature",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 32,
+            "unit": "celsius"
+          }
+        }
       ]
     },
     {
-      "hdr": "18DA40F1", "rax": "18DAF140", "cmd": { "22": "40E5" },
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "40E5"
+      },
       "signals": [
-        { "id": "HVBAT_TEMP_3", "name": "HV battery temperature 3 (coolant?)", "group": "temperature", "fmt": { "bix": 0, "len": 16, "div": 32, "unit": "celsius" } }
+        {
+          "id": "HVBAT_TEMP_3",
+          "name": "HV battery temperature 3 (coolant?)",
+          "group": "temperature",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 32,
+            "unit": "celsius"
+          }
+        }
       ]
     },
     {
-      "hdr": "18DA40F1", "rax": "18DAF140", "cmd": { "22": "40E6" },
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "40E6"
+      },
       "signals": [
-        { "id": "HVBAT_TEMP_4", "name": "HV battery temperature 4 (coolant?)", "group": "temperature", "fmt": { "bix": 0, "len": 16, "div": 32, "unit": "celsius" } }
+        {
+          "id": "HVBAT_TEMP_4",
+          "name": "HV battery temperature 4 (coolant?)",
+          "group": "temperature",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 32,
+            "unit": "celsius"
+          }
+        }
+      ]
+    },
+    {
+      "_confirmed": "on-vehicle 2026-08-14: 0x84=132, x2.7=~356V at 49% SOC",
+      "hdr": "18DA1DF1",
+      "rax": "18DAF11D",
+      "cmd": {
+        "22": "33E5"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_PACK_VOLTAGE",
+          "name": "HV battery pack voltage",
+          "group": "summary",
+          "fmt": {
+            "bix": 0,
+            "len": 8,
+            "mul": 2.7,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_confirmed": "on-vehicle 2026-08-14: 0x46=70, raw-40=30C, fits temp cluster",
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "434F"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_TEMP_MAIN",
+          "name": "HV battery temperature (434F)",
+          "group": "temperature",
+          "fmt": {
+            "bix": 0,
+            "len": 8,
+            "add": -40,
+            "unit": "celsius"
+          }
+        }
       ]
     }
   ],
   "_unconfirmed_hv_bms": {
-    "_comment": "Candidate ECU-40 signals captured live (SOC 49%, charging 1.4kW). Hypotheses only — NOT confirmed and NOT loaded. All use ATSH 18DA40F1 / ATCRA 18DAF140. Confirm by correlating against SOC/load changes. See docs/lyriq-re-log.md.",
-    "addressing": { "hdr": "18DA40F1", "rax": "18DAF140", "canFormat": "29bit" },
+    "_comment": "Candidate ECU-40 signals captured live (SOC 49%, charging 1.4kW). Hypotheses only \u2014 NOT confirmed and NOT loaded. All use ATSH 18DA40F1 / ATCRA 18DAF140. Confirm by correlating against SOC/load changes. See docs/lyriq-re-log.md.",
+    "addressing": {
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "canFormat": "29bit"
+    },
     "candidates": [
-      { "did": "416C", "name": "module/section voltage 1?", "guessRaw": 5108, "guessValue": 51.08, "unit": "volts", "formula": "u16/100" },
-      { "did": "416D", "name": "module/section voltage 2?", "guessRaw": 5103, "guessValue": 51.03, "unit": "volts", "formula": "u16/100" },
-      { "did": "416E", "name": "module/section voltage 3?", "guessRaw": 5108, "guessValue": 51.08, "unit": "volts", "formula": "u16/100" },
-      { "did": "406E", "name": "SOC candidate (moved 46->47)", "guessRaw": 47, "unit": "percent", "formula": "u8 (last byte)" },
-      { "did": "4127", "name": "temperature sensor (x3 identical)", "guessRaw": 1048, "unit": "celsius?", "formula": "TBD scaling" },
-      { "did": "4124", "name": "temperature pair", "guessRaw": 988, "unit": "celsius?", "formula": "TBD scaling" },
-      { "did": "415B", "name": "cumulative energy counter (SOH)", "guessRaw": 2030871, "unit": "Wh?", "formula": "u32" },
-      { "did": "415C", "name": "cumulative energy counter 2", "guessRaw": 1782994, "unit": "Wh?", "formula": "u32" },
-      { "did": "418D-4191", "name": "per-cell/module data block (multiframe, mostly zero this capture)", "formula": "array of 18DAF140-2N frames" }
+      {
+        "did": "416C",
+        "name": "module/section voltage 1?",
+        "guessRaw": 5108,
+        "guessValue": 51.08,
+        "unit": "volts",
+        "formula": "u16/100"
+      },
+      {
+        "did": "416D",
+        "name": "module/section voltage 2?",
+        "guessRaw": 5103,
+        "guessValue": 51.03,
+        "unit": "volts",
+        "formula": "u16/100"
+      },
+      {
+        "did": "416E",
+        "name": "module/section voltage 3?",
+        "guessRaw": 5108,
+        "guessValue": 51.08,
+        "unit": "volts",
+        "formula": "u16/100"
+      },
+      {
+        "did": "406E",
+        "name": "SOC candidate (moved 46->47)",
+        "guessRaw": 47,
+        "unit": "percent",
+        "formula": "u8 (last byte)"
+      },
+      {
+        "did": "4127",
+        "name": "temperature sensor (x3 identical)",
+        "guessRaw": 1048,
+        "unit": "celsius?",
+        "formula": "TBD scaling"
+      },
+      {
+        "did": "4124",
+        "name": "temperature pair",
+        "guessRaw": 988,
+        "unit": "celsius?",
+        "formula": "TBD scaling"
+      },
+      {
+        "did": "415B",
+        "name": "cumulative energy counter (SOH)",
+        "guessRaw": 2030871,
+        "unit": "Wh?",
+        "formula": "u32"
+      },
+      {
+        "did": "415C",
+        "name": "cumulative energy counter 2",
+        "guessRaw": 1782994,
+        "unit": "Wh?",
+        "formula": "u32"
+      },
+      {
+        "did": "418D-4191",
+        "name": "per-cell/module data block (multiframe, mostly zero this capture)",
+        "formula": "array of 18DAF140-2N frames"
+      }
     ]
   }
 }
