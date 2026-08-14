@@ -43,6 +43,24 @@ Addressing: `ATSH 18DA40F1`, `ATCRA 18DAF140`, `ATFCSH 18DA40F1`, then `22<DID>`
 - Beyond `4307` and outside these clusters, ECU 40 returns `7F 22 31`
   (requestOutOfRange).
 
+## Generic J1979 mode-01 PIDs
+
+Read via functional broadcast `18DB33F1` then per-ECU. Supported-PID bitmasks
+(`0100/0120/0140/0160/0180/01A0`) show which ECU claims what:
+
+| ECU | # PIDs | Notable |
+| --- | --- | --- |
+| **28** | **53** | Full engine-style set incl. `05` coolant, `0F` intake, `46` ambient, `0C` RPM, `0D` speed, `04` load, `2F` fuel level, `33` baro… |
+| 17 | 14 | speed, run time, distances, `42` voltage |
+| 40 / 45 / 1D / CB | 4 | `01`, `20`, `40`, `42` (module voltage) only |
+
+**Coolant caveat — declared but empty.** ECU 28 lists `0105` (coolant), `010F`,
+`0146`, `015C` as *supported*, but querying them returns **`NO DATA`**. They are
+legacy-engine compliance placeholders with no live sensor on this EV. Only
+`010C` (RPM → `0000`) and `0142` (module voltage, real: ~13.7 V across ECUs)
+return anything. **Real thermal data is NOT in the generic PIDs — it's in the
+proprietary ECU-40 DIDs** (the `4124`/`4127` temp-array candidates below).
+
 ## Candidate analog signals (captured under charge — best guesses, UNCONFIRMED)
 
 Full capture in `~/.claude-obd-pi/captures/capture_all.txt`. Conditions: SOC 49%,
