@@ -43,6 +43,52 @@
           "fmt": { "bix": 0, "len": 16, "div": 1000, "max": 65.535, "unit": "volts" }
         }
       ]
+    },
+    {
+      "_confirmed": "on-vehicle 2026-08-13: rose 51.14V charging -> 50.98V idle",
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": { "22": "416C" },
+      "signals": [
+        { "id": "HVBAT_MODULE_V_1", "name": "HV battery module voltage 1", "group": "cells", "fmt": { "bix": 0, "len": 16, "div": 100, "unit": "volts" } }
+      ]
+    },
+    {
+      "hdr": "18DA40F1", "rax": "18DAF140", "cmd": { "22": "416D" },
+      "signals": [
+        { "id": "HVBAT_MODULE_V_2", "name": "HV battery module voltage 2", "group": "cells", "fmt": { "bix": 0, "len": 16, "div": 100, "unit": "volts" } }
+      ]
+    },
+    {
+      "hdr": "18DA40F1", "rax": "18DAF140", "cmd": { "22": "416E" },
+      "signals": [
+        { "id": "HVBAT_MODULE_V_3", "name": "HV battery module voltage 3", "group": "cells", "fmt": { "bix": 0, "len": 16, "div": 100, "unit": "volts" } }
+      ]
+    },
+    {
+      "_confirmed": "on-vehicle 2026-08-13: ~23-33C spread, u16/32, rose under charge",
+      "hdr": "18DA40F1", "rax": "18DAF140", "cmd": { "22": "4127" },
+      "signals": [
+        { "id": "HVBAT_TEMP_1", "name": "HV battery temperature 1", "group": "temperature", "fmt": { "bix": 0, "len": 16, "div": 32, "unit": "celsius" } }
+      ]
+    },
+    {
+      "hdr": "18DA40F1", "rax": "18DAF140", "cmd": { "22": "4124" },
+      "signals": [
+        { "id": "HVBAT_TEMP_2", "name": "HV battery temperature 2", "group": "temperature", "fmt": { "bix": 0, "len": 16, "div": 32, "unit": "celsius" } }
+      ]
+    },
+    {
+      "hdr": "18DA40F1", "rax": "18DAF140", "cmd": { "22": "40E5" },
+      "signals": [
+        { "id": "HVBAT_TEMP_3", "name": "HV battery temperature 3 (coolant?)", "group": "temperature", "fmt": { "bix": 0, "len": 16, "div": 32, "unit": "celsius" } }
+      ]
+    },
+    {
+      "hdr": "18DA40F1", "rax": "18DAF140", "cmd": { "22": "40E6" },
+      "signals": [
+        { "id": "HVBAT_TEMP_4", "name": "HV battery temperature 4 (coolant?)", "group": "temperature", "fmt": { "bix": 0, "len": 16, "div": 32, "unit": "celsius" } }
+      ]
     }
   ],
   "_unconfirmed_hv_bms": {

@@ -61,6 +61,23 @@ legacy-engine compliance placeholders with no live sensor on this EV. Only
 return anything. **Real thermal data is NOT in the generic PIDs — it's in the
 proprietary ECU-40 DIDs** (the `4124`/`4127` temp-array candidates below).
 
+## CONFIRMED signals (validated by charge/idle correlation)
+
+Positively identified by watching them respond to a 3.45 kW charge start/stop:
+
+| Signal | DIDs (ECU 40) | Formula | Confirmation |
+| --- | --- | --- | --- |
+| **Module/section voltage** ×3 | `416C`, `416D`, `416E` | `u16 / 100` V | 51.14 V charging → 50.98 V idle — moved the correct direction when charge stopped |
+| **Temperature sensors** | `40E5` (~25°C), `40E6`+`4139`+`413A` (~23°C), `4124`+`4125` (~31°C), `4127`+`412A`+`412B` (~33°C), `4147` (~24°C) | `u16 / 32` °C | Tight 23–33°C spread; ticked up under charge (e.g. 40E6 738→741) |
+
+These are real, repeatably-read values with physical behaviour — safe to wire
+into the signal set. (The ÷32 temp scale is a working fit across all sensors; a
+second reference temperature would pin it exactly.)
+
+Still UNCONFIRMED: **SOC** (`406E`=47, best guess, didn't move over minutes) and
+**pack current** (never located — did not appear in the sampled DIDs even with a
+clear 3.45 kW / ~10 A charge running; it's in an unswept DID).
+
 ## Candidate analog signals (captured under charge — best guesses, UNCONFIRMED)
 
 Full capture in `~/.claude-obd-pi/captures/capture_all.txt`. Conditions: SOC 49%,
