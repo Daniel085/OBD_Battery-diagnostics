@@ -1,0 +1,8 @@
+command_id: 7E4.2240E5
+test_cases:
+- expected_values:
+    CADILLAC_HVBAT_COOLANT_T1: 25.15625
+    response: 18DAF140056240E50325
+- expected_values:
+    CADILLAC_HVBAT_COOLANT_T1: 25.3125
+    response: 18DAF140056240E5032A

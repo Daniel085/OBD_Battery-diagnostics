@@ -1,0 +1,5 @@
+command_id: 7E4.2233E5
+test_cases:
+- expected_values:
+    CADILLAC_HVBAT_V: 356.4
+    response: 18DAF11D046233E584
