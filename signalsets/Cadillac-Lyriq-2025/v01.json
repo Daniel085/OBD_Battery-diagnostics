@@ -46,7 +46,18 @@
     }
   ],
   "_unconfirmed_hv_bms": {
-    "_comment": "Candidate signals to be discovered/validated by the UDS DID scanner + CAN sniffer. Do NOT load these until confirmed on a real Lyriq. Populated as reverse engineering progresses.",
-    "candidates": []
+    "_comment": "Candidate ECU-40 signals captured live (SOC 49%, charging 1.4kW). Hypotheses only — NOT confirmed and NOT loaded. All use ATSH 18DA40F1 / ATCRA 18DAF140. Confirm by correlating against SOC/load changes. See docs/lyriq-re-log.md.",
+    "addressing": { "hdr": "18DA40F1", "rax": "18DAF140", "canFormat": "29bit" },
+    "candidates": [
+      { "did": "416C", "name": "module/section voltage 1?", "guessRaw": 5108, "guessValue": 51.08, "unit": "volts", "formula": "u16/100" },
+      { "did": "416D", "name": "module/section voltage 2?", "guessRaw": 5103, "guessValue": 51.03, "unit": "volts", "formula": "u16/100" },
+      { "did": "416E", "name": "module/section voltage 3?", "guessRaw": 5108, "guessValue": 51.08, "unit": "volts", "formula": "u16/100" },
+      { "did": "406E", "name": "SOC candidate (moved 46->47)", "guessRaw": 47, "unit": "percent", "formula": "u8 (last byte)" },
+      { "did": "4127", "name": "temperature sensor (x3 identical)", "guessRaw": 1048, "unit": "celsius?", "formula": "TBD scaling" },
+      { "did": "4124", "name": "temperature pair", "guessRaw": 988, "unit": "celsius?", "formula": "TBD scaling" },
+      { "did": "415B", "name": "cumulative energy counter (SOH)", "guessRaw": 2030871, "unit": "Wh?", "formula": "u32" },
+      { "did": "415C", "name": "cumulative energy counter 2", "guessRaw": 1782994, "unit": "Wh?", "formula": "u32" },
+      { "did": "418D-4191", "name": "per-cell/module data block (multiframe, mostly zero this capture)", "formula": "array of 18DAF140-2N frames" }
+    ]
   }
 }

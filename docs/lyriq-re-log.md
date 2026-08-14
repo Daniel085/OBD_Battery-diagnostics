@@ -43,12 +43,38 @@ Addressing: `ATSH 18DA40F1`, `ATCRA 18DAF140`, `ATFCSH 18DA40F1`, then `22<DID>`
 - Beyond `4307` and outside these clusters, ECU 40 returns `7F 22 31`
   (requestOutOfRange).
 
-## NOT yet identified
+## Candidate analog signals (captured under charge — best guesses, UNCONFIRMED)
 
-- **SOC / pack voltage / pack current / cell voltages / temperatures.** These are
-  the meaty analog (2-byte+) signals and were **not** positively matched to a DID
-  this session. Reference point captured for correlation: **SOC = 49%** on the
-  dash (raw `0x31`), plus a request to find coolant/battery temps.
+Full capture in `~/.claude-obd-pi/captures/capture_all.txt`. Conditions: SOC 49%,
+AC charging 1.4 kW / 6 A @ 240 V, pack nominal ~355 V. ECU 40 sleeps fast when
+idle, so all of this requires the car in Ready.
+
+| DID | raw (hex) | decoded | Hypothesis (needs confirmation) |
+| --- | --- | --- | --- |
+| `416C` | `13F4` | 5108 → **51.08 V** (÷100) | Module/section voltage |
+| `416D` | `13EF` | 5103 → **51.03 V** | Module/section voltage (3 tightly-matched — healthy) |
+| `416E` | `13F4` | 5108 → **51.08 V** | Module/section voltage |
+| `415B` | `001EFD17` | 2,030,871 | Cumulative energy counter (Wh?) — SOH-relevant |
+| `415C` | `001B34D2` | 1,782,994 | Cumulative energy counter (Wh?) |
+| `406E` | `…2F` | 47 | **SOC candidate** — the one value that moved (46→47); near 49% |
+| `4127`/`412A`/`412B` | `0418` | 1048 (×3 identical) | Temperature sensor array (3 sensors) |
+| `4124`/`4125` | `03DC` | 988 (pair) | Temperature pair |
+| `40E5`/`40E6` | `0325`/`02D9` | 805 / 729 | Analog pair (drifted 800→805, 727→729 under charge) |
+| `4149` | `0184` | 388 | Possibly pack voltage (scaling TBD) |
+| `4102`/`4106`/`4107`/`410A` | `121202` | [18,18,2] | Repeated cell/module status |
+| `418D`–`4191`, `4148`, `414E`, `4158` | multi-frame | arrays of `18DAF140 2N ..` frames | **Per-cell / per-module data blocks** (mostly zero this capture) |
+
+Not yet found: **pack current** (should have flipped negative under charge but
+didn't appear in sampled DIDs) and a confirmed **SOC**. `40E5`/`40E6` drifting
+slightly under charge makes them live-analog candidates worth correlating.
+
+### How to confirm (next stable session)
+- Drive **SOC up several %** (charge longer / faster) and re-capture: whichever
+  DID tracks it is SOC. `406E` and `40E5/E6` are the prime suspects.
+- Confirm the `416C/D/E` module-voltage guess: they should **rise under charge,
+  fall under load**.
+- The `418D`–`4191` multi-frame blocks are the likely **per-cell voltage arrays**
+  — read them with long settle when the pack is active/balancing.
 
 ## Blocker & how to resume
 
