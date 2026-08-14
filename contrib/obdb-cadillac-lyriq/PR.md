@@ -41,6 +41,16 @@ control.
   guessed.
 - **Pack current** — not yet located in a confirmed DID.
 
+## Model year
+
+Captured on a **2025** Lyriq, so the test cases live under
+`tests/test_cases/2025/`. This matches `generations.yaml`, which places 2025 in
+the "Gen 1 Refresh" generation (2025→), separate from 2023–2024. The battery
+hardware is unchanged between the years (same BEV3 platform, same 102 kWh Ultium
+pack and electrical architecture), so these DIDs/formulas are expected to apply
+to 2023–2024 as well — but they are only *verified* on a 2025 here, and labelled
+accordingly.
+
 ## Provenance / license
 
 Signals are original on-vehicle captures contributed under the repo's CC BY-SA
