@@ -1,0 +1,5 @@
+command_id: DA40.224124
+test_cases:
+- expected_values:
+    LYRIQ_HVBAT_TEMP_B: 30.875
+  response: 18DAF1400562412403DC

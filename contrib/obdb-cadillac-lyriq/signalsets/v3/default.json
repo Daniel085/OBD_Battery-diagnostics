@@ -1,303 +1,275 @@
 {
   "commands": [
     {
-      "hdr": "7E4",
-      "rax": "7EC",
-      "fcm1": true,
-      "cmd": {
-        "22": "416C"
-      },
-      "freq": 5,
-      "signals": [
-        {
-          "id": "CADILLAC_HVBAT_GRP1_V",
-          "path": "Battery",
-          "name": "HV battery group 1 voltage",
-          "fmt": {
-            "len": 16,
-            "div": 100,
-            "max": 65,
-            "unit": "volts"
-          }
-        }
-      ]
-    },
-    {
-      "hdr": "7E4",
-      "rax": "7EC",
-      "fcm1": true,
-      "cmd": {
-        "22": "416D"
-      },
-      "freq": 5,
-      "signals": [
-        {
-          "id": "CADILLAC_HVBAT_GRP2_V",
-          "path": "Battery",
-          "name": "HV battery group 2 voltage",
-          "fmt": {
-            "len": 16,
-            "div": 100,
-            "max": 65,
-            "unit": "volts"
-          }
-        }
-      ]
-    },
-    {
-      "hdr": "7E4",
-      "rax": "7EC",
-      "fcm1": true,
-      "cmd": {
-        "22": "416E"
-      },
-      "freq": 5,
-      "signals": [
-        {
-          "id": "CADILLAC_HVBAT_GRP3_V",
-          "path": "Battery",
-          "name": "HV battery group 3 voltage",
-          "fmt": {
-            "len": 16,
-            "div": 100,
-            "max": 65,
-            "unit": "volts"
-          }
-        }
-      ]
-    },
-    {
-      "hdr": "7E4",
-      "rax": "7EC",
-      "fcm1": true,
-      "cmd": {
-        "22": "434F"
-      },
-      "freq": 10,
-      "signals": [
-        {
-          "id": "CADILLAC_HVBAT_TEMP",
-          "path": "Battery",
-          "name": "HV battery temperature",
-          "suggestedMetric": "hvBatteryTemperature",
-          "fmt": {
-            "len": 8,
-            "add": -40,
-            "min": -40,
-            "max": 100,
-            "unit": "celsius"
-          }
-        }
-      ]
-    },
-    {
-      "hdr": "7E4",
-      "rax": "7EC",
-      "fcm1": true,
-      "cmd": {
-        "22": "4127"
-      },
-      "freq": 10,
-      "signals": [
-        {
-          "id": "CADILLAC_HVBAT_TEMP_A",
-          "path": "Battery",
-          "name": "HV battery temperature (sensor A)",
-          "fmt": {
-            "len": 16,
-            "div": 32,
-            "min": -40,
-            "max": 100,
-            "unit": "celsius"
-          }
-        }
-      ]
-    },
-    {
-      "hdr": "7E4",
-      "rax": "7EC",
-      "fcm1": true,
-      "cmd": {
-        "22": "4124"
-      },
-      "freq": 10,
-      "signals": [
-        {
-          "id": "CADILLAC_HVBAT_TEMP_B",
-          "path": "Battery",
-          "name": "HV battery temperature (sensor B)",
-          "fmt": {
-            "len": 16,
-            "div": 32,
-            "min": -40,
-            "max": 100,
-            "unit": "celsius"
-          }
-        }
-      ]
-    },
-    {
-      "hdr": "7E4",
-      "rax": "7EC",
-      "fcm1": true,
-      "cmd": {
-        "22": "40E5"
-      },
-      "freq": 10,
-      "signals": [
-        {
-          "id": "CADILLAC_HVBAT_COOLANT_T1",
-          "path": "Battery",
-          "name": "HV battery coolant temperature 1",
-          "fmt": {
-            "len": 16,
-            "div": 32,
-            "min": -40,
-            "max": 100,
-            "unit": "celsius"
-          }
-        }
-      ]
-    },
-    {
-      "hdr": "7E4",
-      "rax": "7EC",
-      "fcm1": true,
-      "cmd": {
-        "22": "40E6"
-      },
-      "freq": 10,
-      "signals": [
-        {
-          "id": "CADILLAC_HVBAT_COOLANT_T2",
-          "path": "Battery",
-          "name": "HV battery coolant temperature 2",
-          "fmt": {
-            "len": 16,
-            "div": 32,
-            "min": -40,
-            "max": 100,
-            "unit": "celsius"
-          }
-        }
-      ]
-    },
-    {
-      "hdr": "DA1D",
-      "rax": "18DAF11D",
-      "eax": "1D",
-      "fcm1": true,
-      "cmd": {
-        "22": "33E5"
-      },
-      "freq": 10,
-      "signals": [
-        {
-          "id": "CADILLAC_LV_RAIL_V",
-          "path": "Electrical",
-          "name": "12V rail voltage",
-          "fmt": {
-            "len": 8,
-            "div": 10,
-            "max": 25.5,
-            "unit": "volts"
-          }
-        }
-      ]
-    },
-    {
       "hdr": "DA17",
-      "rax": "18DAF117",
-      "eax": "17",
-      "fcm1": true,
       "cmd": {
         "22": "2414"
       },
       "freq": 1,
       "signals": [
         {
-          "id": "CADILLAC_HVBAT_A",
+          "id": "LYRIQ_HVBAT_A",
           "path": "Battery",
-          "name": "HV battery pack current",
-          "suggestedMetric": "hvBatteryCurrent",
           "fmt": {
             "len": 16,
             "sign": true,
-            "div": 20,
-            "min": -1000,
             "max": 1000,
+            "min": -1000,
+            "div": 20,
             "unit": "amps"
-          }
+          },
+          "name": "HV battery current",
+          "description": "Signed pack current from the drive-motor/power-electronics controller (negative = charging). Confirmed -22.75 A at a steady 9.22 kW AC charge and +0.9 A accessory draw in Ready. Same register family as Chevy Bolt 7E1 222414.",
+          "suggestedMetric": "tractionBatteryCurrent"
         }
       ]
     },
     {
       "hdr": "DA17",
-      "rax": "18DAF117",
-      "eax": "17",
-      "fcm1": true,
       "cmd": {
         "22": "2429"
       },
       "freq": 60,
       "signals": [
         {
-          "id": "CADILLAC_HVBAT_NOMINAL_V",
+          "id": "LYRIQ_HVBAT_NOMINAL_V",
           "path": "Battery",
-          "name": "HV battery nominal voltage",
           "fmt": {
             "len": 16,
-            "div": 64,
             "max": 1023,
+            "div": 64,
             "unit": "volts"
-          }
+          },
+          "name": "HV battery nominal voltage",
+          "description": "Constant rated (nominal) pack voltage, 352.1 V on a 2025 LYRIQ - identical while charging at 70% SOC and at rest at 80% SOC, so it is not a live measurement. Duplicates at 2428/242D/2434/2489."
         }
       ]
     },
     {
       "hdr": "DA40",
-      "rax": "18DAF140",
-      "eax": "40",
-      "fcm1": true,
       "cmd": {
         "22": "448F"
       },
       "freq": 60,
       "signals": [
         {
-          "id": "CADILLAC_ODOMETER",
+          "id": "LYRIQ_ODOMETER",
           "path": "Trips",
-          "name": "Odometer",
-          "suggestedMetric": "odometer",
           "fmt": {
             "len": 32,
-            "div": 64,
             "max": 671088,
+            "div": 64,
             "unit": "kilometers"
-          }
+          },
+          "name": "Odometer",
+          "suggestedMetric": "odometer",
+          "description": "u32/64 km. Verified against the dash to the mile (2,031,186/64 = 31,737 km = 19,720 mi). 22415B returns the same register."
         }
       ]
     },
     {
-      "hdr": "7E4",
-      "rax": "7EC",
-      "eax": "40",
-      "fcm1": true,
+      "hdr": "DA40",
       "cmd": {
         "22": "4149"
       },
       "freq": 10,
       "signals": [
         {
-          "id": "CADILLAC_EVSE_PILOT_A",
-          "path": "Charging",
-          "name": "EVSE advertised (pilot) current",
+          "id": "LYRIQ_EVSE_PILOT_A",
+          "path": "Electrical",
           "fmt": {
             "len": 16,
-            "div": 10,
             "max": 100,
+            "div": 10,
             "unit": "amps"
-          }
+          },
+          "name": "EVSE advertised (pilot) current",
+          "description": "J1772 pilot-advertised AC current limit. Read 38.8 A on a 9.2 kW EVSE while plugged; snaps to a 10.0 A default when unplugged."
+        }
+      ]
+    },
+    {
+      "hdr": "DA40",
+      "cmd": {
+        "22": "416C"
+      },
+      "freq": 5,
+      "signals": [
+        {
+          "id": "LYRIQ_HVBAT_GRP1_V",
+          "path": "Battery",
+          "fmt": {
+            "len": 16,
+            "max": 65,
+            "div": 100,
+            "unit": "volts"
+          },
+          "name": "HV battery group 1 voltage"
+        }
+      ]
+    },
+    {
+      "hdr": "DA40",
+      "cmd": {
+        "22": "416D"
+      },
+      "freq": 5,
+      "signals": [
+        {
+          "id": "LYRIQ_HVBAT_GRP2_V",
+          "path": "Battery",
+          "fmt": {
+            "len": 16,
+            "max": 65,
+            "div": 100,
+            "unit": "volts"
+          },
+          "name": "HV battery group 2 voltage"
+        }
+      ]
+    },
+    {
+      "hdr": "DA40",
+      "cmd": {
+        "22": "416E"
+      },
+      "freq": 5,
+      "signals": [
+        {
+          "id": "LYRIQ_HVBAT_GRP3_V",
+          "path": "Battery",
+          "fmt": {
+            "len": 16,
+            "max": 65,
+            "div": 100,
+            "unit": "volts"
+          },
+          "name": "HV battery group 3 voltage",
+          "description": "~51 V battery groups; rise under charge, fall under load, and read 0 with the vehicle off (live measurements behind the contactors)."
+        }
+      ]
+    },
+    {
+      "hdr": "DA40",
+      "cmd": {
+        "22": "434F"
+      },
+      "freq": 10,
+      "signals": [
+        {
+          "id": "LYRIQ_HVBAT_TEMP",
+          "path": "Battery",
+          "fmt": {
+            "len": 8,
+            "max": 215,
+            "min": -40,
+            "add": -40,
+            "unit": "celsius"
+          },
+          "name": "HV battery temperature",
+          "description": "Same encoding as Chevy Bolt 7E4 22434F."
+        }
+      ]
+    },
+    {
+      "hdr": "DA40",
+      "cmd": {
+        "22": "4127"
+      },
+      "freq": 5,
+      "signals": [
+        {
+          "id": "LYRIQ_HVBAT_TEMP_A",
+          "path": "Battery",
+          "fmt": {
+            "len": 16,
+            "max": 2047,
+            "div": 32,
+            "unit": "celsius"
+          },
+          "name": "HV battery temperature A"
+        }
+      ]
+    },
+    {
+      "hdr": "DA40",
+      "cmd": {
+        "22": "4124"
+      },
+      "freq": 5,
+      "signals": [
+        {
+          "id": "LYRIQ_HVBAT_TEMP_B",
+          "path": "Battery",
+          "fmt": {
+            "len": 16,
+            "max": 2047,
+            "div": 32,
+            "unit": "celsius"
+          },
+          "name": "HV battery temperature B"
+        }
+      ]
+    },
+    {
+      "hdr": "DA40",
+      "cmd": {
+        "22": "40E5"
+      },
+      "freq": 5,
+      "signals": [
+        {
+          "id": "LYRIQ_HVBAT_COOLANT_T1",
+          "path": "Battery",
+          "fmt": {
+            "len": 16,
+            "max": 2047,
+            "div": 32,
+            "unit": "celsius"
+          },
+          "name": "HV battery coolant temperature 1"
+        }
+      ]
+    },
+    {
+      "hdr": "DA40",
+      "cmd": {
+        "22": "40E6"
+      },
+      "freq": 5,
+      "signals": [
+        {
+          "id": "LYRIQ_HVBAT_COOLANT_T2",
+          "path": "Battery",
+          "fmt": {
+            "len": 16,
+            "max": 2047,
+            "div": 32,
+            "unit": "celsius"
+          },
+          "name": "HV battery coolant temperature 2"
+        }
+      ]
+    },
+    {
+      "hdr": "DA1D",
+      "cmd": {
+        "22": "33E5"
+      },
+      "freq": 10,
+      "signals": [
+        {
+          "id": "LYRIQ_DMCM_BATT_V",
+          "path": "Electrical",
+          "fmt": {
+            "len": 8,
+            "max": 25.5,
+            "div": 10,
+            "unit": "volts"
+          },
+          "name": "DMCM battery voltage",
+          "description": "12 V system voltage from the Drive Motor Control Module (matches Chevrolet-Equinox-EV DA1D 2233E5). Note: LYRIQ command_support docs list this DID as HV pack voltage - on-vehicle it reads 13.1-13.9 V under DC-DC float and does not track pack voltage.",
+          "suggestedMetric": "starterBatteryVoltage"
         }
       ]
     }

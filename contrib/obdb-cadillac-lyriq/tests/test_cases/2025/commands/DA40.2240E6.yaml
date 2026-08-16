@@ -1,0 +1,8 @@
+command_id: DA40.2240E6
+test_cases:
+- expected_values:
+    LYRIQ_HVBAT_COOLANT_T2: 22.78125
+  response: 18DAF140056240E602D9
+- expected_values:
+    LYRIQ_HVBAT_COOLANT_T2: 23.15625
+  response: 18DAF140056240E602E5

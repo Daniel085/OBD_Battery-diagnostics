@@ -1,0 +1,5 @@
+command_id: DA40.22416D
+test_cases:
+- expected_values:
+    LYRIQ_HVBAT_GRP2_V: 51.03
+  response: 18DAF1400562416D13EF
