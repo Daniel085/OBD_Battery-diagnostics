@@ -1,10 +1,10 @@
 {
   "$schema": "../signalset.schema.json",
   "vehicle": "Cadillac-Lyriq-2025",
-  "description": "2025 Cadillac Lyriq (GM Ultium) diagnostics. 29-bit CAN (ISO 15765-4, ATSP7). Confirmed on-vehicle: pack voltage, module voltages, and battery temperatures on ECUs 40 & 1D. SOC/cell-voltage DIDs (ECU CB, from OBDb) have derived formulas but ECU CB does not answer via a single-bus ELM327 clone. See docs/lyriq-did-map.md.",
+  "description": "2025 Cadillac Lyriq (GM Ultium) diagnostics. 29-bit CAN (ISO 15765-4, ATSP7; 11-bit is gateway-blocked). Confirmed on-vehicle: pack CURRENT (ECU 17), module voltages, battery temperatures, odometer, EVSE pilot. SOC / live pack voltage / per-cell voltages / capacity registers are on gateway-blocked ECUs (CB and the cell monitor) and are NOT reachable via the OBD port; capacity is instead measured by coulomb-counting a charge between target cutoffs (measured 292 Ah / ~103 kWh = ~100% SOH on 2026-08-15). See docs/lyriq-did-map.md and docs/lyriq-re-log.md.",
   "provenance": {
-    "derivedFrom": "Live 2025 Lyriq (VIN 1GYKPTRL5SZ302606) via a Pi BLE bridge + Viecar ELM327 clone, cross-referenced with the community OBDb/Cadillac-LYRIQ database. See docs/lyriq-re-log.md and docs/lyriq-did-map.md.",
-    "confidence": "CONFIRMED on-vehicle: protocol, ECU map, pack voltage (1D.33E5 x2.7), module voltages (40.416C-E /100), temps (40.4127/4124/40E5/40E6 /32, 40.434F -40). SOC/cell-V formulas derived from OBDb but ECU CB unreachable on our adapter (likely separate CAN bus). Pack current still unknown.",
+    "derivedFrom": "Live 2025 Lyriq (VIN 1GYKPTRL5SZ302606) via a Pi BLE bridge + Viecar ELM327 clone, cross-referenced with the community OBDb database and the Chevy Bolt PID set (partial Ultium crossover: 2414 current family + 434F temp carry over; 41A3 capacity / 8334 & 43AF SOC do NOT — rejected in every vehicle mode). See docs/lyriq-re-log.md.",
+    "confidence": "CONFIRMED on-vehicle: protocol, ECU map, pack current (17.2414 s16/20 A, sign checked both directions), nominal pack V (17.2429 /64), module voltages (40.416C-E /100), temps (40.4127/4124/40E5/40E6 /32, 40.434F -40), odometer (40.448F /64 km vs dash), EVSE pilot (40.4149 /10 A vs charger), 12V rail (33E5 /10, multi-ECU). NOT available via port: SOC, live pack V, per-cell V, GM capacity register (gateway-blocked; DoIP candidate). Register availability is wake-mode-dependent: unattended charging = sparse ECU 40.",
     "license": "Battery signals cross-referenced with OBDb/Cadillac-LYRIQ (CC BY-SA). J1979 signals are public-domain."
   },
   "protocol": {
@@ -209,7 +209,7 @@
       ]
     },
     {
-      "_confirmed": "on-vehicle 2026-08-14: 0x84=132, x2.7=~356V at 49% SOC",
+      "_confirmed": "CORRECTED 2026-08-15: 33E5 is the 12V rail x0.1V, per-ECU (17=13.1V, 1D=13.3V, 28=13.9V under DCDC float). Earlier 'pack voltage x2.7' reading was a coincidence. OBDb's pack-voltage attribution for DA1D.2233E5 is wrong.",
       "hdr": "18DA1DF1",
       "rax": "18DAF11D",
       "cmd": {
@@ -217,14 +217,78 @@
       },
       "signals": [
         {
-          "id": "HVBAT_PACK_VOLTAGE",
-          "name": "HV battery pack voltage",
+          "id": "LV_RAIL_VOLTAGE",
+          "name": "12V rail voltage (ECU 1D)",
           "group": "summary",
           "fmt": {
             "bix": 0,
             "len": 8,
-            "mul": 2.7,
+            "div": 10,
             "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_confirmed": "on-vehicle 2026-08-15: s16/20 A, negative=charging. -22.75A steady @ 9.22kW AC charge (FE39); +0.9A aux draw in Ready (0012). Live jitter proves realtime. ECU 17 = Lyriq analog of Bolt 7E1 powertrain module; Bolt PID 222414 crossover.",
+      "hdr": "18DA17F1",
+      "rax": "18DAF117",
+      "cmd": {
+        "22": "2414"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_CURRENT",
+          "name": "HV battery pack current",
+          "group": "summary",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "sign": true,
+            "div": 20,
+            "unit": "amps"
+          }
+        }
+      ]
+    },
+    {
+      "_confirmed": "on-vehicle 2026-08-15: constant 0x5806/64 = 352.1V at both 70%-charging and 80%-Ready -> NOMINAL (rated) pack voltage, not live. Copies at 2428/242D/2434/2489. Useful for Ah->kWh rating math. Live pack V is on gateway-blocked ECU CB.",
+      "hdr": "18DA17F1",
+      "rax": "18DAF117",
+      "cmd": {
+        "22": "2429"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_NOMINAL_VOLTAGE",
+          "name": "HV battery nominal voltage",
+          "group": "summary",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 64,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_confirmed": "on-vehicle 2026-08-15: EVSE pilot advertised current x0.1A. 384-388 (38.4-38.8A ~ 9.2-9.3kW @ 240V) while plugged; snaps to 100 (10.0A default) on unplug; NOT cell voltage (early guess). 441E carries a related table of 0x0180 entries.",
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "4149"
+      },
+      "signals": [
+        {
+          "id": "EVSE_PILOT_CURRENT",
+          "name": "EVSE advertised (pilot) current",
+          "group": "charging",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 10,
+            "unit": "amps"
           }
         }
       ]
@@ -367,9 +431,9 @@
       ]
     },
     {
-      "_source": "OBDb DA1A.22448F (odometer) - formula UNVERIFIED (no capture); GM often u24 km. Verify on-car.",
-      "hdr": "18DA1AF1",
-      "rax": "18DAF11A",
+      "_confirmed": "on-vehicle 2026-08-15: u32/64 = km, verified against dash (0x001EFE52/64 = 31,737 km = 19,720 mi exact). Answered by ECU 40 directly (415B is the same register). Frozen while parked AND while charging (it is distance, not energy).",
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
       "cmd": {
         "22": "448F"
       },
@@ -380,7 +444,8 @@
           "group": "vehicle",
           "fmt": {
             "bix": 0,
-            "len": 24,
+            "len": 32,
+            "div": 64,
             "unit": "km"
           }
         }
@@ -421,10 +486,23 @@
       },
       {
         "did": "406E",
-        "name": "SOC candidate (moved 46->47)",
-        "guessRaw": 47,
-        "unit": "percent",
+        "name": "DEMOTED (2026-08-15): NOT SOC - wanders 35-45 while parked in Ready; likely aux/DCDC load related",
         "formula": "u8 (last byte)"
+      },
+      {
+        "did": "44C0",
+        "name": "DEMOTED (2026-08-15): NOT SOC - read 59-61 with dash at 80% post-charge; earlier dash match was coincidence. Meaning unknown",
+        "formula": "4 x u8"
+      },
+      {
+        "did": "44C5",
+        "name": "multi-field state record, changes between sessions (samples: 0160/0362 pairs, then 0056/0159/0257/0258) - undecoded",
+        "formula": "8 bytes, u16 fields"
+      },
+      {
+        "did": "441F",
+        "name": "charge-session record: populates ONLY during vehicle-on charging (3E=gross-SOC-at-start, 035F=? , 1A1A=26,26 current-ish, 02=state); zero otherwise; cleared at next wake after unplug",
+        "formula": "10 bytes"
       },
       {
         "did": "4127",
@@ -442,16 +520,12 @@
       },
       {
         "did": "415B",
-        "name": "cumulative energy counter (SOH)",
-        "guessRaw": 2030871,
-        "unit": "Wh?",
-        "formula": "u32"
+        "name": "CONFIRMED 2026-08-15: identical to 448F = odometer u32/64 km (NOT an energy counter; frozen during charging)",
+        "formula": "u32/64 km"
       },
       {
         "did": "415C",
-        "name": "cumulative energy counter 2",
-        "guessRaw": 1782994,
-        "unit": "Wh?",
+        "name": "u32 counter, moves only with driving; odometer-adjacent (trip/energy-distance?); NOT confirmed",
         "formula": "u32"
       },
       {

@@ -1,0 +1,8 @@
+command_id: DA1D.2233E5
+test_cases:
+- expected_values:
+    CADILLAC_LV_RAIL_V: 13.3
+  response: 18DAF11D046233E585
+- expected_values:
+    CADILLAC_LV_RAIL_V: 13.2
+  response: 18DAF11D046233E584

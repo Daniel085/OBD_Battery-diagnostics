@@ -1,0 +1,6 @@
+command_id: DA40.22448F
+test_cases:
+- expected_values:
+    # 2,031,186 / 64 = 31,737.28 km = 19,720 mi (matched the dash exactly)
+    CADILLAC_ODOMETER: 31737.28125
+  response: 18DAF1400762448F001EFE52

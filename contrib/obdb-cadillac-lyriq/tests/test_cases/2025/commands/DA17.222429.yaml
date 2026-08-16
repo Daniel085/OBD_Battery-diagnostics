@@ -1,0 +1,5 @@
+command_id: DA17.222429
+test_cases:
+- expected_values:
+    CADILLAC_HVBAT_NOMINAL_V: 352.09375
+  response: 18DAF117056224295806

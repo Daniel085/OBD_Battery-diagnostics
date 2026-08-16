@@ -1,0 +1,10 @@
+command_id: DA17.222414
+test_cases:
+- expected_values:
+    # Charging at 9.22 kW AC (wall) -> ~-22.75 A DC into the pack
+    CADILLAC_HVBAT_A: -22.75
+  response: 18DAF11705622414FE39
+- expected_values:
+    # Vehicle in Ready, parked: small positive aux draw
+    CADILLAC_HVBAT_A: 0.9
+  response: 18DAF117056224140012
