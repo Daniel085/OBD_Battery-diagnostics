@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../app/app_controller.dart';
 import '../engine/diagnostics_client.dart';
+import 'capacity_screen.dart';
 import 'report_screen.dart';
 import 'scanner_screen.dart';
 import 'terminal_screen.dart';
@@ -29,6 +30,13 @@ class DashboardScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(c.selectedVehicle?.displayName ?? 'Dashboard'),
         actions: [
+          IconButton(
+            tooltip: 'Capacity test',
+            icon: const Icon(Icons.battery_charging_full),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const CapacityScreen()),
+            ),
+          ),
           IconButton(
             tooltip: 'Health report',
             icon: const Icon(Icons.assignment),

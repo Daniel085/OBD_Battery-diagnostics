@@ -9,11 +9,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 
 import '../engine/battery_health.dart';
+import '../engine/capacity_test.dart';
 import '../engine/diagnostics_client.dart';
 import '../engine/logging.dart';
 import '../engine/signal_set.dart';
 import '../transport/data_source.dart';
 import '../transport/elm_ble_source.dart';
+import 'capacity_test_store.dart';
 import 'signal_set_repository.dart';
 
 enum ConnectionPhase { idle, scanning, connecting, initializing, polling, error }
@@ -31,6 +33,7 @@ class AppController extends ChangeNotifier {
     FlutterReactiveBle? ble,
     SignalSetRepository? repository,
     this.analyzer = const BatteryHealthAnalyzer(),
+    this.capacityStore,
   })  : _bleInstance = ble,
         repo = repository ?? SignalSetRepository();
 
@@ -57,6 +60,90 @@ class AppController extends ChangeNotifier {
   final Map<String, Reading> latest = {};
   final InMemorySampleSink sessionLog = InMemorySampleSink();
   final List<CommandFailure> lastFailures = [];
+
+  // ---- Capacity test ---------------------------------------------------------
+
+  /// Persistence for the capacity test (null in tests → in-memory only).
+  final CapacityTestStore? capacityStore;
+
+  /// The running (or finished-but-not-dismissed) capacity test, if any. It
+  /// survives disconnects and app restarts; polls feed it HVBAT_CURRENT.
+  CapacityTestSession? capacityTest;
+
+  DateTime? _lastCapacitySample;
+  DateTime? _lastCapacitySave;
+
+  /// Minimum spacing between recorded samples — 2 s polling would bloat a
+  /// 10 h session to ~18k samples for no accuracy gain at steady current.
+  static const capacitySampleSpacing = Duration(seconds: 10);
+  static const _capacitySaveSpacing = Duration(seconds: 60);
+
+  /// Reload a persisted session (call once at startup).
+  Future<void> restoreCapacityTest() async {
+    final restored = await capacityStore?.load();
+    if (restored != null) {
+      capacityTest = restored;
+      notifyListeners();
+    }
+  }
+
+  void startCapacityTest() {
+    capacityTest = CapacityTestSession();
+    _lastCapacitySample = null;
+    unawaited(_saveCapacityTest());
+    notifyListeners();
+  }
+
+  void setCapacitySoc({double? start, double? end}) {
+    final t = capacityTest;
+    if (t == null) return;
+    if (start != null) t.socStartPct = start;
+    if (end != null) t.socEndPct = end;
+    unawaited(_saveCapacityTest());
+    notifyListeners();
+  }
+
+  void finishCapacityTest() {
+    capacityTest?.finish();
+    unawaited(_saveCapacityTest());
+    notifyListeners();
+  }
+
+  void discardCapacityTest() {
+    capacityTest = null;
+    unawaited(capacityStore?.clear() ?? Future.value());
+    notifyListeners();
+  }
+
+  Future<void> _saveCapacityTest() async {
+    final t = capacityTest;
+    if (t == null) return;
+    try {
+      await capacityStore?.save(t);
+    } catch (_) {
+      // Persistence is best-effort; the in-memory session stays authoritative.
+    }
+  }
+
+  /// Feed the pack-current reading from one poll into the active test,
+  /// throttling sample density and disk writes.
+  void _feedCapacityTest(Map<String, Reading> readings) {
+    final t = capacityTest;
+    final current = readings['HVBAT_CURRENT'];
+    if (t == null || t.isFinished || current == null) return;
+    final at = current.timestamp;
+    final lastSample = _lastCapacitySample;
+    if (lastSample != null && at.difference(lastSample) < capacitySampleSpacing) {
+      return;
+    }
+    t.addSample(at, current.value);
+    _lastCapacitySample = at;
+    final lastSave = _lastCapacitySave;
+    if (lastSave == null || at.difference(lastSave) >= _capacitySaveSpacing) {
+      _lastCapacitySave = at;
+      unawaited(_saveCapacityTest());
+    }
+  }
 
   Duration pollInterval = const Duration(seconds: 2);
 
@@ -235,6 +322,7 @@ class AppController extends ChangeNotifier {
       latest.addAll(readings);
       if (readings.isNotEmpty) {
         await sessionLog.add(LogSample.fromReadings(readings));
+        _feedCapacityTest(readings);
       }
       notifyListeners();
     } catch (e) {
@@ -256,10 +344,20 @@ class AppController extends ChangeNotifier {
   // ---- Report ----------------------------------------------------------------
 
   HealthReport buildReport({String? vin}) {
+    // Fold the measured capacity/SOH in when a test has produced one — the
+    // measured number beats any heuristic and belongs in the report.
+    final extra = <String, double?>{};
+    final capacity = capacityTest?.analyze();
+    if (capacity?.sohPct != null) {
+      extra['measured_soh_percent'] = capacity!.sohPct;
+      extra['measured_capacity_kwh'] = capacity.packKwh;
+      extra['measured_capacity_ah'] = capacity.packAh;
+    }
     return analyzer.analyze(
       vehicle: selectedVehicle?.id ?? _signalSet?.vehicle ?? 'unknown',
       readings: Map.of(latest),
       vin: vin,
+      extraMetrics: extra,
     );
   }
 

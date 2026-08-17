@@ -128,8 +128,11 @@ class BatteryHealthAnalyzer {
     required Map<String, Reading> readings,
     String? vin,
     DateTime? now,
+    /// Externally measured metrics (e.g. the charge-session capacity test's
+    /// measured_soh_percent) merged into the report's metrics map.
+    Map<String, double?> extraMetrics = const {},
   }) {
-    final metrics = <String, double?>{};
+    final metrics = <String, double?>{...extraMetrics};
     final warnings = <HealthWarning>[];
 
     double? val(String id) => readings[id]?.value;
