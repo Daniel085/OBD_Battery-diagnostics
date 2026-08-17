@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../app/app_controller.dart';
+import '../transport/elm_ble_source.dart';
 
 /// Raw ELM327 terminal: send arbitrary AT/OBD commands and see exactly what the
 /// adapter returns. This is the first thing to reach for when the dashboard is
@@ -78,6 +79,15 @@ class _TerminalScreenState extends State<TerminalScreen> {
       appBar: AppBar(
         title: const Text('Adapter terminal'),
         actions: [
+          if (c.activeSource is ElmBleSource)
+            IconButton(
+              tooltip: 'BLE diagnostics',
+              icon: const Icon(Icons.bluetooth_searching),
+              onPressed: () => setState(() => _log.add(_Entry(
+                    'BLE diagnostics',
+                    (c.activeSource as ElmBleSource).diagnosticsDump(),
+                  ))),
+            ),
           if (_log.isNotEmpty) ...[
             IconButton(
               tooltip: 'Share transcript',

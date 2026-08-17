@@ -54,6 +54,39 @@ class ElmBleConfig {
       );
 }
 
+/// Plain description of one discovered characteristic, decoupled from
+/// flutter_reactive_ble types so role selection is a pure, testable function.
+class GattCharInfo {
+  final String serviceId;
+  final String charId;
+  final bool writeNoResp;
+  final bool writeResp;
+  final bool notify;
+
+  const GattCharInfo({
+    required this.serviceId,
+    required this.charId,
+    this.writeNoResp = false,
+    this.writeResp = false,
+    this.notify = false,
+  });
+
+  bool get writable => writeNoResp || writeResp;
+
+  @override
+  String toString() =>
+      '$serviceId/$charId${writeNoResp ? ' wnr' : ''}${writeResp ? ' w' : ''}'
+      '${notify ? ' n' : ''}';
+}
+
+/// The write + notify characteristics chosen for the serial link. They may be
+/// the same characteristic (single FFE1-style layouts).
+class ResolvedGattRoles {
+  final GattCharInfo write;
+  final GattCharInfo notify;
+  const ResolvedGattRoles({required this.write, required this.notify});
+}
+
 class ElmBleSource implements DataSource {
   final FlutterReactiveBle _ble;
   final String deviceId;
@@ -64,6 +97,23 @@ class ElmBleSource implements DataSource {
   StreamSubscription<List<int>>? _notifySub;
   QualifiedCharacteristic? _writeChar;
   QualifiedCharacteristic? _notifyChar;
+
+  /// Whether the chosen write characteristic supports write-with-response —
+  /// used by the one-shot fallback when write-without-response goes unheard.
+  bool _writeSupportsResponse = false;
+  bool _writeWithResponse = false;
+  bool _everReceived = false;
+
+  /// Rolling log of BLE-level events (TX, RX, role selection) kept for the
+  /// diagnostics dump. Capped so a long session can't grow it unbounded.
+  final List<String> _bleLog = [];
+  static const _bleLogCap = 200;
+
+  void _logBle(String line) {
+    final ts = DateTime.now().toIso8601String().substring(11, 23);
+    _bleLog.add('$ts $line');
+    if (_bleLog.length > _bleLogCap) _bleLog.removeAt(0);
+  }
 
   final StringBuffer _rx = StringBuffer();
   Completer<String>? _pending;
@@ -116,14 +166,21 @@ class ElmBleSource implements DataSource {
     });
 
     await ready.future;
+    _logBle('link connected');
 
     await _resolveCharacteristics();
 
     _notifySub =
         _ble.subscribeToCharacteristic(_notifyChar!).listen(_onData, onError: (Object e) {
+      _logBle('notify error: $e');
       final p = _pending;
       if (p != null && !p.isCompleted) p.completeError(e);
     });
+    _logBle('subscribed to ${_notifyChar!.characteristicId}');
+
+    // Cheap clones need a beat between the CCCD write and the first command;
+    // sending immediately can lose the command or the response.
+    await Future<void>.delayed(const Duration(milliseconds: 300));
 
     _connected = true;
   }
@@ -150,57 +207,125 @@ class ElmBleSource implements DataSource {
       }
       discoveredGatt = log.toString();
 
-      // Only consider services that plausibly carry the serial link: the
-      // configured one first, then other vendor (non-standard-16-bit) services.
-      // Generic services like Device Information / Battery also expose
-      // notifiable characteristics and must not win.
-      bool isCandidateService(Uuid id) {
-        final s = id.toString().toLowerCase();
-        if (s == config.serviceUuid.toString().toLowerCase()) return true;
-        return s.startsWith('0000fff') || // FFF0 family (Viecar and friends)
-            s.startsWith('0000ffe') || // FFE0 family (common clones)
-            s.startsWith('6e400001'); // Nordic UART
-      }
+      final infos = <GattCharInfo>[
+        for (final s in services)
+          for (final ch in s.characteristics)
+            GattCharInfo(
+              serviceId: s.id.toString().toLowerCase(),
+              charId: ch.id.toString().toLowerCase(),
+              writeNoResp: ch.isWritableWithoutResponse,
+              writeResp: ch.isWritableWithResponse,
+              notify: ch.isNotifiable || ch.isIndicatable,
+            ),
+      ];
 
-      QualifiedCharacteristic? write;
-      QualifiedCharacteristic? notify;
-      for (final preferConfigured in [true, false]) {
-        for (final s in services) {
-          final matches = preferConfigured
-              ? s.id.toString().toLowerCase() ==
-                  config.serviceUuid.toString().toLowerCase()
-              : isCandidateService(s.id);
-          if (!matches) continue;
-          for (final ch in s.characteristics) {
-            final q = QualifiedCharacteristic(
-              serviceId: s.id,
-              characteristicId: ch.id,
-              deviceId: deviceId,
-            );
-            if (notify == null && (ch.isNotifiable || ch.isIndicatable)) {
-              notify = q;
-            }
-            if (write == null &&
-                (ch.isWritableWithoutResponse || ch.isWritableWithResponse)) {
-              write = q;
-            }
-          }
-        }
-        if (write != null && notify != null) break;
-      }
+      final roles = pickRoles(
+        infos,
+        serviceUuid: config.serviceUuid.toString().toLowerCase(),
+        writeCharUuid: config.writeCharUuid.toString().toLowerCase(),
+        notifyCharUuid: config.notifyCharUuid.toString().toLowerCase(),
+      );
 
-      if (write != null || notify != null) {
-        // If only one usable characteristic exists, share it for both roles.
-        _notifyChar = notify ?? write;
-        _writeChar = write ?? notify;
+      if (roles != null) {
+        _writeChar = QualifiedCharacteristic(
+          serviceId: Uuid.parse(roles.write.serviceId),
+          characteristicId: Uuid.parse(roles.write.charId),
+          deviceId: deviceId,
+        );
+        _notifyChar = QualifiedCharacteristic(
+          serviceId: Uuid.parse(roles.notify.serviceId),
+          characteristicId: Uuid.parse(roles.notify.charId),
+          deviceId: deviceId,
+        );
+        _writeSupportsResponse = roles.write.writeResp;
+        // Start without-response when supported (the gatttool-proven path).
+        _writeWithResponse = !roles.write.writeNoResp;
+        _logBle('roles: write=${roles.write} notify=${roles.notify}');
         return;
       }
+      _logBle('roles: discovery found nothing usable, using configured UUIDs');
       // Discovery found nothing usable — fall through to configured UUIDs.
     } catch (e) {
       discoveredGatt = 'GATT discovery failed: $e';
+      _logBle('GATT discovery failed: $e');
     }
     _writeChar = _fallback(config.writeCharUuid);
     _notifyChar = _fallback(config.notifyCharUuid);
+    // Unknown layout: allow the with-response fallback to be tried.
+    _writeSupportsResponse = true;
+  }
+
+  /// Choose the write + notify characteristics for the ELM serial link.
+  ///
+  /// Pure and static so it can be unit-tested against real adapter GATT
+  /// tables. Policy, in descending weight:
+  ///  * a characteristic exactly matching the configured UUID for its role;
+  ///  * living in the configured service, over other vendor services
+  ///    (FFF0/FFE0 families, Nordic UART — never Device Info/Battery etc.);
+  ///  * for write: a characteristic DISTINCT from the notify characteristic.
+  ///    Clones often advertise write on the notify characteristic (FFF1) but
+  ///    only accept commands on the dedicated one (FFF2) — picking "first
+  ///    writable" sends commands into a black hole;
+  ///  * for write: supporting write-without-response (the proven path).
+  ///
+  /// Falls back to sharing one characteristic for both roles (FFE1-style
+  /// single-characteristic layouts). Returns null if no candidate service
+  /// exposes both a writable and a notifiable characteristic.
+  static ResolvedGattRoles? pickRoles(
+    List<GattCharInfo> chars, {
+    required String serviceUuid,
+    required String writeCharUuid,
+    required String notifyCharUuid,
+  }) {
+    bool isCandidateService(String s) {
+      if (s == serviceUuid) return true;
+      return s.startsWith('0000fff') || // FFF0 family (Viecar and friends)
+          s.startsWith('0000ffe') || // FFE0 family (common clones)
+          s.startsWith('6e400001'); // Nordic UART
+    }
+
+    final candidates =
+        chars.where((c) => isCandidateService(c.serviceId)).toList();
+
+    int base(GattCharInfo c, String exactUuid) {
+      var score = 0;
+      if (c.charId == exactUuid) score += 8;
+      if (c.serviceId == serviceUuid) score += 4;
+      return score;
+    }
+
+    GattCharInfo? best(
+        Iterable<GattCharInfo> from, int Function(GattCharInfo) score) {
+      GattCharInfo? winner;
+      var bestScore = -1;
+      for (final c in from) {
+        final s = score(c);
+        if (s > bestScore) {
+          winner = c;
+          bestScore = s;
+        }
+      }
+      return winner;
+    }
+
+    final notify = best(
+      candidates.where((c) => c.notify),
+      (c) => base(c, notifyCharUuid),
+    );
+    if (notify == null) return null;
+
+    final write = best(
+      candidates.where((c) => c.writable),
+      (c) =>
+          base(c, writeCharUuid) +
+          (c.charId != notify.charId || c.serviceId != notify.serviceId
+              ? 5
+              : 0) +
+          (c.writeNoResp ? 2 : 0),
+    );
+    if (write == null) return null;
+
+    return ResolvedGattRoles(write: write, notify: notify);
   }
 
   /// Human-readable dump of the last GATT discovery, for troubleshooting an
@@ -214,8 +339,15 @@ class ElmBleSource implements DataSource {
       );
 
   void _onData(List<int> bytes) {
+    _everReceived = true;
+    final printable = utf8
+        .decode(bytes, allowMalformed: true)
+        .replaceAll('\r', r'\r')
+        .replaceAll('\n', r'\n');
+    _logBle('rx ${bytes.length}B "$printable"'
+        '${_pending == null ? ' (unsolicited, dropped)' : ''}');
     // Drop any notification that arrives while no command is in flight (e.g. a
-    // late frame from a command that already timed out).
+    // late frame from a command that already timed out, or the ELM banner).
     if (_pending == null) return;
     _rx.write(utf8.decode(bytes, allowMalformed: true));
     final text = _rx.toString();
@@ -229,6 +361,23 @@ class ElmBleSource implements DataSource {
 
   @override
   Future<String> send(String command, {Duration? timeout}) async {
+    try {
+      return await _sendOnce(command, timeout: timeout);
+    } on TimeoutException {
+      // If we have NEVER heard a byte from this adapter, the write itself may
+      // be the problem — some clone/iOS combinations silently drop
+      // write-without-response. Flip to write-with-response once and retry;
+      // if that works it stays flipped for the session.
+      if (!_everReceived && !_writeWithResponse && _writeSupportsResponse) {
+        _writeWithResponse = true;
+        _logBle('timeout with no RX ever — retrying "$command" with-response');
+        return _sendOnce(command, timeout: timeout);
+      }
+      rethrow;
+    }
+  }
+
+  Future<String> _sendOnce(String command, {Duration? timeout}) async {
     if (!_connected || _writeChar == null) {
       throw StateError('ElmBleSource not connected');
     }
@@ -240,10 +389,13 @@ class ElmBleSource implements DataSource {
     final completer = Completer<String>();
     _pending = completer;
 
-    await _ble.writeCharacteristicWithoutResponse(
-      _writeChar!,
-      value: utf8.encode('$command\r'),
-    );
+    _logBle('tx${_writeWithResponse ? ' (with-response)' : ''} "$command"');
+    final payload = utf8.encode('$command\r');
+    if (_writeWithResponse) {
+      await _ble.writeCharacteristicWithResponse(_writeChar!, value: payload);
+    } else {
+      await _ble.writeCharacteristicWithoutResponse(_writeChar!, value: payload);
+    }
 
     return completer.future.timeout(
       timeout ?? config.defaultTimeout,
@@ -257,6 +409,26 @@ class ElmBleSource implements DataSource {
         throw TimeoutException('ELM327 command timed out: $command');
       },
     );
+  }
+
+  /// Everything needed to diagnose a silent adapter in one dump: the GATT
+  /// table, which characteristics we chose for which role, the write mode,
+  /// and the recent TX/RX log (including unsolicited bytes). Surfaced by the
+  /// terminal screen.
+  String diagnosticsDump() {
+    final b = StringBuffer()
+      ..writeln('device: $deviceName ($deviceId)')
+      ..writeln('config service=${config.serviceUuid} '
+          'write=${config.writeCharUuid} notify=${config.notifyCharUuid}')
+      ..writeln('chosen write=${_writeChar?.characteristicId} '
+          '(${_writeWithResponse ? 'with' : 'without'}-response) '
+          'notify=${_notifyChar?.characteristicId}')
+      ..writeln('ever received bytes: $_everReceived')
+      ..writeln('--- GATT ---')
+      ..writeln(discoveredGatt ?? '(no discovery run)')
+      ..writeln('--- BLE log (last ${_bleLog.length}) ---');
+    _bleLog.forEach(b.writeln);
+    return b.toString();
   }
 
   @override
