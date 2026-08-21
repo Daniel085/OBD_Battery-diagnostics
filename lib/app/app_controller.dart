@@ -40,6 +40,10 @@ class AppController extends ChangeNotifier {
   ConnectionPhase phase = ConnectionPhase.idle;
   String? errorMessage;
 
+  /// Technical detail behind [errorMessage] (exception text, adapter GATT
+  /// table) — shown collapsed in the UI so failures read human-first.
+  String? errorDetails;
+
   final List<DiscoveredDevice> discovered = [];
   StreamSubscription<DiscoveredDevice>? _scanSub;
 
@@ -275,11 +279,16 @@ class AppController extends ChangeNotifier {
       _setPhase(ConnectionPhase.polling);
       _startPolling();
     } catch (e) {
-      // Include the adapter's GATT table: when a clone doesn't match a known
-      // layout, its real service/characteristic UUIDs are what we need to see.
+      // Human-readable summary up front; the exception and the adapter's GATT
+      // table (the thing that identifies an unknown clone layout) go into the
+      // collapsible details.
       final gatt = source?.discoveredGatt;
-      _fail('Connect failed: $e'
-          '${gatt == null ? '' : '\n\nAdapter GATT:\n$gatt'}');
+      _fail(
+        'Could not connect to "${device.name.isEmpty ? device.id : device.name}". '
+        'Check the adapter is plugged into the OBD port, the car is on, and '
+        'no other app is using the adapter — then scan again.',
+        details: '$e${gatt == null ? '' : '\n\nAdapter GATT:\n$gatt'}',
+      );
     }
   }
 
@@ -297,7 +306,7 @@ class AppController extends ChangeNotifier {
       _setPhase(ConnectionPhase.polling);
       _startPolling();
     } catch (e) {
-      _fail('Connect failed: $e');
+      _fail('Connect failed.', details: '$e');
     }
   }
 
@@ -326,7 +335,11 @@ class AppController extends ChangeNotifier {
       }
       notifyListeners();
     } catch (e) {
-      _fail('Poll failed: $e');
+      _fail(
+        'Lost contact with the adapter while reading — check it is still '
+        'plugged in and reconnect.',
+        details: '$e',
+      );
     } finally {
       _pollInFlight = false;
     }
@@ -365,12 +378,16 @@ class AppController extends ChangeNotifier {
 
   void _setPhase(ConnectionPhase p) {
     phase = p;
-    if (p != ConnectionPhase.error) errorMessage = null;
+    if (p != ConnectionPhase.error) {
+      errorMessage = null;
+      errorDetails = null;
+    }
     notifyListeners();
   }
 
-  void _fail(String msg) {
+  void _fail(String msg, {String? details}) {
     errorMessage = msg;
+    errorDetails = details;
     phase = ConnectionPhase.error;
     notifyListeners();
   }

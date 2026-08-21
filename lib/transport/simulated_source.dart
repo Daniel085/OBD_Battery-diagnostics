@@ -1,11 +1,13 @@
-/// A built-in demo/simulation [DataSource] that answers ELM327 requests with
-/// synthetic-but-plausible BMW 330e SME responses. Lets the full app (dashboard,
-/// report, logging) run and be demoed without any adapter or vehicle.
+/// Built-in demo/simulation [DataSource]s that answer ELM327 requests with
+/// synthetic-but-plausible vehicle responses. They let the full app
+/// (dashboard, report, capacity test, logging) run and be demoed without any
+/// adapter or vehicle.
 ///
-/// It understands just enough of the ELM327 line protocol for the BMW-330e-2018
-/// signal set: it recognises the request line (extended addr 07 + 22 + DID) and
-/// replies with a single- or multi-frame 607 response carrying values that
-/// drift slightly over time so the dashboard looks alive.
+/// [SimulatedBmwSource] answers the BMW-330e-2018 signal set (11-bit,
+/// extended addressing). [SimulatedLyriqSource] answers the
+/// Cadillac-Lyriq-2025 set (29-bit `18DAxxF1` addressing) with the values
+/// captured on the real car, and simulates an active 9 kW AC charge so the
+/// capacity test demos end-to-end.
 library;
 
 import 'dart:math' as math;
@@ -143,4 +145,121 @@ class SimulatedBmwSource implements DataSource {
 
   String _hex(List<int> b) =>
       b.map((x) => x.toRadixString(16).padLeft(2, '0').toUpperCase()).join(' ');
+}
+
+/// Simulated 2025 Cadillac Lyriq mid-charge, answering the exact ECUs/DIDs the
+/// real car answered (29-bit addressing, values from the 2026-08 captures).
+/// The pack current holds a steady ~−22.75 A (9 kW AC), so starting a capacity
+/// test in demo mode accumulates real-looking charge.
+class SimulatedLyriqSource implements DataSource {
+  bool _connected = false;
+  final math.Random _rng = math.Random(7);
+
+  /// Last ATSH header — selects which simulated ECU a `22` request reaches.
+  String _hdr = '7DF';
+
+  @override
+  String get name => 'Simulated Cadillac Lyriq (demo)';
+
+  @override
+  bool get isConnected => _connected;
+
+  @override
+  Future<void> connect() async => _connected = true;
+
+  @override
+  Future<void> disconnect() async => _connected = false;
+
+  @override
+  Future<String> send(String command, {Duration? timeout}) async {
+    final cmd = command.trim().toUpperCase();
+    if (cmd.startsWith('ATSH')) {
+      _hdr = cmd.substring(4);
+      return 'OK\r>';
+    }
+    if (cmd.startsWith('AT')) return 'OK\r>';
+
+    if (cmd.startsWith('22') && cmd.length >= 6) {
+      final resp = _udsResponse(cmd.substring(2, 6));
+      return resp ?? 'NO DATA\r>';
+    }
+    if (cmd.startsWith('01') && cmd.length >= 4) {
+      final resp = _j1979Response(cmd.substring(2, 4));
+      return resp ?? 'NO DATA\r>';
+    }
+    return 'NO DATA\r>';
+  }
+
+  /// The ECU that answers for the current transmit header, e.g.
+  /// 18DA17F1 -> responses from 18DAF117.
+  String get _ecu =>
+      _hdr.length == 8 && _hdr.startsWith('18DA') ? _hdr.substring(4, 6) : '28';
+
+  String? _udsResponse(String did) {
+    final data = switch ((_ecu, did)) {
+      // ECU 17 (Bolt-style powertrain analog): the crown jewels.
+      ('17', '2414') => _s16(_chargeAmps()), // pack current, s16 /20
+      ('17', '2429') => _u16(0x5806), // nominal pack V constant 352.09
+      // ECU 40 (energy summary).
+      ('40', '416C') => _u16(_drift(0x13F4, 6)), // module V ~51.1
+      ('40', '416D') => _u16(_drift(0x13EF, 6)),
+      ('40', '416E') => _u16(_drift(0x13F4, 6)),
+      ('40', '4127') => _u16(_drift(0x0418, 8)), // temps /32 ~32.8 C
+      ('40', '4124') => _u16(_drift(0x0410, 8)),
+      ('40', '40E5') => _u16(_drift(0x0366, 6)), // ~27.2 C
+      ('40', '40E6') => _u16(_drift(0x0361, 6)),
+      ('40', '434F') => [25 + 40 + _rng.nextInt(2)], // byte-40 C
+      ('40', '4149') => _u16(0x0184), // EVSE pilot 38.8 A (9.3 kW)
+      ('40', '448F') => [0x00, 0x1E, 0xFE, 0x52], // odometer (=19,720 mi)
+      // ECU 1D: 12V rail /10.
+      ('1D', '33E5') => [0x84 + _rng.nextInt(2)], // ~13.2 V
+      // ECU 28 (chassis): parked while charging.
+      ('28', '4A7A') => [0, 0, 0, 0], // wheel speeds
+      ('28', '4C2F') => _s16(_rng.nextInt(9) - 4), // accel noise
+      ('28', '4C30') => _s16(_rng.nextInt(9) - 4),
+      ('28', '4C2D') => _s16(-31), // steering -3.1 deg
+      _ => null,
+    };
+    if (data == null) return null;
+    final payload = [
+      0x62,
+      int.parse(did.substring(0, 2), radix: 16),
+      int.parse(did.substring(2, 4), radix: 16),
+      ...data,
+    ];
+    return _frame(payload);
+  }
+
+  /// Steady 9 kW AC charge: −22.75 A ±0.3 as raw s16 ×20 (≈ 0xFE39).
+  int _chargeAmps() => -455 + _rng.nextInt(13) - 6;
+
+  String? _j1979Response(String pid) {
+    final data = switch (pid) {
+      '0D' => [0], // vehicle speed: parked
+      '42' => [0x36, 0xB0], // 14.0 V (DC-DC active while charging)
+      _ => null,
+    };
+    if (data == null) return null;
+    return _frame(
+        [0x41, int.parse(pid, radix: 16), ...data],
+        ecu: '28');
+  }
+
+  /// Single-frame ISO-TP response line exactly as the real adapter returns it
+  /// with ATH1+ATS0: 29-bit id + PCI length + payload, no spaces.
+  String _frame(List<int> payload, {String? ecu}) {
+    final bytes = [payload.length, ...payload];
+    final hex = bytes
+        .map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase())
+        .join();
+    return '18DAF1${ecu ?? _ecu}$hex\r>';
+  }
+
+  List<int> _u16(int v) => [(v >> 8) & 0xFF, v & 0xFF];
+  List<int> _s16(int v) {
+    final u = v & 0xFFFF;
+    return [(u >> 8) & 0xFF, u & 0xFF];
+  }
+
+  int _drift(int base, int amp) => base + (_rng.nextInt(2 * amp + 1) - amp);
 }

@@ -44,27 +44,49 @@ class DashboardScreen extends StatelessWidget {
               MaterialPageRoute(builder: (_) => const ReportScreen()),
             ),
           ),
-          IconButton(
-            tooltip: 'Adapter terminal',
-            icon: const Icon(Icons.terminal),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const TerminalScreen()),
-            ),
-          ),
-          IconButton(
-            tooltip: 'DID scanner',
-            icon: const Icon(Icons.travel_explore),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ScannerScreen()),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Disconnect',
-            icon: const Icon(Icons.link_off),
-            onPressed: () async {
-              await c.disconnect();
-              if (context.mounted) Navigator.of(context).pop();
+          // Advanced/RE tools live behind the overflow so the everyday
+          // surface stays approachable; power users know where to look.
+          PopupMenuButton<String>(
+            tooltip: 'More',
+            onSelected: (v) async {
+              switch (v) {
+                case 'terminal':
+                  Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const TerminalScreen()));
+                case 'scanner':
+                  Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const ScannerScreen()));
+                case 'disconnect':
+                  await c.disconnect();
+                  if (context.mounted) Navigator.of(context).pop();
+              }
             },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'terminal',
+                child: ListTile(
+                  leading: Icon(Icons.terminal),
+                  title: Text('Adapter terminal'),
+                  subtitle: Text('Advanced'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'scanner',
+                child: ListTile(
+                  leading: Icon(Icons.travel_explore),
+                  title: Text('DID scanner'),
+                  subtitle: Text('Advanced'),
+                ),
+              ),
+              PopupMenuDivider(),
+              PopupMenuItem(
+                value: 'disconnect',
+                child: ListTile(
+                  leading: Icon(Icons.link_off),
+                  title: Text('Disconnect'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
