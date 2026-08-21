@@ -26,7 +26,7 @@ The protocol + engine layers are **pure Dart** (no Flutter dependency) so they r
 Per-vehicle JSON in [`signalsets/`](signalsets/), using the **[OBDb](https://github.com/OBDb) v3** schema (CC BY-SA 4.0) so existing community definitions can be imported directly. See [`signalsets/signalset.schema.json`](signalsets/signalset.schema.json).
 
 - [`BMW-330e-2018/v01.json`](signalsets/BMW-330e-2018/v01.json) — full SME BMS set, derived from OBDb/BMW-i3s (high confidence; offsets flagged for validation).
-- [`Cadillac-Lyriq-2025/v01.json`](signalsets/Cadillac-Lyriq-2025/v01.json) — J1979 baseline only; HV BMS DIDs are **not yet reverse-engineered** (29-bit CAN; needs the RE toolkit + ideally an STN adapter).
+- [`Cadillac-Lyriq-2025/v01.json`](signalsets/Cadillac-Lyriq-2025/v01.json) — J1979 baseline plus on-vehicle-confirmed HV signals (pack voltage, battery temps, pack current via ECU 17 `2414`); consolidated DID map in [`docs/lyriq-did-map.md`](docs/lyriq-did-map.md). Per-cell BSM data is gateway-blocked (see Status).
 
 ## Hardware
 
@@ -53,20 +53,34 @@ decode pipeline so the dashboard, report, and PDF/CSV/JSON export all work.
 
 ## Status
 
-Working end-to-end in software; on-vehicle validation is the remaining step.
+Working end-to-end in software **and validated on-vehicle** for the Cadillac
+Lyriq's core HV signals. Detailed, current state lives in
+[`docs/lyriq-did-map.md`](docs/lyriq-did-map.md) and
+[`docs/on-vehicle-validation.md`](docs/on-vehicle-validation.md).
 
-Done and tested (offline): ISO-TP + UDS + J1979 protocol layer · OBDb-format
-signal engine · BMW-330e-2018 signal set · battery-health model + PDF/CSV/JSON
-report · time-series logging · reverse-engineering DID scanner + correlation
-identification · BLE transport (`flutter_reactive_ble`) · Flutter UI (connect /
-dashboard / report / scanner) · BMW CarData scaffold (feature-flagged).
+Done and tested (offline): ISO-TP + UDS + J1979 protocol layer · DoIP/ENET
+transport · OBDb-format signal engine · battery-health model + PDF/CSV/JSON
+report · coulomb-counting capacity test (charge sessions) · time-series logging
+· reverse-engineering DID scanner + correlation identification · BLE transport
+(`flutter_reactive_ble`, with clone-adapter workarounds) · Flutter UI (connect /
+dashboard / report / capacity / scanner / terminal) · two-vehicle garage
+dashboard · BMW CarData scaffold (feature-flagged).
 
-Needs hardware to finish:
-- BMW 330e — validate the inferred cell/temperature bit offsets against a real
-  SME (values are trustworthy only after this).
-- Cadillac Lyriq — discover the Ultium HV-BMS DIDs on the 29-bit bus with the
-  in-app scanner (ideally an OBDLink CX/MX+); the J1979 baseline works today.
+Confirmed on-vehicle:
+- **Cadillac Lyriq** — pack voltage, battery temperatures, and pack current
+  (ECU 17, DID `2414`) confirmed; usable capacity measured at ~100% SoH via the
+  coulomb-counting capacity test; dynamics + odometer signals added. Confirmed
+  signals contributed upstream as
+  [OBDb/Cadillac-LYRIQ#14](https://github.com/OBDb/Cadillac-LYRIQ/pull/14).
+- **BMW 330e** — transport and standard J1979 PIDs confirmed working; the SME
+  (BMS) does **not** respond over the standard OBD port, so the SME signal set
+  remains inferred/unvalidated.
 
-Native device build here was blocked only on local toolchain setup (a JDK for
-Android; `sudo xcode-select` at Xcode.app + CocoaPods for iOS) — not on any code
-issue. `flutter analyze` is clean and all tests pass.
+Known hard limits (proven on-vehicle, not fixable in software):
+- The Lyriq's central gateway **filters UDS requests to ECU CB** (Battery
+  System Manager) while bridging its J1979 traffic — so per-cell BSM data needs
+  bus access behind the gateway, not a better adapter. A hidden ECU `53` exists
+  but is security-locked. See the root-cause analysis in
+  [`docs/lyriq-did-map.md`](docs/lyriq-did-map.md).
+- BMW SME data will likely require a BMW-specific access path (e.g. ENET/DoIP
+  or BMW CarData) rather than generic OBD-port UDS.
