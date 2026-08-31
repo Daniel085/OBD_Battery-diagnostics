@@ -20,14 +20,15 @@ after demand signal.
       signal set (29-bit, values from real captures) and simulates a steady
       9 kW charge so the capacity test demos end-to-end without a car.
       CI-tested to cover every signal in the set.
+- [x] Dashboard hierarchy (pass 2): hero cards for pack current (+state/kW),
+      SOH (measured > reported > prompt), SOC, temp range; compact rows for
+      context signals. Widget-tested against the simulated Lyriq.
+- [x] First-run onboarding (pass 2): 3 pages — what it does, adapter
+      guidance, read-only promise. Shown once (marker file).
+- [x] Shareable capacity result (pass 2): results card → PNG → share sheet,
+      self-contained with app name + date.
 
 ## Code gaps (next passes)
-
-- [ ] **Dashboard hierarchy**: pack current / SOH / temps as hero cards;
-      odometer & dynamics demoted. The flat 165px-card grid treats steering
-      angle and pack current as equals.
-- [ ] **First-run onboarding**: 2-3 screens — what the app does, adapter
-      guidance (recommend OBDLink CX; warn about clones), privacy one-liner.
 - [ ] **Adapter compatibility UX**: detect clone quirks at connect (we already
       auto-diagnose GATT layouts) and surface "this adapter may not reach the
       battery bus — OBDLink CX recommended" proactively rather than silent
