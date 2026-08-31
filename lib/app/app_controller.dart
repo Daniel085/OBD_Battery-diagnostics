@@ -16,6 +16,7 @@ import '../engine/signal_set.dart';
 import '../transport/data_source.dart';
 import '../transport/elm_ble_source.dart';
 import 'capacity_test_store.dart';
+import 'onboarding_store.dart';
 import 'signal_set_repository.dart';
 
 enum ConnectionPhase { idle, scanning, connecting, initializing, polling, error }
@@ -34,8 +35,32 @@ class AppController extends ChangeNotifier {
     SignalSetRepository? repository,
     this.analyzer = const BatteryHealthAnalyzer(),
     this.capacityStore,
+    this.onboardingStore,
   })  : _bleInstance = ble,
         repo = repository ?? SignalSetRepository();
+
+  // ---- Onboarding ------------------------------------------------------------
+
+  /// Null (tests) means onboarding never shows.
+  final OnboardingStore? onboardingStore;
+
+  /// True while first-run onboarding should be displayed.
+  bool showOnboarding = false;
+
+  Future<void> restoreOnboarding() async {
+    final store = onboardingStore;
+    if (store == null) return;
+    if (!await store.isDone()) {
+      showOnboarding = true;
+      notifyListeners();
+    }
+  }
+
+  void completeOnboarding() {
+    showOnboarding = false;
+    unawaited(onboardingStore?.markDone() ?? Future.value());
+    notifyListeners();
+  }
 
   ConnectionPhase phase = ConnectionPhase.idle;
   String? errorMessage;

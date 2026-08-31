@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'app/app_controller.dart';
 import 'app/capacity_test_store.dart';
+import 'app/onboarding_store.dart';
 import 'ui/home_screen.dart';
 
 void main() {
@@ -15,8 +16,12 @@ class ObdBatteryApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => AppController(capacityStore: CapacityTestStore.documents())
-        ..restoreCapacityTest(),
+      create: (_) => AppController(
+        capacityStore: CapacityTestStore.documents(),
+        onboardingStore: OnboardingStore.documents(),
+      )
+        ..restoreCapacityTest()
+        ..restoreOnboarding(),
       child: MaterialApp(
         title: 'OBD Battery Diagnostics',
         theme: ThemeData(

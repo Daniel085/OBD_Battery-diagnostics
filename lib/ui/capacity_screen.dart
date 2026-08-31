@@ -1,5 +1,11 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../app/app_controller.dart';
 import '../engine/capacity_test.dart';
@@ -20,6 +26,25 @@ class CapacityScreen extends StatefulWidget {
 class _CapacityScreenState extends State<CapacityScreen> {
   final _socStart = TextEditingController();
   final _socEnd = TextEditingController();
+  final _shareKey = GlobalKey();
+
+  /// Render the results card to a PNG and hand it to the share sheet — the
+  /// artifact a user posts to a forum or sends to a buyer.
+  Future<void> _shareResultImage() async {
+    final boundary = _shareKey.currentContext?.findRenderObject()
+        as RenderRepaintBoundary?;
+    if (boundary == null) return;
+    final image = await boundary.toImage(pixelRatio: 3.0);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (bytes == null) return;
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/capacity_result.png');
+    await file.writeAsBytes(bytes.buffer.asUint8List());
+    await Share.shareXFiles(
+      [XFile(file.path)],
+      text: 'EV battery capacity measured with OBD Battery Diagnostics',
+    );
+  }
 
   @override
   void initState() {
@@ -95,7 +120,16 @@ class _CapacityScreenState extends State<CapacityScreen> {
       children: [
         _statusCard(test, a, live),
         const SizedBox(height: 12),
-        _resultsCard(test, a),
+        RepaintBoundary(key: _shareKey, child: _resultsCard(test, a)),
+        if (a.sohPct != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: OutlinedButton.icon(
+              onPressed: _shareResultImage,
+              icon: const Icon(Icons.ios_share),
+              label: const Text('Share result'),
+            ),
+          ),
         const SizedBox(height: 12),
         _socCard(c),
         if (a.segments.isNotEmpty) ...[
@@ -195,10 +229,28 @@ class _CapacityScreenState extends State<CapacityScreen> {
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
+            // Footer so the shared PNG stands alone (who measured it, when).
+            const Divider(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('OBD Battery Diagnostics',
+                    style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  _fmtDate(test.finishedAt ?? DateTime.now()),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
+  }
+
+  static String _fmtDate(DateTime t) {
+    final l = t.toLocal();
+    return '${l.year}-${l.month.toString().padLeft(2, '0')}-${l.day.toString().padLeft(2, '0')}';
   }
 
   Widget _socCard(AppController c) {

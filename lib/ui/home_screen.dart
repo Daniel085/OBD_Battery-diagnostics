@@ -10,6 +10,7 @@ import '../app/signal_set_repository.dart';
 import '../transport/data_source.dart';
 import '../transport/simulated_source.dart';
 import 'dashboard_screen.dart';
+import 'onboarding_screen.dart';
 import 'terminal_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -43,6 +44,9 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.watch<AppController>();
+    if (c.showOnboarding) {
+      return OnboardingScreen(onDone: c.completeOnboarding);
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('OBD Battery Diagnostics'),
