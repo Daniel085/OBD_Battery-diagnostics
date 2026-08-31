@@ -27,6 +27,17 @@ after demand signal.
       guidance, read-only promise. Shown once (marker file).
 - [x] Shareable capacity result (pass 2): results card → PNG → share sheet,
       self-contained with app name + date.
+- [x] Drive mode (pass 3): live EV power meter — fast-polls pack current
+      alone (~5-15 Hz expected on a real adapter; on-screen Hz readout will
+      measure it on-car), big kW draw/regen display, centered-zero power
+      bar, 60 s rolling graph, session stats (peaks, kWh used vs recovered).
+      Market rationale: the "Scan My Tesla" category (live power/battery
+      telemetry, proven paid demand) is empty on Ultium, and Lyriq owners on
+      Cadillac Forums explicitly ask for instantaneous-kW displays/graphs
+      the dash lacks. Deliberately NOT a lap timer / 0-60 app — that space
+      is owned by 10 Hz GPS+IMU products (Dragy, RaceChrono) and OBD is the
+      wrong tool for it; wheel-speed-based 0-60 (1 km/h resolution) parked
+      as a maybe-later, honestly-labeled extra.
 
 ## Code gaps (next passes)
 - [ ] **Adapter compatibility UX**: detect clone quirks at connect (we already

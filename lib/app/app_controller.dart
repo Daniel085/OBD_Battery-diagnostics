@@ -11,6 +11,7 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import '../engine/battery_health.dart';
 import '../engine/capacity_test.dart';
 import '../engine/diagnostics_client.dart';
+import '../engine/drive_session.dart';
 import '../engine/logging.dart';
 import '../engine/signal_set.dart';
 import '../transport/data_source.dart';
@@ -151,6 +152,110 @@ class AppController extends ChangeNotifier {
       await capacityStore?.save(t);
     } catch (_) {
       // Persistence is best-effort; the in-memory session stays authoritative.
+    }
+  }
+
+  // ---- Drive mode (fast power polling) ---------------------------------------
+
+  /// Live power session while drive mode runs; survives leaving the screen
+  /// (kept until reset) so a drive's stats can be reviewed afterwards.
+  DriveSession? driveSession;
+
+  bool _driveMode = false;
+  bool get driveModeActive => _driveMode;
+
+  /// Floor on the fast-poll cycle time. Real adapters take 50-100+ ms per
+  /// round trip anyway; this only stops the simulated source from spinning
+  /// the loop at absurd rates.
+  static const _drivePollFloor = Duration(milliseconds: 50);
+
+  /// Nominal fallback if no pack-voltage signal has been read yet.
+  static const _fallbackPackVolts = 352.1;
+
+  /// Switch the poll loop to hammering the pack-current command alone —
+  /// the only way to get a usable live power feed over a serial adapter.
+  /// Returns false if this vehicle has no pack-current signal.
+  bool startDriveMode() {
+    final client = _client;
+    final set = _signalSet;
+    if (_driveMode) return true;
+    if (client == null || set == null) return false;
+    Command? currentCmd;
+    for (final cmd in set.commands) {
+      if (cmd.signals.any((s) => s.id == 'HVBAT_CURRENT')) {
+        currentCmd = cmd;
+        break;
+      }
+    }
+    if (currentCmd == null) return false;
+
+    _driveMode = true;
+    driveSession ??= DriveSession();
+    _pollTimer?.cancel();
+    _pollTimer = null;
+    unawaited(_driveLoop(client, currentCmd));
+    notifyListeners();
+    return true;
+  }
+
+  /// Leave drive mode and resume the normal all-signals poll (if still
+  /// connected). The session object stays for review.
+  void stopDriveMode() {
+    if (!_driveMode) return;
+    _driveMode = false;
+    if (_client != null) _startPolling();
+    notifyListeners();
+  }
+
+  void resetDriveSession() {
+    driveSession?.reset();
+    notifyListeners();
+  }
+
+  Future<void> _driveLoop(DiagnosticsClient client, Command currentCmd) async {
+    while (_driveMode && identical(_client, client)) {
+      final cycleStart = DateTime.now();
+      if (_pollInFlight) {
+        // A normal poll is still draining; wait rather than overlap commands.
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        continue;
+      }
+      _pollInFlight = true;
+      try {
+        final readings = await client.read(currentCmd);
+        Reading? current;
+        for (final r in readings) {
+          latest[r.signal.id] = r;
+          if (r.signal.id == 'HVBAT_CURRENT') current = r;
+        }
+        if (current != null) {
+          final volts = latest['HVBAT_NOMINAL_VOLTAGE']?.value ??
+              latest['HVBAT_VOLTAGE']?.value ??
+              _fallbackPackVolts;
+          driveSession?.addSample(
+              current.timestamp, current.value * volts / 1000);
+          // Drive-mode samples also serve an active capacity test.
+          _feedCapacityTest({'HVBAT_CURRENT': current});
+        }
+        notifyListeners();
+      } on CommandFailure {
+        // Transient (bus busy, adapter hiccup): back off briefly, keep going.
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+      } catch (e) {
+        _driveMode = false;
+        _fail(
+          'Lost contact with the adapter during drive mode — reconnect and '
+          'try again.',
+          details: '$e',
+        );
+        return;
+      } finally {
+        _pollInFlight = false;
+      }
+      final elapsed = DateTime.now().difference(cycleStart);
+      if (elapsed < _drivePollFloor) {
+        await Future<void>.delayed(_drivePollFloor - elapsed);
+      }
     }
   }
 
@@ -371,6 +476,7 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> disconnect() async {
+    _driveMode = false;
     _pollTimer?.cancel();
     _pollTimer = null;
     await _source?.disconnect();

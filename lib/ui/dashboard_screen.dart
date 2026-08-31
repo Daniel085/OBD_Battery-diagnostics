@@ -5,6 +5,7 @@ import '../app/app_controller.dart';
 import '../engine/capacity_test.dart';
 import '../engine/diagnostics_client.dart';
 import 'capacity_screen.dart';
+import 'drive_screen.dart';
 import 'report_screen.dart';
 import 'scanner_screen.dart';
 import 'terminal_screen.dart';
@@ -24,6 +25,13 @@ class DashboardScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(c.selectedVehicle?.displayName ?? 'Dashboard'),
         actions: [
+          IconButton(
+            tooltip: 'Drive mode (live power)',
+            icon: const Icon(Icons.speed),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const DriveScreen()),
+            ),
+          ),
           IconButton(
             tooltip: 'Capacity test',
             icon: const Icon(Icons.battery_charging_full),
@@ -224,6 +232,8 @@ class _DashboardBody extends StatelessWidget {
       sub: kw == null ? state : '$state · ${kw.toStringAsFixed(1)} kW',
       icon: icon,
       accent: color,
+      onTap: (context) => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const DriveScreen())),
     );
   }
 

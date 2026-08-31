@@ -10,6 +10,7 @@ import 'package:obd_battery_diagnostics/engine/diagnostics_client.dart';
 import 'package:obd_battery_diagnostics/engine/signal_set.dart';
 import 'package:obd_battery_diagnostics/transport/simulated_source.dart';
 import 'package:obd_battery_diagnostics/ui/dashboard_screen.dart';
+import 'package:obd_battery_diagnostics/ui/drive_screen.dart';
 import 'package:obd_battery_diagnostics/ui/home_screen.dart';
 
 // Compiling this file forces the whole UI tree (home/dashboard/report screens,
@@ -86,6 +87,21 @@ void main() {
     await tester.scrollUntilVisible(find.text('DYNAMICS'), 200,
         scrollable: find.byType(Scrollable).first);
     expect(find.text('DYNAMICS'), findsOneWidget);
+    controller.dispose();
+  });
+
+  testWidgets('drive screen explains itself when nothing is connected',
+      (tester) async {
+    final controller = AppController();
+    await tester.pumpWidget(
+      ChangeNotifierProvider<AppController>.value(
+        value: controller,
+        child: const MaterialApp(home: DriveScreen()),
+      ),
+    );
+    await tester.pump(); // post-frame startDriveMode() -> unsupported
+    expect(
+        find.textContaining('needs a live pack-current signal'), findsOneWidget);
     controller.dispose();
   });
 }
