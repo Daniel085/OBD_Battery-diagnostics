@@ -311,3 +311,50 @@ trust only cutoff endpoints. BlueZ note: "Function not implemented" on connect
   again (00 56 01 59 02 57 02 58 → u16s 86,345,599,600) — NOT static config;
   multi-field state record, needs more samples to decode. `4368-436C`/`4373`
   NRC even in Ready+plugged → DCFC-only stands.
+
+## 2026-09-12 session — 17→50% charge, gross-vs-usable SOC cracked
+
+Capture: `captures/chglog_2026-09-12.txt` (logger3, ~45 s cadence, ECU17 I/V +
+ECU40 records incl. SOH regs). Charge start caught within one sample of bus
+wake (11:35). Dash: 17% at plug-in → 50% cutoff.
+
+**Capacity measurement (best yet):** coulomb count = **98.1 ± 2.3 Ah**
+(34.5 kWh DC @ 352.1 V nominal), steady −23 to −25 A across ~4 h wall time
+(five link bursts, gaps interpolated). Dash 17→50 = 33% → full pack
+**≈ 297 Ah ≈ 104.7 kWh ≈ 102.6% of the 102 kWh gross rating → SOH ~100%.**
+Consistent with the Aug 70→80% result (292±8 Ah); larger swing tightened it.
+
+**GROSS vs USABLE SOC — CONFIRMED (answers the "gross capacity = SOH"
+question).** The `441F` charge record's first two data bytes carry TWO SOC
+scales simultaneously:
+- byte0 `3B`→`3A` = **59→58 = GROSS/internal SOC** (BMS full-window %).
+- byte1 `18`→`17` = **24→23 = USABLE SOC** offset — tracks the dash (dash
+  17→... ; byte1 sits a few points above dash, consistent with a usable scale).
+- So at dash 17% the pack was ~59% gross. This is why "Ah per dash-%"
+  extrapolates to the GROSS rating (102 kWh), not usable (~85 kWh): the dash
+  spans the usable window, the coulombs span the same physical charge, and the
+  ratio lands on gross. **The dash-to-gross mapping is now a measured data
+  point, not a guess.**
+
+**`44C5` decoded as a record, first field = gross SOC ×… :** payload
+`00 53 / 00 54 / 01 55 / 02 54 / 00 00` at start → `03 54 / 00 54 / 01 54 /
+01 54 / 00 00` mid/end. First u16 field moved `0x0053`(83)→`0x0354`(852)
+during charge = **tracks gross SOC-ish, NOT a static capacity value** →
+DEMOTED as a capacity register. The `0x0154`≈340 fields look like a repeated
+config/limit constant, not capacity.
+
+**SOH registers `443C`/`4441`/`451D` = 0x00 all session** — did NOT populate
+even with the car awake and actively charging (contrast Aug: 100/100/99 seen
+in some wakes). Confirms these are **event-computed / cached**, not live —
+they refresh on some BMS trigger (drive cycle? balancing?), not on demand.
+Cannot rely on them as an on-demand SOH readout.
+
+**`44C0` = `3A3A3B3B`→`3A3A3A3A`** (58/59 range) — tracks gross SOC, still not
+usable-SOC. Consistent with the Aug demotion.
+
+**NET on gross capacity via OBD (user question):** no register on any
+gateway-reachable ECU reports pack gross-capacity-in-kWh/Ah directly. `44C5`
+first-field is gross-SOC not capacity; SOH% regs are cached-not-live. The
+coulomb-count remains THE capacity/SOH source — and it's arguably better
+(physical measurement vs BMS model output). We CAN now report **both** a gross
+and a usable SOC to the user by decoding `441F` bytes 0/1.
