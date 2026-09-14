@@ -398,6 +398,36 @@ mode). Latch test INCOMPLETE — did not reach 100%. Next: continue to 100%,
 then put the car in READY and read the regs in vehicle-on mode (sparse mode
 may hide a latched value).
 
+## 2026-09-14 leg 2 — SOH REGS RESOLVED (it's vehicle-on, NOT charge-to-100%)
+
+At **73% SOC**, user switched the vehicle ON (Ready). At that instant
+(15:12), in lockstep, `416C` module V woke (0→51.08 V), EVSE pilot corrected
+(16→38.8 A), and the SOH regs began populating. **This kills the "latch at
+100%" hypothesis: the gate is VEHICLE-ON vs sparse/unattended-charging mode**,
+the same mode split that governs 416C/441F/4149. Every prior 0x00 reading was
+because the car was in sparse mode; every populated reading (Aug) was
+vehicle-on. SOC was irrelevant.
+
+**Settled values (12 min steady, car on, ~3 A trickle at 73%):**
+- **`451D` = 0x5D = 93** — rock-steady from first read, the reliable one.
+- **`443C` / `4441` = 100 / 100**, but INTERMITTENT: mostly 0x00, flicking to
+  0x64=100 only ~1 sample in 6 (15:16, 15:13). These two are refresh-gated /
+  slow-cadence even vehicle-on; do not treat their 0x00 as "zero SOH".
+- Earlier transient 63/83 (15:13) was the mid-recompute ramp, not a real SOH.
+
+**Interpretation:** `451D`=93 is the trustworthy controller SOH-ish figure;
+`443C`/`4441`=100 look like a capacity/verified flag pair. **451D=93 vs Aug's
+99** is a real delta worth watching, BUT our coulomb count says ~100% (±3%,
+after the wall-meter over-read correction) — so 451D is either a different
+metric (e.g. a conservative/among-cells min) or the pack genuinely reads mid-
+90s to the BMS while integrating to ~100%. Both plausible; not resolved.
+**Coulomb count remains the primary SOH source; 451D is a cross-check to log,
+not a verdict.** Capture updated: `captures/chgloghi_2026-09-14.txt`.
+
+**App implication:** SOH regs are only meaningful vehicle-on; surface them
+only when 416C≠0 (vehicle-on detector we already have), label as
+"controller-reported (BMS)" distinct from our measured SOH, and prefer 451D.
+
 **`44C0` = `3A3A3B3B`→`3A3A3A3A`** (58/59 range) — tracks gross SOC, still not
 usable-SOC. Consistent with the Aug demotion.
 
