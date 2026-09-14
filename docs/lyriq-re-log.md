@@ -364,6 +364,40 @@ CONTINUOUSLY, record the exact SOC at which they flip 0x00 → value.**
   - stay 0 even after 100% → deep-discharge reset needs a full recal cycle
     (charge-after-deep-discharge); may take another full cycle to restore.
 
+## 2026-09-14 session, leg 1 — 38→73% with a WALL METER
+
+Capture: `captures/chgloghi_2026-09-14.txt` (30 s cadence). Car in
+**unattended/sparse mode** the whole leg (441F all-zero, 416C=0, 4149 stale
+16 A) — the car was never "on". Dash 38% → stopped at 73%. User's wall-side
+power meter: **38.29 kWh AC delivered** (first time we have the AC side).
+
+**Coulomb count: 104.9 ± 1.0 Ah** over 4.56 h, steady −24.0 → −22.1 A (mild
+taper starting). 35 dash points → **3.00 Ah/pt → ~300 Ah ≈ 105.6 kWh @ 352.1 V
+nominal ≈ 103.5% of 102 kWh.** Mid-charge check: at 79.1 Ah the dash read
+65% exactly as predicted from 2.9 Ah/pt (third session on the same slope).
+
+**WALL-METER RECONCILIATION → current-scale/voltage bound.** 104.9 Ah ×
+352.1 V = 36.95 kWh DC vs 38.29 kWh AC = **96.5% "efficiency" at nominal V**
+— too high for an onboard AC charger (typ. 88-93%). Since DC ≤ ~0.93 × AC =
+35.6 kWh, either (a) the true AVERAGE pack voltage over 38-73% is ≲ 340 V
+(below the 352 nominal constant), or (b) `2414` reads ~3-5% HIGH (true
+≈ 99-101 Ah), or a mix. This also explains why every session lands at
+102-104% of "102 kWh gross": a consistent few-% over-read. **Treat SOH as
+≈100% (±3%), not 103%.** Live pack V (CB, gateway-blocked) or a second
+current reference would settle it; DoIP/ENET is the path.
+
+**`4127` DEMOTED — CONSTANT, NOT A SENSOR.** Read exactly 0x0418 (32.75 °C /
+91.0 °F) on every sample of this session, Sep 12, and Aug. A thermal
+setpoint/limit, not a temperature. `40E5` is the live pack/coolant temp
+(72.5 → 75.0 °F, +2.5 °F over 4.5 h at 8.4 kW AC — thermal management barely
+working). TODO: relabel 4127 in the signal set, drop from temp aggregation;
+re-examine 4124/40E6 for the same pattern.
+
+**SOH regs `443C`/`4441`/`451D`: 0x00 throughout a 38→73% charge** (sparse
+mode). Latch test INCOMPLETE — did not reach 100%. Next: continue to 100%,
+then put the car in READY and read the regs in vehicle-on mode (sparse mode
+may hide a latched value).
+
 **`44C0` = `3A3A3B3B`→`3A3A3A3A`** (58/59 range) — tracks gross SOC, still not
 usable-SOC. Consistent with the Aug demotion.
 
