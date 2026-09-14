@@ -346,8 +346,23 @@ config/limit constant, not capacity.
 **SOH registers `443C`/`4441`/`451D` = 0x00 all session** — did NOT populate
 even with the car awake and actively charging (contrast Aug: 100/100/99 seen
 in some wakes). Confirms these are **event-computed / cached**, not live —
-they refresh on some BMS trigger (drive cycle? balancing?), not on demand.
-Cannot rely on them as an on-demand SOH readout.
+they refresh on some BMS trigger, not on demand.
+
+**OPEN HYPOTHESIS (2026-09-14) — SOH regs latch on a HIGH/FULL charge, and a
+deep discharge clears them.** Fits all data: Aug read 100/100/99 at 56-70%
+(car had been fully charged recently → latched value held across partial
+sessions); Sep 12 read 0x00 the whole 17→50% run (deepest discharge we'd
+seen, to 17% — cleared the latch, and stopping at 50% never re-charged high
+enough to re-latch). Strict "only reports at exactly 100%" is already
+falsified by Aug (populated at 56-70%), so the working model is:
+*value recomputes/latches at the end of a sufficiently high charge and holds
+until a deep discharge resets it.*
+**FALSIFYING TEST (next session): charge 50→100%, sample 443C/4441/451D
+CONTINUOUSLY, record the exact SOC at which they flip 0x00 → value.**
+  - populate mid-climb (80-90%) → "recompute after high charge", not 100%.
+  - stay 0 until complete, then show → strict full-charge latch.
+  - stay 0 even after 100% → deep-discharge reset needs a full recal cycle
+    (charge-after-deep-discharge); may take another full cycle to restore.
 
 **`44C0` = `3A3A3B3B`→`3A3A3A3A`** (58/59 range) — tracks gross SOC, still not
 usable-SOC. Consistent with the Aug demotion.
