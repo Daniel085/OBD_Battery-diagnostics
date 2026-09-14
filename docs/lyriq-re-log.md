@@ -428,6 +428,33 @@ not a verdict.** Capture updated: `captures/chgloghi_2026-09-14.txt`.
 only when 416C≠0 (vehicle-on detector we already have), label as
 "controller-reported (BMS)" distinct from our measured SOH, and prefer 451D.
 
+## 2026-09-14 leg-1 capacity (final) + leg-2 lost to a logger bug
+
+**LEG 1 (38→73%, vehicle-on charge): 100.6 Ah = 35.40 kWh DC** vs wall meter
+**38.29 kWh AC → 92.5% charger efficiency** — now a PLAUSIBLE onboard-charger
+number (was 96.5% on the earlier partial cut). 35 dash pts → 2.87 Ah/pt →
+~287 Ah ≈ 101 kWh ≈ ~99% of 102 kWh gross. **This is the cleanest single-leg
+result and it lands at ~100% SOH with a believable efficiency — best evidence
+yet the pack is healthy and the 2414 scale is about right (the earlier "3-5%
+high" worry shrinks; residual is within pack-V-vs-nominal uncertainty).**
+
+**LEG 2 (73→79%) NOT USABLE — logger died ~15:31, charge continued ~1h+.**
+Final wall meter 47.26 kWh @ dash 79%. The log only holds the first ~4 min of
+leg 2 (the −3.7 A trickle right after Ready), so any leg-2 coulomb count is a
+massive undercount (the bogus 76% overall / 5.9% leg-2 "efficiency"). Do NOT
+use post-15:00 data for capacity. Leg-2 efficiency reconciliation remains open
+for a future session.
+
+**TOOLING BUG (fix before next multi-leg session):** the successor-logger
+chain used `while pgrep -f chgloghi[.]py; do sleep 60; done; exec …chgloghi.py`
+— but that guard command's OWN command line contains "chgloghi.py", so pgrep
+matched itself and the successor never fired when the primary died. Also the
+primary's own connect-retry exhaustion (link drop when car slept) can kill it
+silently. FIX: (a) guard on the python interpreter+script via a PID file, not
+a self-matching pgrep; (b) make the logger loop resilient to CONNECT_FAIL
+(already retries per-burst, but it exited — add an outer restart wrapper);
+(c) verify liveness with a fresh ssh, not the launching one.
+
 **`44C0` = `3A3A3B3B`→`3A3A3A3A`** (58/59 range) — tracks gross SOC, still not
 usable-SOC. Consistent with the Aug demotion.
 
