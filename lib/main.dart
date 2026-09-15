@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'app/app_controller.dart';
 import 'app/capacity_test_store.dart';
+import 'app/drive_record_store.dart';
 import 'app/onboarding_store.dart';
 import 'ui/home_screen.dart';
 
@@ -18,9 +19,11 @@ class ObdBatteryApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => AppController(
         capacityStore: CapacityTestStore.documents(),
+        driveStore: DriveRecordStore.documents(),
         onboardingStore: OnboardingStore.documents(),
       )
         ..restoreCapacityTest()
+        ..restoreDriveRecording()
         ..restoreOnboarding(),
       child: MaterialApp(
         title: 'OBD Battery Diagnostics',

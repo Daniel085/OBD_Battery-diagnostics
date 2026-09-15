@@ -11,12 +11,14 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import '../engine/battery_health.dart';
 import '../engine/capacity_test.dart';
 import '../engine/diagnostics_client.dart';
+import '../engine/drive_record.dart';
 import '../engine/drive_session.dart';
 import '../engine/logging.dart';
 import '../engine/signal_set.dart';
 import '../transport/data_source.dart';
 import '../transport/elm_ble_source.dart';
 import 'capacity_test_store.dart';
+import 'drive_record_store.dart';
 import 'onboarding_store.dart';
 import 'signal_set_repository.dart';
 
@@ -36,6 +38,7 @@ class AppController extends ChangeNotifier {
     SignalSetRepository? repository,
     this.analyzer = const BatteryHealthAnalyzer(),
     this.capacityStore,
+    this.driveStore,
     this.onboardingStore,
   })  : _bleInstance = ble,
         repo = repository ?? SignalSetRepository();
@@ -95,6 +98,7 @@ class AppController extends ChangeNotifier {
 
   /// Persistence for the capacity test (null in tests → in-memory only).
   final CapacityTestStore? capacityStore;
+  final DriveRecordStore? driveStore;
 
   /// The running (or finished-but-not-dismissed) capacity test, if any. It
   /// survives disconnects and app restarts; polls feed it HVBAT_CURRENT.
@@ -212,6 +216,89 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ---- Drive recording (the buyer-facing report) -----------------------------
+
+  /// A recorded drive, if one is being captured. Unlike [driveSession] (the
+  /// live rolling view), this keeps every tick for a persisted, shareable
+  /// Drive Health Report.
+  DriveRecord? driveRecord;
+  DateTime? _lastDriveSave;
+  static const _driveSaveSpacing = Duration(seconds: 15);
+
+  bool get isRecordingDrive => driveRecord != null && !driveRecord!.finished;
+
+  /// Begin recording (also entering drive mode if not already). Returns false
+  /// if drive mode couldn't start (no pack-current signal).
+  bool startDriveRecording() {
+    if (!_driveMode && !startDriveMode()) return false;
+    driveRecord = DriveRecord(
+      vehicle: selectedVehicle?.displayName ?? _signalSet?.vehicle,
+    );
+    _lastDriveSave = null;
+    unawaited(_saveDriveRecord());
+    notifyListeners();
+    return true;
+  }
+
+  void finishDriveRecording() {
+    driveRecord?.finish();
+    unawaited(_saveDriveRecord());
+    notifyListeners();
+  }
+
+  void discardDriveRecording() {
+    driveRecord = null;
+    unawaited(driveStore?.clear() ?? Future.value());
+    notifyListeners();
+  }
+
+  Future<void> restoreDriveRecording() async {
+    final restored = await driveStore?.load();
+    if (restored != null) {
+      driveRecord = restored;
+      notifyListeners();
+    }
+  }
+
+  void _recordDriveTick(Reading current, double kw) {
+    final rec = driveRecord;
+    if (rec == null || rec.finished) return;
+    // Read whatever context signals the latest snapshot happens to hold; the
+    // drive profile prioritises current, so temp/volts may be stale but are
+    // still useful. tempC uses the confirmed-live pack temp (40E5), not 4127
+    // (a constant setpoint, per docs/lyriq-re-log.md).
+    final volts = latest['HVBAT_NOMINAL_VOLTAGE']?.value ??
+        latest['HVBAT_VOLTAGE']?.value;
+    final temp = latest['HVBAT_TEMP_3']?.value ??
+        latest['HVBAT_TEMP_MAIN']?.value ??
+        latest['HVBAT_CELLTEMP_MAX']?.value;
+    final speed = latest['VEHICLE_SPEED']?.value;
+    rec.add(DriveTick(
+      t: current.timestamp,
+      kw: kw,
+      amps: current.value,
+      volts: volts,
+      tempC: temp,
+      speedKmh: speed,
+    ));
+    final at = current.timestamp;
+    final last = _lastDriveSave;
+    if (last == null || at.difference(last) >= _driveSaveSpacing) {
+      _lastDriveSave = at;
+      unawaited(_saveDriveRecord());
+    }
+  }
+
+  Future<void> _saveDriveRecord() async {
+    final rec = driveRecord;
+    if (rec == null) return;
+    try {
+      await driveStore?.save(rec);
+    } catch (_) {
+      // Persistence is best-effort; the in-memory record stays authoritative.
+    }
+  }
+
   Future<void> _driveLoop(DiagnosticsClient client, Command currentCmd) async {
     while (_driveMode && identical(_client, client)) {
       final cycleStart = DateTime.now();
@@ -232,8 +319,9 @@ class AppController extends ChangeNotifier {
           final volts = latest['HVBAT_NOMINAL_VOLTAGE']?.value ??
               latest['HVBAT_VOLTAGE']?.value ??
               _fallbackPackVolts;
-          driveSession?.addSample(
-              current.timestamp, current.value * volts / 1000);
+          final kw = current.value * volts / 1000;
+          driveSession?.addSample(current.timestamp, kw);
+          _recordDriveTick(current, kw);
           // Drive-mode samples also serve an active capacity test.
           _feedCapacityTest({'HVBAT_CURRENT': current});
         }

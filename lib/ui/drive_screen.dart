@@ -2,8 +2,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../app/app_controller.dart';
+import '../engine/drive_record.dart';
 import '../engine/drive_session.dart';
 
 /// Drive mode: a live EV power meter. The poll loop switches to hammering the
@@ -77,7 +79,111 @@ class _DriveScreenState extends State<DriveScreen> {
             )
           : s == null || s.sampleCount == 0
               ? const Center(child: CircularProgressIndicator())
-              : _DriveBody(session: s),
+              : Column(
+                  children: [
+                    _RecordBar(controller: c),
+                    Expanded(child: _DriveBody(session: s)),
+                  ],
+                ),
+    );
+  }
+}
+
+/// Record / Finish / Share controls for the Drive Health Report.
+class _RecordBar extends StatelessWidget {
+  final AppController controller;
+  const _RecordBar({required this.controller});
+
+  Future<void> _shareReport(BuildContext context, DriveRecord rec) async {
+    await Share.share(rec.reportText(),
+        subject: 'EV Drive Health Report');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rec = controller.driveRecord;
+    final recording = controller.isRecordingDrive;
+    final cs = Theme.of(context).colorScheme;
+
+    if (rec == null) {
+      return Material(
+        color: cs.surfaceContainerHighest,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Record a drive to capture a shareable battery health report.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: controller.startDriveRecording,
+                icon: const Icon(Icons.fiber_manual_record, size: 18),
+                label: const Text('Record'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Material(
+      color: recording ? cs.errorContainer : cs.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            Icon(recording ? Icons.fiber_manual_record : Icons.check_circle,
+                size: 18,
+                color: recording ? cs.error : cs.onSecondaryContainer),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                recording
+                    ? 'Recording · ${rec.ticks.length} samples'
+                    : 'Drive recorded · ${rec.ticks.length} samples',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
+            if (recording)
+              FilledButton.icon(
+                onPressed: controller.finishDriveRecording,
+                icon: const Icon(Icons.stop, size: 18),
+                label: const Text('Finish'),
+              )
+            else ...[
+              TextButton(
+                onPressed: () async {
+                  final ok = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Discard drive?'),
+                      content: const Text('The recorded report will be deleted.'),
+                      actions: [
+                        TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Cancel')),
+                        FilledButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text('Discard')),
+                      ],
+                    ),
+                  );
+                  if (ok == true) controller.discardDriveRecording();
+                },
+                child: const Text('Discard'),
+              ),
+              FilledButton.icon(
+                onPressed: () => _shareReport(context, rec),
+                icon: const Icon(Icons.ios_share, size: 18),
+                label: const Text('Share'),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
