@@ -294,6 +294,27 @@
       ]
     },
     {
+      "_confirmed": "on-vehicle 2026-09-14/17: reads 0x5D=93 steady. SOC-INDEPENDENT (93 at 73% SOC and again at a true 100% charge), so it is a battery-health figure, not a charge level. Only populates VEHICLE-ON (Ready); reads 0x00 in unattended-charging sparse mode, and needs ~5 min in Ready to converge after wake. Distinct from our coulomb-counted capacity (~100% of gross) — likely a conservative/spec-discounted controller SOH. See docs/lyriq-re-log.md.",
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "451D"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_SOH_BMS",
+          "name": "HV battery SOH (BMS-reported)",
+          "group": "summary",
+          "fmt": {
+            "bix": 0,
+            "len": 8,
+            "max": 100,
+            "unit": "percent"
+          }
+        }
+      ]
+    },
+    {
       "_confirmed": "on-vehicle 2026-08-14: 0x46=70, raw-40=30C, fits temp cluster",
       "hdr": "18DA40F1",
       "rax": "18DAF140",

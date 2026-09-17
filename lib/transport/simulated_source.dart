@@ -209,6 +209,9 @@ class SimulatedLyriqSource implements DataSource {
       ('40', '40E5') => _u16(_drift(0x0366, 6)), // ~27.2 C
       ('40', '40E6') => _u16(_drift(0x0361, 6)),
       ('40', '434F') => [25 + 40 + _rng.nextInt(2)], // byte-40 C
+      // Controller SOH register: 93 steady, as measured on the real car
+      // (SOC-independent — see docs/lyriq-re-log.md).
+      ('40', '451D') => [93],
       ('40', '4149') => _u16(0x0184), // EVSE pilot 38.8 A (9.3 kW)
       ('40', '448F') => [0x00, 0x1E, 0xFE, 0x52], // odometer (=19,720 mi)
       // ECU 1D: 12V rail /10.

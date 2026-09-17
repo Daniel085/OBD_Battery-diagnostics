@@ -121,8 +121,17 @@ class _DashboardBody extends StatelessWidget {
       heroes.add(_currentHero(context, current, nominalV));
     }
 
+    // Two independent health figures, never merged: our coulomb-counted
+    // measurement and the controller's own SOH register. They answer
+    // different questions (see docs/lyriq-re-log.md), so both get a card.
     heroes.add(_sohHero(context, capacity, r('HVBAT_SOH')));
     consumed.add('HVBAT_SOH');
+
+    final bmsSoh = r('HVBAT_SOH_BMS');
+    consumed.add('HVBAT_SOH_BMS');
+    if (bmsSoh != null) {
+      heroes.add(_bmsSohHero(context, bmsSoh));
+    }
 
     final soc = r('HVBAT_SOC') ?? r('HVBAT_SOC_STD');
     if (soc != null) {
@@ -237,13 +246,35 @@ class _DashboardBody extends StatelessWidget {
     );
   }
 
+  /// The controller's own SOH register (Lyriq ECU 40 `451D`). Only valid when
+  /// the vehicle is on AND the value has settled — it reads 0 in unattended-
+  /// charging sparse mode and churns for a few minutes after wake, so a zero
+  /// is "not available", never "0% healthy".
+  Widget _bmsSohHero(BuildContext context, Reading bmsSoh) {
+    final v = bmsSoh.value;
+    if (v <= 0 || v > 100) {
+      return const _HeroCard(
+        label: 'BMS-reported SOH',
+        value: '—',
+        sub: 'available with vehicle on',
+        icon: Icons.memory,
+      );
+    }
+    return _HeroCard(
+      label: 'BMS-reported SOH',
+      value: '${v.toStringAsFixed(0)} %',
+      sub: 'from battery controller',
+      icon: Icons.memory,
+    );
+  }
+
   Widget _sohHero(
       BuildContext context, CapacityAnalysis? capacity, Reading? reported) {
     if (capacity?.sohPct != null) {
       return _HeroCard(
-        label: 'State of health',
+        label: 'Measured SOH',
         value: '${capacity!.sohPct!.toStringAsFixed(1)} %',
-        sub: 'measured · ${capacity.packKwh!.toStringAsFixed(0)} kWh',
+        sub: 'capacity test · ${capacity.packKwh!.toStringAsFixed(0)} kWh',
         icon: Icons.favorite,
         onTap: (context) => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const CapacityScreen())),

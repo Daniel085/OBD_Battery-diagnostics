@@ -90,6 +90,57 @@ void main() {
     controller.dispose();
   });
 
+  testWidgets('dashboard shows BMS SOH alongside measured, and never 0%',
+      (tester) async {
+    final set = SignalSet.parse(
+        File('signalsets/Cadillac-Lyriq-2025/v01.json').readAsStringSync());
+    final source = SimulatedLyriqSource();
+    await source.connect();
+    final client = DiagnosticsClient(source, set);
+    await client.initialize();
+    final readings = await client.readAll();
+
+    final controller = AppController();
+    controller.latest.addAll(readings);
+    await tester.pumpWidget(
+      ChangeNotifierProvider<AppController>.value(
+        value: controller,
+        child: const MaterialApp(home: DashboardScreen()),
+      ),
+    );
+
+    // Both health cards present and distinctly labeled — never merged.
+    expect(find.text('BMS-reported SOH'), findsOneWidget);
+    expect(find.text('93 %'), findsOneWidget);
+    expect(find.text('from battery controller'), findsOneWidget);
+    // No capacity test has run, so the measured card prompts for one.
+    expect(find.text('State of health'), findsOneWidget);
+    expect(find.text('run a capacity test'), findsOneWidget);
+    controller.dispose();
+  });
+
+  testWidgets('BMS SOH of 0 renders as unavailable, not 0% healthy',
+      (tester) async {
+    // 0 means sparse mode / not yet converged — showing "0 %" would read as a
+    // dead battery. Must degrade to a dash.
+    final set = SignalSet.parse(
+        File('signalsets/Cadillac-Lyriq-2025/v01.json').readAsStringSync());
+    final sohSignal = set.signalsById['HVBAT_SOH_BMS']!;
+    final controller = AppController();
+    controller.latest['HVBAT_SOH_BMS'] =
+        Reading(sohSignal, 0, DateTime.now());
+    await tester.pumpWidget(
+      ChangeNotifierProvider<AppController>.value(
+        value: controller,
+        child: const MaterialApp(home: DashboardScreen()),
+      ),
+    );
+    expect(find.text('BMS-reported SOH'), findsOneWidget);
+    expect(find.text('available with vehicle on'), findsOneWidget);
+    expect(find.text('0 %'), findsNothing);
+    controller.dispose();
+  });
+
   testWidgets('drive screen explains itself when nothing is connected',
       (tester) async {
     final controller = AppController();
