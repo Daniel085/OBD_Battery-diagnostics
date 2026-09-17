@@ -460,6 +460,29 @@ to converge. **Still open. Next: at any SOC, keep the car in Ready (driving)
 again: charge-to-100% does NOT populate them (sparse mode all through
 charging); vehicle-on does, but convergence takes minutes.
 
+### RESOLVED same day (15:35, car kept in Ready ~5 min at true 100%)
+
+**`451D` = 93, ROCK-STEADY (4 consecutive samples, vehicle-on).** Identical
+to the 73% reading on 09-14. **So 451D does NOT track state of charge — it is
+a stable, SOC-independent battery metric.** 93 at 73% and 93 at 100% = it is
+reporting a fixed pack property, i.e. a state-of-health / capacity-health
+figure, not "how full is it right now". (443C/4441 stayed 0 here — their
+intermittent refresh didn't fire in this window; 451D is the reliable one.)
+
+**Interpretation of 451D=93 vs our coulomb count ~100%:** these are different
+quantities and both are probably "right":
+- Coulomb count (~100% of 102 kWh gross) = usable throughput vs the rated
+  GROSS pack — a healthy 2-yr-old Ultium measures ~full gross.
+- 451D=93 = likely GM's SOH against a spec that already discounts gross→
+  beginning-of-life-usable, OR a deliberately conservative/among-cells figure.
+  93% SOH on a low-mileage Lyriq is plausible as a manufacturer metric.
+Either way: **for the app, report BOTH** — our measured capacity (headline,
+physical, method-transparent) AND the controller's 451D as "BMS-reported SOH"
+when vehicle-on and settled. Do not average them; they answer different
+questions. **451D confirmed SOC-independent → safe to surface as a stable
+SOH-ish readout.** Prior "does it climb 93→99 at 100%" hypothesis: ANSWERED —
+it does NOT climb, stays 93.
+
 ## 2026-09-14 leg-1 capacity (final) + leg-2 lost to a logger bug
 
 **LEG 1 (38→73%, vehicle-on charge): 100.6 Ah = 35.40 kWh DC** vs wall meter
