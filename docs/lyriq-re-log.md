@@ -428,6 +428,38 @@ not a verdict.** Capture updated: `captures/chgloghi_2026-09-14.txt`.
 only when 416C≠0 (vehicle-on detector we already have), label as
 "controller-reported (BMS)" distinct from our measured SOH, and prefer 451D.
 
+## 2026-09-17 — full-cycle charge to 100% (75→100%)
+
+Capture: `captures/chg100_2026-09-17.txt`. Fixed flock-supervised logger
+(tools/pi-logger) — ran clean start to finish, no data loss (the whole point
+of the 09-15 fix). Charge 11:57→15:29, dash 75%→100% (true end: user waited
+for wall current to stop, not the dash's premature "complete").
+
+**FULL-CYCLE CAPACITY (best anchor yet — true 100% cutoff): 73.9 ± 2.0 Ah =
+26.03 kWh DC @ 352.1 V nominal. 2.96 Ah/dash-pt → ~296 Ah → ~104 kWh →
+~102% of 102 kWh gross.** Fourth session agreeing (Aug ~2.9, 09-12 3.00,
+09-14 2.87, 09-17 2.96 Ah/pt). ±2.0 Ah wider than 09-14 because of one 469 s
+link gap during the run (interpolated). SOH ~100%, firmly.
+
+**CHARGER EFFICIENCY — now pinned with a full-cycle wall reading. 31.07 kWh
+AC → 26.03 kWh DC(nominal) = 83.8%.** This is BELIEVABLE for onboard AC
+charging (unlike the earlier 96.5% partial artifact), so it RESOLVES the
+09-14 puzzle in favour of: **the 2414 current scale is about right, and the
+"102-104% of gross" we keep computing is because avg pack V during charge is
+somewhat ABOVE 352 nominal** — at ~375 V avg the eff is ~89%, a very typical
+number. Net: pack is genuinely ~100% SOH; report it as such.
+
+**SOH regs at true 100%, vehicle-on: STILL UNSTABLE / did not settle.** As
+the car went to Ready (~15:26-15:30) the regs churned — 443C/4441/451D seen
+as (100,100,0) → (0,33,33) → (33,33,33) → (0,0,0) across ~4 min, then the car
+slept. NEVER held a steady value this session (contrast 09-14 where 451D held
+93 for 12 min). So we did NOT get the clean "does 451D climb from 93 toward
+99 at 100%" read — the car wasn't kept in Ready long enough for the recompute
+to converge. **Still open. Next: at any SOC, keep the car in Ready (driving)
+5+ min undisturbed and log until 451D holds steady 3+ samples.** Confirms
+again: charge-to-100% does NOT populate them (sparse mode all through
+charging); vehicle-on does, but convergence takes minutes.
+
 ## 2026-09-14 leg-1 capacity (final) + leg-2 lost to a logger bug
 
 **LEG 1 (38→73%, vehicle-on charge): 100.6 Ah = 35.40 kWh DC** vs wall meter
