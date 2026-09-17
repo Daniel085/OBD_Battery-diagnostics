@@ -483,6 +483,50 @@ questions. **451D confirmed SOC-independent → safe to surface as a stable
 SOH-ish readout.** Prior "does it climb 93→99 at 100%" hypothesis: ANSWERED —
 it does NOT climb, stays 93.
 
+## 2026-09-17 16:22 — dedicated VEHICLE-ON sweep (`captures/vehon_2026-09-17.txt`)
+
+Car in Ready, full charge, 6 rounds over ~65 s + targeted sweeps. Four
+questions, three answered definitively.
+
+**NEW SIGNAL: `451E` = 0x29 = 41, rock-steady** (all 6 rounds), sitting right
+beside `451D`=93. Same vehicle-on gating. Unknown quantity — candidates: a
+second health metric, a cell-balance/spread figure, an age/cycle-derived
+number, or a different SOH basis. Worth tracking over months alongside 451D.
+Neighbours: `451C` NRC 0x31 (not implemented), `4440`/`443D` = 0x00.
+
+**`443C`/`4441` = 0x00 EVEN VEHICLE-ON, all 6 rounds.** Contradicts the 09-14
+reading where they flickered to 100/100. So their population is rarer than
+"vehicle-on" — some other event gates them (post-drive? balancing? a
+periodic recompute?). **Do not rely on them.** `451D` remains the single
+reliable controller SOH register; this reinforces surfacing only 451D.
+
+**PER-CELL BLOCKS: DEAD END CONFIRMED VEHICLE-ON.** `418D`/`418E`/`418F`/
+`4190`/`4191` all return correctly-sized multiframe responses (43/173/58/43/43
+bytes) with **entirely zero payloads**, exactly as in sparse mode. Vehicle-on
+does NOT unlock them. `4181`/`4240` return a single 0x00 byte. Combined with
+the ECU CB gateway block and the 00-FF roster scan finding no hidden cell
+module, **per-cell voltages are definitively unreachable via the OBD port** —
+the responses are structurally valid but the data is withheld/gated. Only the
+DoIP/ENET path remains.
+
+**LIVE PACK VOLTAGE: still not exposed.** `2429`/`2428`/`242D`/`2434` all read
+0x5806 = **352.09 V vehicle-on at 100% SOC** — identical to every sparse-mode
+read. A real pack at 100% would be ~400 V, so these remain the nominal
+constant, not live voltage. (`2489`=0x5804=352.06 V, trivially different —
+same constant.) `243D`/`2430` NRC 0x31. **Voltage-sag metric in the drive
+report stays uncomputable until DoIP.** Also: `2414`=+0.30 A (idle draw with
+car on, positive=discharge — sign convention reconfirmed), `24AA`=165 (small
+value, consistent with the demoted uptime-counter reading).
+
+**ECU CB (BSM): all NO DATA vehicle-on** (`F190`, `4369`, `8334`, `43AF`,
+`41A3`) — the central-gateway UDS block holds regardless of vehicle state, as
+expected. Re-confirmed, no change.
+
+**Net:** the OBD port has now been exhausted for battery data on this vehicle.
+Everything further (per-cell, live pack V, SOC, BSM) requires bus access
+behind the gateway — the ~$15 ENET/DoIP cable is the only remaining path, and
+the transport for it is already built (`lib/protocol/doip.dart`).
+
 ## 2026-09-14 leg-1 capacity (final) + leg-2 lost to a logger bug
 
 **LEG 1 (38→73%, vehicle-on charge): 100.6 Ah = 35.40 kWh DC** vs wall meter
