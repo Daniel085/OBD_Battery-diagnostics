@@ -563,3 +563,71 @@ first-field is gross-SOC not capacity; SOH% regs are cached-not-live. The
 coulomb-count remains THE capacity/SOH source — and it's arguably better
 (physical measurement vs BMS model output). We CAN now report **both** a gross
 and a usable SOC to the user by decoding `441F` bytes 0/1.
+
+## 2026-09-18 — re-audit of the September data: one retraction, one caveat
+
+Re-checked the captures against known dash readings instead of trusting the
+session-day notes. Two things need correcting.
+
+**RETRACTION — "gross vs usable SOC cracked" (09-12 entry) is WRONG.**
+`441F` byte0 was read as "gross SOC = 59 at dash 17%". But across sessions:
+Aug 14 → 62 at dash 56%; Sep 12 → 59 at dash 17%, then **58 at dash 50%**
+(it went DOWN while the pack charged UP). A quantity that reads 58-62 at dash
+17%, 50% and 56% is not any kind of SOC. It is the same ~60 value that `44C0`
+carries (`3A3A3B3B` = 58/58/59/59 in the same rows) — an as-yet-unknown
+quantity. Byte1 (24→23) is likewise not usable SOC. **The dash→gross mapping
+is NOT measured; no SOC register of any kind has been found on ECU 40.** The
+correct statement is only the older one: the coulomb count spans whatever
+window the dash 0-100% covers, and that window ≈ the 102 kWh nameplate in Ah.
+
+**Temperatures (three charges, all ~8 kW AC):** `40E5` rose +0.6 °F (09-12,
+4 h), +3.4 °F (09-14, 4.5 h), +3.9 °F (09-17, 3.5 h); never above 77.8 °F.
+Thermal management barely has to work at this rate. `4127` = 0x0418 =
+**91.0 °F on every sample of all three sessions** — a constant, not a sensor
+(already demoted). Whether `40E5` is COOLANT-loop or a cell/module sensor is
+unverified — a hard drive (fast pack heating, then chiller response) would
+separate the two; charging can't.
+
+**4-element "zone" arrays — the most interesting undecoded pattern.** `44C0`,
+`44C1` and `44C5` are each four near-identical values with a small index/state
+byte: `44C0` ≈ [58,58,59,59]; `44C1` ≈ [42,43,44,43] (was 55-57 in Aug, fell
+during charge); `44C5` pairs (00,53)(00,54)(01,55)(02,54) → ≈83-85. `44C5`'s
+values drifted between sessions **without tracking SOC**: 96-98 (Aug 14, hot
+day) → 86-89 (Aug 15 night) → 82-85 (Sep). Reading `44C5` as a u16 "852" was
+a mis-parse: it is a state byte 0-3 + a value byte. Working hypothesis: four
+thermal/balancing zones reporting the same quantity; temperature-linked is
+the leading guess for 44C5 (Aug hot vs Sep cool). Unconfirmed.
+
+**`451D` — how sure are we it is SOH? Honest answer: it is the best
+CANDIDATE, not a confirmed SOH.**
+For: value in SOH-plausible range; SOC-independent (93 at 73% and at 100%);
+stable over a 12-min dwell and a 6-round sweep; lives in the 44xx/45xx health-
+summary block next to the 100/100 flag pair.
+Against / unresolved: it read **99 on Aug 14 and 93 in September** — a 6-point
+drop in 5 weeks while our measured capacity did not move (~100% all four
+sessions). A true SOH cannot fall 6% in 5 weeks on a healthy pack. So either
+(a) the BMS re-estimated it — plausible: the Sep 12 discharge to 17% was the
+deepest cycle we'd done, and BMS SOH estimators are commonly revised after
+deep cycles; or (b) it is not SOH but a temperature-dependent figure (Aug pack
+~30-33 °C vs Sep ~23 °C) such as available-capacity-at-temperature or an
+impedance-derived "state of function"; or (c) something else entirely. We
+have ONE healthy car, so "reads 93-99 on a healthy pack" is consistent with
+SOH and with many other things. `451E`=41 sits beside it, meaning unknown.
+**What would settle it:** (1) same-SOC reads on a hot vs a cold day — a real
+SOH is temperature-invariant; (2) a monthly series — real SOH declines slowly
+and monotonically; (3) a second Ultium with a known-degraded pack (this is
+exactly what the crowdsourcing/portability plan would provide); (4) GM service
+docs or an OBDb Ultium definition naming the DID.
+**App consequence:** the dashboard label "BMS-reported SOH" states more than
+we know. Recommend relabeling to "BMS health index (451D)" with an
+"unverified" note until (1)-(3) land.
+
+**Gross capacity — final position.** No register exposes it: the Bolt `41A3`
+family is NRC 0x31 in every mode; `44C5` is a 4-zone array, not a kWh/Ah
+figure. What people mean by "gross-capacity SOH" (Bolt-style reading of the
+BMS's own Ah estimate) is therefore not available on this car via OBD. What
+we DO have is better in one way: a physical measurement. Four sessions put
+the dash-spanned window at ~285-300 Ah ≈ the nameplate 102 kWh / 352 V ≈ 290
+Ah, i.e. ~100%. Whether that window is "gross" or "usable" cannot be resolved
+without the BMS's own SOC (ECU CB, gateway-blocked) — the earlier claim to
+have found it via `441F` is withdrawn above.
