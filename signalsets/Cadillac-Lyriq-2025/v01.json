@@ -128,7 +128,7 @@
       ]
     },
     {
-      "_confirmed": "on-vehicle 2026-08-13: ~23-33C spread, u16/32, rose under charge",
+      "_confirmed": "on-vehicle 2026-08-14..09-17: reads 0x0418 (32.75 C) on EVERY sample across three multi-hour charges and a Ready dwell \u2014 a constant thermal setpoint/limit, NOT a live sensor. Kept for completeness; excluded from the temperature group so it cannot skew temp aggregates. See docs/lyriq-re-log.md 2026-09-18.",
       "hdr": "18DA40F1",
       "rax": "18DAF140",
       "cmd": {
@@ -136,9 +136,9 @@
       },
       "signals": [
         {
-          "id": "HVBAT_TEMP_1",
-          "name": "HV battery temperature 1",
-          "group": "temperature",
+          "id": "HVBAT_THERMAL_SETPOINT",
+          "name": "HV battery thermal setpoint (4127, constant)",
+          "group": "other",
           "fmt": {
             "bix": 0,
             "len": 16,
@@ -302,8 +302,8 @@
       },
       "signals": [
         {
-          "id": "HVBAT_SOH_BMS",
-          "name": "HV battery SOH (BMS-reported)",
+          "id": "HVBAT_BMS_HEALTH_INDEX",
+          "name": "BMS health index (451D) \u2014 unverified as SOH",
           "group": "summary",
           "fmt": {
             "bix": 0,

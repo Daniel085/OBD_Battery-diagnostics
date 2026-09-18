@@ -50,7 +50,7 @@ void main() {
     expect(all['HVBAT_CURRENT']!.value, inInclusiveRange(-23.1, -22.4));
     expect(all['HVBAT_NOMINAL_VOLTAGE']!.value, closeTo(352.09, 0.01));
     expect(all['HVBAT_MODULE_V_1']!.value, inInclusiveRange(50.5, 51.5));
-    expect(all['HVBAT_TEMP_1']!.value, inInclusiveRange(30, 35));
+    expect(all['HVBAT_THERMAL_SETPOINT']!.value, closeTo(32.75, 0.001)); // constant on the car
     expect(all['EVSE_PILOT_CURRENT']!.value, closeTo(38.8, 0.001));
     expect(all['ODOMETER']!.value, closeTo(31737.28, 0.1));
     expect(all['LV_RAIL_VOLTAGE']!.value, inInclusiveRange(13.1, 13.4));

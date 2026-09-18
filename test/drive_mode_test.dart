@@ -44,7 +44,7 @@ void main() {
     controller.stopDriveMode();
     expect(controller.driveModeActive, isFalse);
     await Future<void>.delayed(const Duration(milliseconds: 100));
-    expect(controller.latest.containsKey('HVBAT_TEMP_1'), isTrue,
+    expect(controller.latest.containsKey('HVBAT_TEMP_3'), isTrue,
         reason: 'normal polling should resume after drive mode');
 
     await controller.disconnect();

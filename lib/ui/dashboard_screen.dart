@@ -127,8 +127,8 @@ class _DashboardBody extends StatelessWidget {
     heroes.add(_sohHero(context, capacity, r('HVBAT_SOH')));
     consumed.add('HVBAT_SOH');
 
-    final bmsSoh = r('HVBAT_SOH_BMS');
-    consumed.add('HVBAT_SOH_BMS');
+    final bmsSoh = r('HVBAT_BMS_HEALTH_INDEX');
+    consumed.add('HVBAT_BMS_HEALTH_INDEX');
     if (bmsSoh != null) {
       heroes.add(_bmsSohHero(context, bmsSoh));
     }
@@ -246,7 +246,11 @@ class _DashboardBody extends StatelessWidget {
     );
   }
 
-  /// The controller's own SOH register (Lyriq ECU 40 `451D`). Only valid when
+  /// The controller's `451D` health-index register (Lyriq ECU 40). It is a
+  /// CANDIDATE SOH, not a confirmed one: SOC-independent, but it moved 99->93
+  /// between Aug and Sep while measured capacity held ~100%, so it may be a
+  /// re-estimate or temperature-dependent (docs/lyriq-re-log.md 2026-09-18).
+  /// Labelled accordingly. Only valid when
   /// the vehicle is on AND the value has settled — it reads 0 in unattended-
   /// charging sparse mode and churns for a few minutes after wake, so a zero
   /// is "not available", never "0% healthy".
@@ -254,16 +258,16 @@ class _DashboardBody extends StatelessWidget {
     final v = bmsSoh.value;
     if (v <= 0 || v > 100) {
       return const _HeroCard(
-        label: 'BMS-reported SOH',
+        label: 'BMS health index',
         value: '—',
         sub: 'available with vehicle on',
         icon: Icons.memory,
       );
     }
     return _HeroCard(
-      label: 'BMS-reported SOH',
+      label: 'BMS health index',
       value: '${v.toStringAsFixed(0)} %',
-      sub: 'from battery controller',
+      sub: '451D · unverified as SOH',
       icon: Icons.memory,
     );
   }

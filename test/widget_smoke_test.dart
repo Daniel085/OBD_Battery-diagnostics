@@ -110,9 +110,9 @@ void main() {
     );
 
     // Both health cards present and distinctly labeled — never merged.
-    expect(find.text('BMS-reported SOH'), findsOneWidget);
+    expect(find.text('BMS health index'), findsOneWidget);
     expect(find.text('93 %'), findsOneWidget);
-    expect(find.text('from battery controller'), findsOneWidget);
+    expect(find.text('451D · unverified as SOH'), findsOneWidget);
     // No capacity test has run, so the measured card prompts for one.
     expect(find.text('State of health'), findsOneWidget);
     expect(find.text('run a capacity test'), findsOneWidget);
@@ -125,9 +125,9 @@ void main() {
     // dead battery. Must degrade to a dash.
     final set = SignalSet.parse(
         File('signalsets/Cadillac-Lyriq-2025/v01.json').readAsStringSync());
-    final sohSignal = set.signalsById['HVBAT_SOH_BMS']!;
+    final sohSignal = set.signalsById['HVBAT_BMS_HEALTH_INDEX']!;
     final controller = AppController();
-    controller.latest['HVBAT_SOH_BMS'] =
+    controller.latest['HVBAT_BMS_HEALTH_INDEX'] =
         Reading(sohSignal, 0, DateTime.now());
     await tester.pumpWidget(
       ChangeNotifierProvider<AppController>.value(
@@ -135,7 +135,7 @@ void main() {
         child: const MaterialApp(home: DashboardScreen()),
       ),
     );
-    expect(find.text('BMS-reported SOH'), findsOneWidget);
+    expect(find.text('BMS health index'), findsOneWidget);
     expect(find.text('available with vehicle on'), findsOneWidget);
     expect(find.text('0 %'), findsNothing);
     controller.dispose();
