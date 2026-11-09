@@ -21,7 +21,8 @@ void main() {
     });
 
     test('other negative -> negativeOther', () {
-      final r = UdsScanner.classify(0x1234, [0x7F, 0x22, 0x33]); // securityDenied
+      final r =
+          UdsScanner.classify(0x1234, [0x7F, 0x22, 0x33]); // securityDenied
       expect(r.status, DidStatus.negativeOther);
     });
 
@@ -35,7 +36,7 @@ void main() {
     test('finds only the responding DID', () async {
       // DID 0xDD01 responds; others return NO DATA.
       final source = ReplaySource({
-        '0722DD01': '607 05 62 DD 01 12 34\r>',
+        '22DD01': '607 F1 05 62 DD 01 12 34 FF\r>',
       });
       // Unmapped commands return the benign prompt (parsed as no frames).
       await source.connect();
@@ -59,7 +60,7 @@ void main() {
 
     test('drafts commands from hits', () async {
       final source = ReplaySource({
-        '0722DD01': '607 05 62 DD 01 12 34\r>',
+        '22DD01': '607 F1 05 62 DD 01 12 34 FF\r>',
       });
       await source.connect();
       final scanner = UdsScanner(

@@ -38,9 +38,12 @@ The README status section lags. Current state is tracked in `docs/` and git log:
   is NOT fixable via adapter upgrades, AT headers, flow control, or sessions —
   do not burn time retrying software workarounds; it needs bus access behind
   the gateway. ECU 53 exists but is security-locked.
-- **BMW 330e:** standard J1979 PIDs confirmed on-vehicle; the SME (BMS) does
-  **not** respond over the standard OBD port. SME signal-set offsets remain
-  inferred/unvalidated — treat SME-derived values as untrusted.
+- **BMW 330e:** J1979 PIDs AND the SME (BMS, ext address 07) both read
+  on-vehicle over the OBD port (2026-11-08, Viecar clone): SOC + window bounds,
+  current, cell temps, cell V/SoC min/max/avg, SOH 83 % (i3 layout, not
+  ground-truthed). See `docs/bmw-330e-sme.md`. The old "SME not on the port"
+  claim was a framing bug. Probe: `tools/bmw-sme-probe/sme_probe.py`. Pack
+  voltage = `DD66` (i3 `DD68` absent). Open: per-cell DID, SOH ground truth.
 
 ## Architecture
 
@@ -77,6 +80,12 @@ flutter run           # on-device; demo mode works with no adapter/car
 - Lyriq is 29-bit CAN (`ATSP7`), request `18DA<ecu>F1` / response
   `18DAF1<ecu>`; cheap clones struggle with 29-bit multiframe — prefer
   OBDLink CX/MX+.
+- **BMW extended addressing:** request `6F1: 07 03 22 DD BC`, response
+  `607: F1 05 62 ...`. The target byte comes BEFORE the PCI, so prepending
+  `07` to a line while CAN auto-formatting is on (`04 07 22 ...`) is silently
+  wrong. Use `extendedAddressingCommands()`: ATCEA07 + custom FC
+  `07 30 00 00` (the clone's own FC omits the address → only the First Frame
+  arrives) + ATAT0/ATSTFF (the SME sends `7F 22 78` pending first).
 
 ## Contribution / licensing
 

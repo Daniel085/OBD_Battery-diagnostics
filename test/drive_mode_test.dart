@@ -55,9 +55,10 @@ void main() {
     // BMW set HAS a pack-current command; strip it to simulate a vehicle
     // without one.
     final full = SignalSet.parse(
-        File('signalsets/BMW-330e-2018/v01.json').readAsStringSync());
-    final json = File('signalsets/BMW-330e-2018/v01.json').readAsStringSync();
-    final stripped = SignalSet.parse(json.replaceAll('HVBAT_CURRENT', 'X_NOPE'));
+        File('signalsets/BMW-330e-2018/v02.json').readAsStringSync());
+    final json = File('signalsets/BMW-330e-2018/v02.json').readAsStringSync();
+    final stripped =
+        SignalSet.parse(json.replaceAll('HVBAT_CURRENT', 'X_NOPE'));
     expect(full.signalsById.containsKey('HVBAT_CURRENT'), isTrue);
 
     final controller = AppController(repository: _InMemoryRepo(stripped));

@@ -83,8 +83,8 @@ class HomeScreen extends StatelessWidget {
                           v.id.startsWith('Cadillac')
                               ? 'Pack current, temps, module voltages + '
                                   'capacity test — confirmed on-vehicle'
-                              : 'Standard PIDs (SOC, temps) confirmed; '
-                                  'BMS not reachable via the OBD port',
+                              : 'Battery manager (SOC, SOH, cell V/temps) '
+                                  '— confirmed on-vehicle',
                           style: const TextStyle(fontStyle: FontStyle.italic),
                         ),
                       ))

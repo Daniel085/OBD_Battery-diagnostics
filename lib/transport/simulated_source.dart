@@ -30,20 +30,45 @@ class SimulatedBmwSource implements DataSource {
   @override
   Future<void> disconnect() async => _connected = false;
 
+  /// Adapter state that matters for BMW framing (see elm327_protocol.dart).
+  String _cea = ''; // ATCEA target address ('' = off)
+  bool _customFc = false; // ATFCSM1
+  String _fcData = '';
+  bool _pendingNext = false; // alternate a 7F 22 78 in front, like the SME
+
   @override
   Future<String> send(String command, {Duration? timeout}) async {
-    final cmd = command.trim().toUpperCase();
+    final cmd = command.trim().toUpperCase().replaceAll(' ', '');
 
-    // AT setup commands: acknowledge.
-    if (cmd.startsWith('AT')) return 'OK\r>';
+    // AT setup commands: track the framing state, acknowledge everything.
+    if (cmd.startsWith('AT')) {
+      if (cmd.startsWith('ATCEA')) _cea = cmd.substring(5);
+      if (cmd == 'ATFCSM1') _customFc = true;
+      if (cmd == 'ATFCSM0') _customFc = false;
+      if (cmd.startsWith('ATFCSD')) _fcData = cmd.substring(6);
+      if (cmd == 'ATZ') {
+        _cea = '';
+        _customFc = false;
+        _fcData = '';
+      }
+      return 'OK\r>';
+    }
 
-    // Request lines look like "0722<DID>" (extended addr 07 + service 22 + DID).
-    if (cmd.startsWith('0722') && cmd.length >= 8) {
-      final did = cmd.substring(4, 8);
-      final resp = _responseForDid(did);
-      if (resp != null) return resp;
+    // SME request: like the real car, answered only when the adapter inserts
+    // the SME address (ATCEA07). The old malformed "0722<DID>" without it
+    // (adapter PCI in front of the 07) gets NO DATA.
+    if (_cea == '07') {
+      if (cmd.length == 6 && cmd.startsWith('22')) {
+        final resp = _responseForDid(cmd.substring(2, 6));
+        if (resp != null) {
+          _pendingNext = !_pendingNext;
+          return _pendingNext ? '607 F1 03 7F 22 78 FF FF FF\r$resp' : resp;
+        }
+        return '607 F1 03 7F 22 31 FF FF FF\r>'; // requestOutOfRange
+      }
       return 'NO DATA\r>';
     }
+
     // Standard J1979 mode-01 PIDs (what the real 330e answers on 7Ex).
     if (cmd.startsWith('01') && cmd.length >= 4) {
       final resp = _responseForPid(cmd.substring(2, 4));
@@ -76,44 +101,40 @@ class SimulatedBmwSource implements DataSource {
     return '$respId ${_hex([bytes.length, ...bytes])}\r>';
   }
 
-  /// Build a 607 response for a DID, framed as ISO-TP over the ELM line format.
+  /// Build a 607 response for a DID with the layouts the real F30 SME
+  /// returned on 2026-11-08 (captures/bmw_sme_2026-11-08.txt), lightly
+  /// drifted so the demo dashboard moves.
   String? _responseForDid(String did) {
+    List<int> u16(int v) => [(v >> 8) & 0xFF, v & 0xFF];
     switch (did) {
-      case '6335': // SOH, 8-bit at bix 24 -> need 3 leading bytes then value
-        // 62 63 35 <3 pad bytes> <SOH>  → SOH byte at payload bix 24
-        final soh = 92 + _rng.nextInt(2); // 92-93 %
-        return _single([0x62, 0x63, 0x35, 0x00, 0x00, 0x00, soh]);
-      case 'DDBC': // SOC 16-bit /10
-        final soc = _drift(615, 3); // ~61.5 %
-        return _single([0x62, 0xDD, 0xBC, (soc >> 8) & 0xFF, soc & 0xFF]);
-      case 'DD68': // pack voltage 16-bit /100
-        final v = _drift(35010, 40); // ~350.1 V
-        return _single([0x62, 0xDD, 0x68, (v >> 8) & 0xFF, v & 0xFF]);
-      case 'DD69': // pack current 32-bit signed /100
-        final c = _drift(-250, 120); // ~ -2.5 A (mild discharge), signed
-        final u = c & 0xFFFFFFFF;
-        return _single([
-          0x62, 0xDD, 0x69,
-          (u >> 24) & 0xFF, (u >> 16) & 0xFF, (u >> 8) & 0xFF, u & 0xFF,
-        ]);
-      case 'DDC0': // cell temp min/max, two 16-bit /100 signed
-        final tmin = _drift(2180, 30); // 21.8 C
-        final tmax = _drift(2450, 30); // 24.5 C
-        return _multi([
-          0x62, 0xDD, 0xC0,
-          (tmin >> 8) & 0xFF, tmin & 0xFF,
-          (tmax >> 8) & 0xFF, tmax & 0xFF,
-        ]);
-      case 'DFA0': // cell voltage min/max/avg, three 16-bit /10000
-        final vmin = _drift(38400, 40); // 3.8400 V
-        final vmax = vmin + 60 + _rng.nextInt(20); // small spread ~6-8 mV
-        final vavg = (vmin + vmax) ~/ 2;
-        return _multi([
-          0x62, 0xDF, 0xA0,
-          (vmin >> 8) & 0xFF, vmin & 0xFF,
-          (vmax >> 8) & 0xFF, vmax & 0xFF,
-          (vavg >> 8) & 0xFF, vavg & 0xFF,
-        ]);
+      case '6335': // SOH byte at payload bix 24
+        return _single([0x62, 0x63, 0x35, 0x00, 0x00, 0x00, 83]);
+      case 'DDBC': // SOC, window max, window min: u16 /10
+        return _single([0x62, 0xDD, 0xBC, ...u16(_drift(907, 3)),
+          ...u16(780), ...u16(246)]);
+      case 'DD66': // pack voltage u16 /100
+        return _single([0x62, 0xDD, 0x66, ...u16(_drift(31583, 20))]);
+      case 'DD69': // pack current s32 /100
+        final u = _drift(-148, 40) & 0xFFFFFFFF;
+        return _single([0x62, 0xDD, 0x69,
+          (u >> 24) & 0xFF, (u >> 16) & 0xFF, (u >> 8) & 0xFF, u & 0xFF]);
+      case 'DDC0': // cell temp min/max/avg s16 /100 + status byte
+        final t = _drift(1599, 5);
+        return _single([0x62, 0xDD, 0xC0, ...u16(t), ...u16(t + 100),
+          ...u16(t + 22), 0x01]);
+      case 'DFA0': // 62-byte record of [min,max,avg] triples + trailer
+        final v = _drift(39669, 8);
+        final soc = _drift(7144, 4);
+        return _single([0x62, 0xDF, 0xA0,
+          ...u16(2364), ...u16(2460), ...u16(2424),
+          ...u16(v), ...u16(v + 91), ...u16(v + 55), // cell V /10000
+          ...u16(1599), ...u16(1699), ...u16(1621),
+          ...u16(14881), ...u16(18731), ...u16(16235),
+          ...u16(soc), ...u16(soc + 303), ...u16(soc + 198), // cell SoC /100
+          ...u16(39880), ...u16(39930), ...u16(39904),
+          0x41, 0xE9, 0x3E, 0x32, 0xDF, 0xD5, 0x39, 0xAF, 0x61, 0x0A,
+          0x00, 0x14, 0x03, 0x20, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+          0x00, 0x00, 0x00, 0x01, 0x2F, 0x82]);
       default:
         return null;
     }
@@ -121,27 +142,39 @@ class SimulatedBmwSource implements DataSource {
 
   int _drift(int base, int amp) => base + (_rng.nextInt(2 * amp + 1) - amp);
 
-  /// Single-frame ISO-TP line: "607 <len> <bytes...>".
+  /// Single frame on 607 with BMW extended addressing:
+  /// "607 F1 <len> <bytes...> <pad>".
   String _single(List<int> message) {
-    final bytes = [message.length, ...message];
+    // The address byte costs one data byte: single frames carry at most 6.
+    if (message.length > 6) return _multi(message);
+    final bytes = _pad([0xF1, message.length, ...message]);
     return '607 ${_hex(bytes)}\r>';
   }
 
-  /// Multi-frame ISO-TP: First Frame + Consecutive Frames on 607.
+  /// Multi-frame on 607 with BMW extended addressing: First Frame
+  /// `F1 1L LL <5 bytes>` then Consecutive Frames `F1 2N <6 bytes>`. Like a
+  /// real ECU, it stops after the First Frame unless the adapter is set to
+  /// send flow control carrying the SME address (`07 30 ..`).
   String _multi(List<int> message) {
     final len = message.length;
-    final first = [0x10, len, ...message.take(6)];
-    final rest = message.skip(6).toList();
+    final first = [0xF1, 0x10 | ((len >> 8) & 0x0F), len & 0xFF,
+      ...message.take(5)];
     final lines = <String>['607 ${_hex(first)}'];
+    if (!_customFc || _fcData != '07300000') {
+      return '${lines.join('\r')}\r>';
+    }
+    final rest = message.skip(5).toList();
     var seq = 1;
-    for (var i = 0; i < rest.length; i += 7) {
-      final chunk = rest.skip(i).take(7).toList();
-      final cf = [0x20 | (seq & 0x0F), ...chunk];
-      lines.add('607 ${_hex(cf)}');
+    for (var i = 0; i < rest.length; i += 6) {
+      final chunk = rest.skip(i).take(6).toList();
+      lines.add('607 ${_hex(_pad([0xF1, 0x20 | (seq & 0x0F), ...chunk]))}');
       seq++;
     }
     return '${lines.join('\r')}\r>';
   }
+
+  List<int> _pad(List<int> frame) =>
+      [...frame, for (var i = frame.length; i < 8; i++) 0xFF];
 
   String _hex(List<int> b) =>
       b.map((x) => x.toRadixString(16).padLeft(2, '0').toUpperCase()).join(' ');

@@ -17,7 +17,7 @@ class VehicleEntry {
 class SignalSetRepository {
   static const List<VehicleEntry> catalogue = [
     VehicleEntry('BMW-330e-2018', 'BMW 330e (2018, F30 PHEV)',
-        'signalsets/BMW-330e-2018/v01.json'),
+        'signalsets/BMW-330e-2018/v02.json'),
     VehicleEntry('Cadillac-Lyriq-2025', 'Cadillac Lyriq (2025, Ultium)',
         'signalsets/Cadillac-Lyriq-2025/v01.json'),
   ];

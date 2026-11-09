@@ -32,7 +32,9 @@ class _SlowSource implements DataSource {
     _busy = false;
     final cmd = command.trim().toUpperCase();
     if (cmd.startsWith('AT')) return 'OK\r>';
-    if (cmd == '0722DDBC') return '607 05 62 DD BC 03 20\r>';
+    if (cmd == '22DDBC') {
+      return '607 F1 10 09 62 DD BC 03 20\r607 F1 21 03 0C 00 F6 FF FF\r>';
+    }
     return 'NO DATA\r>';
   }
 }
@@ -51,7 +53,7 @@ void main() {
   test('poll loop does not overlap even when a poll outlasts the interval',
       () async {
     final set = SignalSet.parse(
-        File('signalsets/BMW-330e-2018/v01.json').readAsStringSync());
+        File('signalsets/BMW-330e-2018/v02.json').readAsStringSync());
     final source = _SlowSource();
     final controller = AppController(repository: _InMemoryRepo(set));
     controller.pollInterval = const Duration(milliseconds: 5);
@@ -60,8 +62,9 @@ void main() {
         .firstWhere((v) => v.id == 'BMW-330e-2018');
     await controller.connectWithSource(source, bmw);
 
-    // Each poll ~ 6 * 15 ms = 90 ms, far longer than the 5 ms interval.
-    await Future<void>.delayed(const Duration(milliseconds: 300));
+    // A full BMW poll (init + J1979 PIDs + SME mode switch + DIDs) is ~40
+    // commands * 15 ms, far longer than the 5 ms interval.
+    await Future<void>.delayed(const Duration(milliseconds: 1200));
     await controller.disconnect();
 
     expect(source.concurrentViolations, 0,

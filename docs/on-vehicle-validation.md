@@ -6,6 +6,9 @@ Do all of this with the vehicle **stationary, in a safe location**, ignition on.
 
 ## BMW 330e (2018, F30)
 
+0. **First run `tools/bmw-sme-probe/sme_probe.py` on the Pi with the car
+   RUNNING** to confirm the SME answers correctly framed requests. Compare what
+   it reads with the BimmerLink reference values in `docs/bmw-330e-sme.md`.
 1. Pair a BLE ELM327 adapter; in the app select **BMW 330e**, Scan, connect.
 2. Confirm the dashboard populates SOC / SOH / pack voltage / current.
 3. **Validate the inferred offsets** (the reason values aren't yet trusted):

@@ -65,8 +65,10 @@ Empty pins or no activation resistance = path closed, no purchase needed.
 ## Original notes
 
 Both target cars gate their deep BMS off the OBD-II CAN pins:
-- **BMW 330e** — the SME (SOH, per-cell voltages, cell temps) isn't bridged to
-  the port. ISTA reaches it over **ENET** (Ethernet-to-OBD).
+- **BMW 330e** — ~~the SME isn't bridged to the port~~. **Retracted Nov 2026:**
+  the Aug 2026 SME requests were mis-framed (see `docs/bmw-330e-sme.md`), and
+  BimmerLink reads SME cell data over the OBD port. ENET stays a fallback, not
+  the only path.
 - **Cadillac Lyriq** — the BSM (SOC, 96 cell voltages) is gateway-blocked for UDS.
 
 The common unlock is **DoIP** (Diagnostics over IP, ISO 13400): UDS wrapped in a

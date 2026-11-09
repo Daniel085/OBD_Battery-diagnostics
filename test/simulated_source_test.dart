@@ -9,7 +9,7 @@ void main() {
   test('simulated BMW source drives a full decode via DiagnosticsClient',
       () async {
     final set = SignalSet.parse(
-        File('signalsets/BMW-330e-2018/v01.json').readAsStringSync());
+        File('signalsets/BMW-330e-2018/v02.json').readAsStringSync());
     final source = SimulatedBmwSource();
     await source.connect();
     final client = DiagnosticsClient(source, set);
@@ -22,12 +22,38 @@ void main() {
     expect(failures, isEmpty, reason: failures.join('\n'));
     expect(all['HVBAT_SOC']!.value, inInclusiveRange(0, 100));
     expect(all['HVBAT_SOH']!.value, inInclusiveRange(50, 100));
-    expect(all['HVBAT_VOLTAGE']!.value, inInclusiveRange(200, 450));
+    expect(all['HVBAT_SOC_WINDOW_MAX']!.value, closeTo(78.0, 1e-9));
+    expect(all['HVBAT_VOLTAGE']!.value, inInclusiveRange(300, 330));
+    expect(all['HVBAT_CELL_SOC_AVG']!.value, inInclusiveRange(60, 90));
     expect(all['HVBAT_CELL_V_MIN']!.value, inInclusiveRange(3.0, 4.3));
     expect(all['HVBAT_CELL_V_MAX']!.value,
         greaterThanOrEqualTo(all['HVBAT_CELL_V_MIN']!.value));
     expect(all['HVBAT_CELLTEMP_MAX']!.value,
         greaterThanOrEqualTo(all['HVBAT_CELLTEMP_MIN']!.value));
+  });
+
+  test('simulated BMW SME ignores the old malformed framing', () async {
+    // Regression for the Aug 2026 on-vehicle miss: "0722DDBC" without ATCEA
+    // goes out as 04 07 22 DD BC. A real SME (and this simulator) ignores it.
+    final source = SimulatedBmwSource();
+    await source.connect();
+    await source.send('ATSH6F1');
+    expect(await source.send('0722DDBC'), contains('NO DATA'));
+    expect(await source.send('22DDBC'), contains('NO DATA'));
+    await source.send('ATCEA07');
+    expect(await source.send('22DDBC'), contains('607 F1'));
+  });
+
+  test('simulated BMW multi-frame needs flow control 07 30 00 00', () async {
+    final source = SimulatedBmwSource();
+    await source.connect();
+    await source.send('ATCEA07');
+    // Adapter's default FC (no address byte): only the First Frame arrives,
+    // exactly as with the Viecar on the car.
+    expect(await source.send('22DFA0'), isNot(contains('607 F1 21')));
+    await source.send('ATFCSD07300000');
+    await source.send('ATFCSM1');
+    expect(await source.send('22DFA0'), contains('607 F1 2A'));
   });
 
   test('simulated Lyriq source answers the ENTIRE Lyriq signal set', () async {
@@ -50,7 +76,8 @@ void main() {
     expect(all['HVBAT_CURRENT']!.value, inInclusiveRange(-23.1, -22.4));
     expect(all['HVBAT_NOMINAL_VOLTAGE']!.value, closeTo(352.09, 0.01));
     expect(all['HVBAT_MODULE_V_1']!.value, inInclusiveRange(50.5, 51.5));
-    expect(all['HVBAT_THERMAL_SETPOINT']!.value, closeTo(32.75, 0.001)); // constant on the car
+    expect(all['HVBAT_THERMAL_SETPOINT']!.value,
+        closeTo(32.75, 0.001)); // constant on the car
     expect(all['EVSE_PILOT_CURRENT']!.value, closeTo(38.8, 0.001));
     expect(all['ODOMETER']!.value, closeTo(31737.28, 0.1));
     expect(all['LV_RAIL_VOLTAGE']!.value, inInclusiveRange(13.1, 13.4));

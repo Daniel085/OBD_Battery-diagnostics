@@ -47,6 +47,10 @@ class DiagnosticsClient {
   String? _lastHdr;
   String? _lastRax;
 
+  /// Current BMW extended-addressing mode ("hdr/eax"), or null for normal
+  /// auto-formatted ISO-TP (the adapter's state after [initialize]).
+  String? _lastExtMode;
+
   DiagnosticsClient(this.source, this.signalSet);
 
   bool get _is29Bit => signalSet.protocol.canFormat == CanFormat.bits29;
@@ -59,6 +63,7 @@ class DiagnosticsClient {
     }
     _lastHdr = null;
     _lastRax = null;
+    _lastExtMode = null;
   }
 
   /// Run one command and return its decoded readings.
@@ -66,11 +71,7 @@ class DiagnosticsClient {
     try {
       await _applyAddressing(command);
 
-      final line = requestLine(
-        command.requestBytes(),
-        extendedAddress:
-            command.eax != null ? int.parse(command.eax!, radix: 16) : null,
-      );
+      final line = requestLine(command.requestBytes());
       final raw = await source.send(line);
 
       final frames = parseFrames(raw, is29Bit: _is29Bit);
@@ -78,9 +79,10 @@ class DiagnosticsClient {
         throw const FormatException('No CAN frames in response');
       }
 
-      // Reassemble ISO-TP from the data fields of frames matching the response
-      // id (if a filter/rax was given, the adapter already filtered).
-      final message = reassemble(frames.map((f) => f.data));
+      // Reassemble ISO-TP from the data fields (the adapter's receive filter
+      // already limited them to the response id).
+      final message = reassemble(responseDataFields(frames,
+          extendedAddressing: command.eax != null));
 
       final serviceInt = int.parse(command.service, radix: 16);
       final resp = parseResponse(
@@ -120,6 +122,25 @@ class DiagnosticsClient {
   }
 
   Future<void> _applyAddressing(Command command) async {
+    // Switch between normal and BMW extended addressing only on a change, so
+    // a poll that stays on one ECU doesn't resend the mode commands.
+    final mode = command.eax == null ? null : '${command.hdr}/${command.eax}';
+    if (mode != _lastExtMode) {
+      if (command.eax == null) {
+        for (final c in normalAddressingCommands) {
+          await source.send(c);
+        }
+      } else {
+        if (command.hdr == null) {
+          throw ArgumentError('Extended addressing (eax) requires a hdr');
+        }
+        for (final c in extendedAddressingCommands(
+            hdr: command.hdr!, target: int.parse(command.eax!, radix: 16))) {
+          await source.send(c);
+        }
+      }
+      _lastExtMode = mode;
+    }
     if (command.hdr != null && command.hdr != _lastHdr) {
       await source.send(setHeaderCommand(command.hdr!));
       _lastHdr = command.hdr;

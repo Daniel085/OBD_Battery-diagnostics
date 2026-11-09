@@ -1,0 +1,452 @@
+# BMW 330e (2018 F30 PHEV, VIN WBA8E1C51JAXXXXXX) - SME battery ECU, OBD port
+# 2026-11-08, car RUNNING (14.6-14.7 V), parked. Adapter: Viecar BT4.0 (ELM327 v2.2 clone)
+# via Pi gatttool bridge. Scripts: tools/bmw-sme-probe/sme_probe{,2,3}.py (read-only).
+# Pi timestamps in file names are Pi local clock.
+#
+# Takeaways:
+#  - SME answers at extended address 07 (6F1 -> 607, responses lead with F1).
+#  - Multi-frame works only with ATCAF1 + ATCEA07 + custom FC 07 30 00 00 (probe2 E4).
+#  - SME often sends 7F 22 78 (response pending) first: ATAT0 + ATSTFF needed.
+#  - DD68 (i3 pack voltage) -> 7F 22 31 requestOutOfRange: not on the F30 SME.
+#  - probe1 census used ATAR (wrong rx filter for 6F1) -> invalid, all NO DATA.
+#  - BimmerLink reference values for the same car/day: docs/bmw-330e-sme.md
+bmw_sme_probe_20261108_133642.txt
+bmw_sme_probe_20261108_133800.txt
+bmw_sme_probe2_20261108_133934.txt
+bmw_sme_probe3_20261108_134101.txt
+##### bmw_sme_probe_20261108_133642.txt
+CONNECTED
+
+== init ==
+  ATZ                                -> |  | ELM327 v2.2 |  | >
+  ATE0                               -> ATE0 | OK |  | >
+  ATL0                               -> OK |  | >
+  ATS0                               -> OK |  | >
+  ATH1                               -> OK |  | >
+  ATSP6                              -> OK |  | >
+  ATAT1                              -> OK |  | >
+  ATI (firmware)                     -> ELM327 v2.2 |  | >
+  ATRV (must be ~14 V: car RUNNING)  -> 14.6V |  | >
+  015B HV SOC (J1979 sanity)         -> 7EB03415BB7 |  | >
+
+== framing A: ATCAF0 + manual <07><PCI>, FC = 07 30 00 00 ==
+  ATCAF0                             -> OK |  | >
+  ATSH6F1                            -> OK |  | >
+  ATFCSH6F1                          -> OK |  | >
+  ATFCSD07300000                     -> OK |  | >
+  ATFCSM1                            -> OK |  | >
+  ATCRA607                           -> OK |  | >
+  A 22F190 VIN (multi-frame: tests flow control) -> 607F1101462F1905742 |  | >
+  A 22DDBC SOC (i3: u16 /10 %)       -> NO DATA |  | >
+  A 226335 SOH (i3)                  -> NO DATA |  | >
+  A 22DD68 pack voltage (i3: u16 /100 V) -> 607F1037F2278 | 607F1100962DDBC0392 |  | >
+  A 22DD69 pack current (i3: s32 /100 A) -> NO DATA |  | >
+  A 22DDC0 cell temp min/max (i3)    -> NO DATA |  | >
+  A 22DFA0 cell V min/max/avg (i3)   -> 607F1037F2278 | 607F1100762DD69FFFF |  | >
+
+== framing B: ATCAF1 + ATCEA07 (adapter inserts address) ==
+  ATCAF1                             -> OK |  | >
+  ATFCSM0                            -> OK |  | >
+  ATCEA07                            -> OK |  | >
+  ATSH6F1                            -> OK |  | >
+  ATCRA607                           -> OK |  | >
+  B 22F190                           -> 607F1101462F1905742 |  | >
+  B 22DDBC                           -> NO DATA |  | >
+  B 22DD68                           -> NO DATA |  | >
+  ATCEA (off)                        -> OK |  | >
+
+framing A answered 3/7, framing B answered 1/3
+
+== ECU census: 22F190 to each target, any 6xx reply (CAF0, no filter) ==
+  ATCAF0                             -> OK |  | >
+  ATAR                               -> OK |  | >
+  ATSH6F1                            -> OK |  | >
+census: ECUs answering = []
+  ATCAF1                             -> OK |  | >
+  ATFCSM0                            -> OK |  | >
+
+done
+##### bmw_sme_probe_20261108_133800.txt
+CONNECTED
+
+== init ==
+  ATZ                                -> |  | ELM327 v2.2 |  | >
+  ATE0                               -> ATE0 | OK |  | >
+  ATL0                               -> OK |  | >
+  ATS0                               -> OK |  | >
+  ATH1                               -> OK |  | >
+  ATSP6                              -> OK |  | >
+  ATAT1                              -> OK |  | >
+  ATI (firmware)                     -> ELM327 v2.2 |  | >
+  ATRV (must be ~14 V: car RUNNING)  -> 14.7V |  | >
+  015B HV SOC (J1979 sanity)         -> 7EB03415BB7 |  | >
+
+== framing A: ATCAF0 + manual <07><PCI>, FC = 07 30 00 00 ==
+  ATCAF0                             -> OK |  | >
+  ATSH6F1                            -> OK |  | >
+  ATFCSH6F1                          -> OK |  | >
+  ATFCSD07300000                     -> OK |  | >
+  ATFCSM1                            -> OK |  | >
+  ATCRA607                           -> OK |  | >
+  A 22F190 VIN (multi-frame: tests flow control) -> 607F1101462F1905742 |  | >
+  A 22DDBC SOC (i3: u16 /10 %)       -> NO DATA |  | >
+  A 226335 SOH (i3)                  -> NO DATA |  | >
+  A 22DD68 pack voltage (i3: u16 /100 V) -> 607F1100962DDBC0390 |  | >
+  A 22DD69 pack current (i3: s32 /100 A) -> NO DATA |  | >
+  A 22DDC0 cell temp min/max (i3)    -> NO DATA |  | >
+  A 22DFA0 cell V min/max/avg (i3)   -> 607F1037F2231 | 607F1037F2278 | 607F1100762DD69FFFF |  | >
+
+== framing B: ATCAF1 + ATCEA07 (adapter inserts address) ==
+  ATCAF1                             -> OK |  | >
+  ATFCSM0                            -> OK |  | >
+  ATCEA07                            -> OK |  | >
+  ATSH6F1                            -> OK |  | >
+  ATCRA607                           -> OK |  | >
+  B 22F190                           -> 607F1101462F1905742 |  | >
+  B 22DDBC                           -> NO DATA |  | >
+  B 22DD68                           -> NO DATA |  | >
+  ATCEA (off)                        -> OK |  | >
+
+framing A answered 3/7, framing B answered 1/3
+
+== ECU census: 22F190 to each target, any 6xx reply (CAF0, no filter) ==
+  ATCAF0                             -> OK |  | >
+  ATAR                               -> OK |  | >
+  ATSH6F1                            -> OK |  | >
+census: ECUs answering = []
+  ATCAF1                             -> OK |  | >
+  ATFCSM0                            -> OK |  | >
+
+done
+##### bmw_sme_probe2_20261108_133934.txt
+CONNECTED
+
+== init ==
+  ATZ                                      -> |  | ELM327 v2.2 |  | >
+  ATE0                                     -> ATE0 | OK |  | >
+  ATL0                                     -> OK |  | >
+  ATS0                                     -> OK |  | >
+  ATH1                                     -> OK |  | >
+  ATSP6                                    -> OK |  | >
+  ATRV                                     -> 14.7V |  | >
+  015B HV SOC (J1979)                      -> 7EB03415BB6 |  | >
+
+== E1: CAF0, FCSM1 (07 30 00 00), ATCFC1, ATSTFF ==
+  ATCAF0                                   -> OK |  | >
+  ATSH6F1                                  -> OK |  | >
+  ATCRA607                                 -> OK |  | >
+  ATAT0                                    -> OK |  | >
+  ATSTFF                                   -> OK |  | >
+  ATCFC1                                   -> OK |  | >
+  ATFCSH6F1                                -> OK |  | >
+  ATFCSD07300000                           -> OK |  | >
+  ATFCSM1                                  -> OK |  | >
+  E1 22F190                                -> 607F1101462F1905742 |  | >
+
+== E2: manual FC (we send 07 30 00 00 right after the First Frame) ==
+  ATFCSM0                                  -> OK |  | >
+  ATST19                                   -> OK |  | >
+  E2 22F190 + FC 0730000000000000   -> 607F1101462F1905742 |  | >  ||  FC -> 607F121413845314335 | 607F122314A41585858 | 607F123585858FFFFFF |  | >
+  E2 22F190 + FC 07300000           -> 607F1101462F1905742 |  | >  ||  FC -> 607F121413845314335 | 607F122314A41585858 | 607F123585858FFFFFF |  | >
+
+== E3: CAF1 + ATCEA07 + FCSM1 FCSD 300000 ==
+  ATCAF1                                   -> OK |  | >
+  ATCEA07                                  -> OK |  | >
+  ATSH6F1                                  -> OK |  | >
+  ATCRA607                                 -> OK |  | >
+  ATSTFF                                   -> OK |  | >
+  ATFCSH6F1                                -> OK |  | >
+  ATFCSD300000                             -> OK |  | >
+  ATFCSM1                                  -> OK |  | >
+  E3 22F190                                -> 607F1101462F1905742 |  | >
+
+== E4: CAF1 + ATCEA07 + FCSM1 FCSD 07300000 ==
+  ATCAF1                                   -> OK |  | >
+  ATCEA07                                  -> OK |  | >
+  ATSH6F1                                  -> OK |  | >
+  ATCRA607                                 -> OK |  | >
+  ATSTFF                                   -> OK |  | >
+  ATFCSH6F1                                -> OK |  | >
+  ATFCSD07300000                           -> OK |  | >
+  ATFCSM1                                  -> OK |  | >
+  E4 22F190                                -> 607F1101462F1905742 | 607F121413845314335 | 607F122314A41585858 | 607F123585858FFFFFF |  | >
+  ATCEA                                    -> OK |  | >
+  ATFCSM0                                  -> OK |  | >
+
+== SME DIDs, CAF0, ATSTFF (pending-tolerant), FF-only ok ==
+  ATCAF0                                   -> OK |  | >
+  ATSH6F1                                  -> OK |  | >
+  ATCRA607                                 -> OK |  | >
+  ATAT0                                    -> OK |  | >
+  ATSTFF                                   -> OK |  | >
+  ATFCSH6F1                                -> OK |  | >
+  ATFCSD07300000                           -> OK |  | >
+  ATFCSM1                                  -> OK |  | >
+  22DDBC                                   -> 607F1100962DDBC038D |  | >
+  226335                                   -> 607F1037F2278 | 607F110076263350000 |  | >
+  22DD68                                   -> 607F1037F2231 |  | >
+  22DD69                                   -> 607F1037F2278 | 607F1100762DD69FFFF |  | >
+  22DDC0                                   -> 607F1037F2278 | 607F1100A62DDC0063F |  | >
+  22DFA0                                   -> 607F1037F2278 | 607F1104162DFA0093C |  | >
+
+== census: functional DF 22F190, receive mask 6xx ==
+  ATCAF0                                   -> OK |  | >
+  ATSH6F1                                  -> OK |  | >
+  ATCRA                                    -> OK |  | >
+  ATCF600                                  -> OK |  | >
+  ATCM700                                  -> OK |  | >
+  ATSTFF                                   -> OK |  | >
+  DF 22F190                                -> 610F1101462F1905742 |  | >
+census: reply ids = ['610']  (ECU addr = id - 0x600)
+  ATCRA                                    -> OK |  | >
+  ATCAF1                                   -> OK |  | >
+  ATFCSM0                                  -> OK |  | >
+  ATAT1                                    -> OK |  | >
+  ATST32                                   -> OK |  | >
+
+done
+##### bmw_sme_probe3_20261108_134101.txt
+  ATZ                                      -> |  | ELM327 v2.2 |  | >
+  ATE0                                     -> ATE0 | OK |  | >
+  ATL0                                     -> OK |  | >
+  ATS0                                     -> OK |  | >
+  ATH1                                     -> OK |  | >
+  ATSP6                                    -> OK |  | >
+  ATRV                                     -> 14.7V |  | >
+  ATCAF1                                   -> OK |  | >
+  ATCEA07                                  -> OK |  | >
+  ATSH6F1                                  -> OK |  | >
+  ATCRA607                                 -> OK |  | >
+  ATAT0                                    -> OK |  | >
+  ATSTFF                                   -> OK |  | >
+  ATFCSH6F1                                -> OK |  | >
+  ATFCSD07300000                           -> OK |  | >
+  ATFCSM1                                  -> OK |  | >
+
+== round 1 ==
+  22F190                                   -> 607F1101462F1905742 | 607F121413845314335 | 607F122314A41585858 | 607F123585858FFFFFF |  | >
+  22DDBC                                   -> 607F1037F2278 | 607F1100962DDBC038B | 607F121030C00F6FFFF |  | >
+  226335                                   -> 607F110076263350000 | 607F1210053FFFFFFFF |  | >
+  22DD69                                   -> 607F1100762DD69FFFF | 607F121FF6CFFFFFFFF |  | >
+  22DDC0                                   -> 607F1100A62DDC0063F | 607F12106A3065501FF |  | >
+  22DFA0                                   -> 607F1104162DFA0093C | 607F121099C09789AF5 | 607F1229B509B2C063F | 607F12306A306553A21 | 607F124492B3F6B1BE8 | 607F1251D171CAE9BC8 | 607F1269BFA9BE041E9 | 607F1273E32DFD539AF | 607F128610A00140320 | 607F129000100000000 | 607F12A000000012F82 |  | >
+
+== round 2 ==
+  22F190                                   -> 607F1101462F1905742 | 607F121413845314335 | 607F122314A41585858 | 607F123585858FFFFFF |  | >
+  22DDBC                                   -> 607F1037F2278 | 607F1100962DDBC038A | 607F121030C00F6FFFF |  | >
+  226335                                   -> 607F110076263350000 | 607F1210053FFFFFFFF |  | >
+  22DD69                                   -> 607F1100762DD69FFFF | 607F121FF6CFFFFFFFF |  | >
+  22DDC0                                   -> 607F1100A62DDC0063F | 607F12106A3065601FF |  | >
+  22DFA0                                   -> 607F1104162DFA0093C | 607F121099C09789AEC | 607F1229B4F9B29063F | 607F12306A306563A21 | 607F124492B3F6B1BE7 | 607F1251D151CAC9BC8 | 607F1269BFA9BE041E9 | 607F1273E32DFD539AF | 607F12861AB00140320 | 607F129000100000000 | 607F12A000000012F82 |  | >
+  ATCEA                                    -> OK |  | >
+  ATFCSM0                                  -> OK |  | >
+  ATCRA                                    -> OK |  | >
+  ATAT1                                    -> OK |  | >
+  ATST32                                   -> OK |  | >
+done
+##### bmw_sme_20261108_134742.txt (canonical sme_probe.py)
+CONNECTED
+  battery (needs ~14 V)      -> 14.7V |  | >
+  015B J1979 HV SOC          -> 7EB03415BB5 |  | >
+                                = 71.0 %
+
+== SME (07) ==
+  22F190   -> 57 42 41 38 45 31 43 35 31 4a 41 58 58 58 58 58 58
+              = VIN WBA8E1C51JAXXXXXX
+  22DDBC   -> 03 80 03 0c 00 f6
+              = SOC 89.6 %  window 24.6..78.0 %
+  226335   -> 00 00 00 53
+              = SOH 83 %  (i3 layout, not ground-truthed)
+  22DD69   -> ff ff ff 69
+              = current -1.51 A
+  22DDC0   -> 06 3f 06 a3 06 69 01
+              = cell temp min/max/avg 15.99 / 16.99 / 16.41 C
+  22DFA0   -> 09 3c 09 9c 09 78 9a 7a 9a f5 9a ca 06 3f 06 a3 06 69 3a 21 49 2b 3f 6b 1b ae 1c dd 1c 73 9b c8 9b fa 9b e0 41 e9 3e 32 df d5 39 af 75 cb 00 14 03 20 00 01 00 00 00 00 00 00 00 01 2f 82
+              = cell V 3.9546/3.9669/3.9626  V2 3.9880/3.9930/3.9904  cell SoC 70.86/73.89/72.83 %  (min/max/avg)
+
+done
+##### DD00-DDFF sweep (canonical sme_probe.py --sweep), BimmerLink closed, car running; BimmerLink showed 317 V ~15 min earlier
+CONNECTED
+  battery (needs ~14 V)      -> 14.7V |  | >
+  015B J1979 HV SOC          -> 7EB03415BB3 |  | >
+                                = 70.2 %
+
+== SME (07) ==
+  22F190   -> 57 42 41 38 45 31 43 35 31 4a 41 58 58 58 58 58 58
+              = VIN WBA8E1C51JAXXXXXX
+  22DDBC   -> 03 72 03 0c 00 f6
+              = SOC 88.2 %  window 24.6..78.0 %
+  226335   -> 00 00 00 53
+              = SOH 83 %  (i3 layout, not ground-truthed)
+  22DD69   -> ff ff ff 6a
+              = current -1.50 A
+  22DDC0   -> 06 3f 07 07 06 82 01
+              = cell temp min/max/avg 15.99 / 17.99 / 16.66 C
+  22DFA0   -> 09 3c 09 9c 09 78 99 fc 9a 8d 9a 5e 06 3f 07 07 06 82 3a 21 49 2b 3f 6b 1b 67 1c 95 1c 2c 9b c8 9b fa 9b e0 41 e9 3e 32 df d5 39 af 8f 1f 00 14 03 20 00 01 00 00 00 00 00 00 00 01 2f 82
+              = cell V 3.9420/3.9565/3.9518  V2 3.9880/3.9930/3.9904  cell SoC 70.15/73.17/72.12 %  (min/max/avg)
+
+== SME DID sweep DD00..DDFF (misses not shown) ==
+  22DD60 -> 01
+  22DD61 -> 01
+  22DD63 -> 00 00 3c 2b 00 00 00 00
+  22DD64 -> 01
+  22DD66 -> 7b 5f
+  22DD67 -> 01
+  22DD69 -> ff ff ff 68
+  22DD6A -> 07 d0 07 d0 00 00 01 01 00
+  22DD6C -> 06 90
+  22DD6F -> 00
+  22DD72 -> 00
+  22DD73 -> a1 d5 4c 07
+  22DD74 -> 21 37 1c 07
+  22DD7B -> 53
+  22DD7C -> 00 6a 00 01 61 d2 00 00 1b ff 00 00 09 38 00 00 03 40 00 00 00 71 00 00 00 00 00 00 00 00 00 08 13 48 00 00 07 c7 00 00 00 21 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  22DD7D -> 05 dc 0a f0
+  22DD7E -> 81 8c 57 d4
+  22DD8E -> 05 dc f5 10 00 00 00 00 00 00 09 3d 00 00 89 12 00 01 3b ce 00 01 21 6e 00 06 c3 42 00 00 2a 96 00 00 0d 88
+  22DD90 -> 00 00 00 00 00 00 00 00 00 00 2b 97 00 08 1a c3 00 13 f2 6c 00 12 99 27 00 14 59 c7 00 04 0f ca 00 00 2f 96 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 2b 97 00 08 17 1c 00 13 99 46 00 10 e9 d8 00 0d fc 03 00 02 c9 b7 00 00 2c 99 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  22DD91 -> 00 00 00 00 00 00 00 00 00 00 8a 05 00 0c ca 28 00 03 a7 39 00 03 44 58 00 04 52 af 00 0b 9f 24 00 06 84 e0 00 08 c0 b9 00 0c 6d c0 00 07 8c c9
+  22DDA1 -> ff
+  22DDA5 -> 00
+  22DDAB -> 17 f6
+  22DDB4 -> 7b 5b
+  22DDB6 -> 02 74
+  22DDBC -> 03 6b 03 0c 00 f6
+  22DDBD -> 01
+  22DDBE -> 00 42 00 44 00 46 00 42 00 42 07 08 07 08 07 08 06 40 06 40
+  22DDC0 -> 06 3f 07 07 06 8f 01
+  22DDC2 -> 06 97 06 97 02 50
+  22DDC4 -> 1b 44 01
+  22DDC6 -> 01 77 00 00 00 94 00 00 02 30 00 00 02 12 00 00 00 34 00 00 00 14 00 00 00 5c 00 00 00 06 00 00 00 23
+  22DDC7 -> 10 fe 00 00 00 01 00 19 01 1a 02 15 02 5b 00 00
+  22DDC8 -> 01 4b 01 4b 01 4b 01 4b 01 4b
+  22DDC9 -> 00 00 15 2a 10 bd 60 4f 00 00 00 15 2a 10 bc 6e ed 00 00 00 0a 33 10 b2 93 85 00 00 00 5a ea 10 b0 1a dd 00 00 00 05 80 10 af fe 07 01
+  22DDCA -> 39 31 33 30 38 31 30 30 39 37
+  22DDCB -> 09 a2 1e 78
+  22DDCC -> 00 02 d1 18 00 02 d1 18 00 02 d1 18
+  22DDE9 -> 02 12 01 f4 01 9b 00 04 00 00 00 00 02 12 01 f4 01 9b 00 04 00 00 00 00 01 2f 00 d3 00 01 00 00 00 00 00 00 10 8d f4 8e 10 63 b6 5c 0a 84 25 17 05 6d bc 3f 00 00 00 00 00 00 00 00
+  22DDEB -> 25 26 21 4e 40 10 10 10 06 06 4c 49 26 51 50 02 04 04 02 02 13 10 0f 18 1e 17 7f 7f 18 18 12 13 15 04 15 15 12 03 04 13 10 bb 03 a0 10 ae b4 60 10 ae a8 20 10 96 a8 00 10 95 f3 20
+  22DDEC -> 00 21 00 42 01 8d 02 9b 01 38 00 41 00 1a
+  22DDEF -> 01 3b
+
+done
+##### DF00-DFFF sweep (canonical sme_probe.py --sweep), car running
+CONNECTED
+  battery (needs ~14 V)      -> 14.7V |  | >
+  015B J1979 HV SOC          -> 7EB03415BB1 |  | >
+                                = 69.4 %
+
+== SME (07) ==
+  22F190   -> 57 42 41 38 45 31 43 35 31 4a 41 58 58 58 58 58 58
+              = VIN WBA8E1C51JAXXXXXX
+  22DDBC   -> 03 63 03 0c 00 f6
+              = SOC 86.7 %  window 24.6..78.0 %
+  226335   -> 00 00 00 53
+              = SOH 83 %  (i3 layout, not ground-truthed)
+  22DD69   -> ff ff ff 66
+              = current -1.54 A
+  22DDC0   -> 06 3f 07 07 06 96 01
+              = cell temp min/max/avg 15.99 / 17.99 / 16.86 C
+  22DFA0   -> 09 3c 09 9c 09 78 99 87 9a 24 99 f5 06 3f 07 07 06 96 3a 21 49 2b 3f 6b 1b 1e 1c 4b 1b e2 9b c8 9b fa 9b e0 41 e9 3e 32 df d5 39 af a9 69 00 14 03 20 00 01 00 00 00 00 00 00 00 01 2f 82
+              = cell V 3.9303/3.9460/3.9413  V2 3.9880/3.9930/3.9904  cell SoC 69.42/72.43/71.38 %  (min/max/avg)
+
+== SME DID sweep DF00..DFFF (misses not shown) ==
+  22DF60 -> 00 00 29 62 00 01 30 d2
+  22DF62 -> 03 9d
+  22DF63 -> 00 00 37 00
+  22DF65 -> 05 dc 00 00 00 2c 00 00 00 26 00 00 00 49 00 00 00 00 00 00 00 00 00 00 00 00
+  22DF66 -> 00 c8 00 00 00 02 00 00 01 9e 00 00 1d 3c 00 00 49 c0 00 00 82 94 00 09 05 b5
+  22DF67 -> 00 89 87 9b 01 52 b6 9c
+  22DF71 -> 00 50 10 05 03
+  22DF72 -> 00
+  22DF76 -> 96 00 00 00 52 00 00 00 25 00 00 00 09 00 00 00 03 00 00 00 00 00 00 00 00
+  22DF77 -> 14 02 6f 01 ab 02 74 01 07 00 f4 00 00
+  22DF81 -> 00 00 09 a2 2e e0 1e 78 00 00 00 00 00 00 00 a7 00 09 e8 32 00 00 02 1b 00 00 00 00
+  22DF83 -> 00 43 79 8b 18 02 0a 28 1f 05 05 28 28
+  22DF86 -> 47 25 1f 1f 1f 1f 1f 46 4d 4f 00 14 49 00 28
+  22DF8A -> 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  22DF8B -> 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 03 00 00 00 06 00 00 00 00 00 00 00 00 00 00 00 31 00 00 00 00 00 00 00 00 00 00 00 00
+  22DF8C -> 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 a7 c0 00 00 01 1e 00 00 00 00 00 00 00 00 00 02 0a cf 00 00 00 7f 00 00 00 00 00 00 00 00
+  22DF8D -> 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 06 6f bc 00 00 03 ea 00 00 00 00 00 00 00 00 00 07 a4 1d 00 00 03 59 00 00 00 00 00 00 00 00
+  22DF8E -> 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00
+  22DF8F -> 00 00 01 f4 00 00 01 f4 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  22DF90 -> 00 00 0f a0 00 00 0f a0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  22DF91 -> 00 00 0f a0 00 00 0f a0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  22DF92 -> 00 00 0f a0 00 00 0f a0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  22DF9C -> 23 64 f6 05 14 20 2b 42 55 5a 5e 68 67 50 37 35 64 67 47 49 55 4f 60 57 4f 4d 58 4f 58 55 4b 64 64 64 64 64 64 62 67 66 65 68 73 4c 51 70 63 62 5a 58 55
+  22DF9E -> 47
+  22DFA0 -> 09 3c 09 9c 09 78 99 5c 9a 04 99 cd 06 3f 07 07 06 97 3a 21 49 2b 3f 6b 1b 01 1c 2f 1b c5 9b c8 9b fa 9b e0 41 e9 3e 32 df d5 39 af b3 99 00 14 03 20 00 01 00 00 00 00 00 00 00 01 2f 82
+  22DFA3 -> 06 1f ff ff
+  22DFA4 -> 00
+  22DFA6 -> 00 00 00 00 00 00 00 00 00 00 00
+  22DFA8 -> 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  22DFA9 -> 06 82 06 a4 06 a4 06 82 06 a4 7f ff 7f ff 7f ff 7f ff 7f ff 7f ff
+  22DFAA -> 55 55 55 54 53 ff ff ff ff ff ff
+  22DFAB -> 14 14 14 14 14 14 14 14 14 14 14
+  22DFAC -> 00 00 08 96 00 00 06 21
+  22DFAD -> 47 47 47 47 46 ff ff ff ff ff ff
+  22DFAE -> 65 14
+  22DFC3 -> 00
+  22DFC5 -> 00 a2 00 be 01 d0 06 1b 09 41 06 c9 02 f6 03 48 00 12 00 14 1f 14 00 12 00 1a 00 2d 1f 0e 16 80 00 00 07 a7 00 4f 01 1d 00 7b 00 00 ff
+  22DFC6 -> 00 03 00 03 02 97 9b 94 95 ff 99 9c 95 95 ff 82 fc 39 99 7b 6e 6e c1 c1 c1 00 00 00 0a 00 1c 00 1c 00 1c 10 89 8b a0 10 88 73 00 02 d9 2b 80 02 d9 22 7c ff ff ff ff 99 96 9e 9e ff 7f 7f 7e 7e 7e
+  22DFC7 -> 04 e6 00 09 00 05 ba bd bd 8f 96 96
+  22DFC8 -> 18 96 19 42 18 c9 17 bc 16 2d 00 00 00 00 00 00 00 00 00 00 00 00
+  22DFC9 -> 00 11 08 27 67 00 09 a7 ec 80 02 1b 87 f9
+  22DFCA -> 10 1e 0f ee 41 10 35 0f f5 41 10 14 0f d2 41 10 2c 0f d6 41 0e 76 0e 66 41 0e 7d 0e 6a 41 10 28 10 21 41 10 34 10 27 41 10 23 10 17 41 10 35 10 1e 41
+  22DFCB -> 0f a3 0f 92 02 fb 02 da 10 1e 0f ee 03 0b 02 f9 0e 57 0e 3a 01 b6 01 94 10 14 0f d2 02 f1 02 dd 0e 76 0e 66 01 95 01 81
+  22DFE2 -> ae 10 bd 8a 80 02 ae bc be 4c 52
+
+done
+##### ECU census (canonical sme_probe.py --census): 22F190 physical to 00-7F, car running
+CONNECTED
+  battery (needs ~14 V)      -> 14.7V |  | >
+  015B J1979 HV SOC          -> 7EB03415BAF |  | >
+                                = 68.6 %
+
+== SME (07) ==
+  22F190   -> 57 42 41 38 45 31 43 35 31 4a 41 58 58 58 58 58 58
+              = VIN WBA8E1C51JAXXXXXX
+  22DDBC   -> 03 58 03 0c 00 f6
+              = SOC 85.6 %  window 24.6..78.0 %
+  226335   -> 00 00 00 53
+              = SOH 83 %  (i3 layout, not ground-truthed)
+  22DD69   -> ff ff ff 65
+              = current -1.55 A
+  22DDC0   -> 06 3f 07 07 06 9f 01
+              = cell temp min/max/avg 15.99 / 17.99 / 16.95 C
+  22DFA0   -> 09 3c 09 9c 09 78 99 32 99 de 99 a6 06 3f 07 07 06 9f 3a 21 49 2b 3f 6b 1a e5 1c 12 1b a9 9b c8 9b fa 9b e0 41 e9 3e 32 df d5 39 af bd 99 00 14 03 20 00 01 00 00 00 00 00 00 00 01 2f 82
+              = cell V 3.9218/3.9390/3.9334  V2 3.9880/3.9930/3.9904  cell SoC 68.85/71.86/70.81 %  (min/max/avg)
+
+== census: 22F190 to each target 00-7F ==
+  target 01 answers
+  target 06 answers
+  target 07 answers
+  target 08 answers
+  target 10 answers
+  target 12 answers
+  target 14 answers
+  target 18 answers
+  target 1C answers
+  target 1D answers
+  target 29 answers
+  target 2C answers
+  target 2D answers
+  target 30 answers
+  target 35 answers
+  target 3A answers
+  target 40 answers
+  target 43 answers
+  target 44 answers
+  target 56 answers
+  target 5E answers
+  target 5F answers
+  target 60 answers
+  target 61 answers
+  target 63 answers
+  target 67 answers
+  target 6D answers
+  target 72 answers
+  target 78 answers
+census: ['01', '06', '07', '08', '10', '12', '14', '18', '1C', '1D', '29', '2C', '2D', '30', '35', '3A', '40', '43', '44', '56', '5E', '5F', '60', '61', '63', '67', '6D', '72', '78']
+
+done

@@ -33,20 +33,91 @@ String setReceiveFilterCommand(String rax) => 'ATCRA$rax';
 /// Clear any receive-address filter.
 const String clearReceiveFilterCommand = 'ATCRA';
 
-/// Build the hex request line for a UDS/J1979 message.
-///
-/// [messageBytes] is the service+payload (e.g. [0x22,0xDD,0xBC]). For BMW
-/// extended tester addressing, [extendedAddress] (e.g. 0x07) is prepended as
-/// the target-address byte the SME expects.
-String requestLine(List<int> messageBytes, {int? extendedAddress}) {
-  final bytes = <int>[
-    if (extendedAddress != null) extendedAddress,
-    ...messageBytes,
-  ];
-  return bytes
-      .map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase())
-      .join();
+// ---------------------------------------------------------------------------
+// BMW extended addressing (ISO 15765-2 "extended" format)
+// ---------------------------------------------------------------------------
+//
+// Every BMW F/G-series ECU behind the ZGW gateway is addressed this way. The
+// FIRST data byte of each CAN frame is an address byte, and the ISO-TP PCI
+// comes AFTER it:
+//
+//   request  on 6F1:  <target> <PCI> <SID> <payload..>   07 03 22 DD BC
+//   response on 6xx:  <F1>     <PCI> <SID+40> <data..>   F1 10 09 62 DD BC ..
+//   flow control 6F1: <target> 30 00 00
+//
+// Prepending "07" to a request line while the adapter auto-formats puts the
+// adapter's PCI first (`04 07 22 DD BC`), a frame no BMW ECU answers. That is
+// what the app sent in Aug 2026, which made the SME look unreachable.
+//
+// Recipe proven on the 330e with the Viecar ELM327 v2.2 clone (2026-11-08,
+// tools/bmw-sme-probe, captures/bmw_sme_2026-11-08.txt):
+//   * ATCEA<target> makes the adapter insert the address byte on requests;
+//   * the adapter's own flow control does NOT carry the address, so we set a
+//     custom FC frame `<target> 30 00 00` (FCSM1). Without it only the First
+//     Frame of a multi-frame reply arrives;
+//   * the SME often answers `7F 22 78` (response pending) first, so adaptive
+//     timing is off and the timeout is maxed (ATSTFF, ~1 s per wait).
+// Responses are still displayed with the leading F1 (strip it before ISO-TP).
+
+/// AT commands that switch the adapter into BMW extended addressing for
+/// [target] (e.g. 0x07 = SME) using tester header [hdr] (e.g. "6F1").
+List<String> extendedAddressingCommands({
+  required String hdr,
+  required int target,
+}) =>
+    [
+      'ATCAF1',
+      'ATCEA${_hex2(target)}', // adapter inserts the target byte on requests
+      'ATFCSH$hdr', // flow control is sent from the tester id
+      'ATFCSD${_hex2(target)}300000', // FC frame: <target> 30 00 00
+      'ATFCSM1', // use the user-defined FC header + data
+      'ATAT0', // the SME is slow (7F xx 78): no adaptive shortening
+      'ATSTFF', // max response timeout
+    ];
+
+/// AT commands that restore normal ISO-TP addressing and default timing.
+const List<String> normalAddressingCommands = [
+  'ATCEA',
+  'ATFCSM0',
+  'ATAT1',
+  'ATST32',
+];
+
+/// Build the hex request line for a UDS/J1979 message, e.g. [0x22,0xDD,0xBC]
+/// -> "22DDBC". The adapter adds the PCI (and, in extended mode, the address
+/// byte).
+String requestLine(List<int> messageBytes) => messageBytes.map(_hex2).join();
+
+/// Strip the leading address byte from a frame received under extended
+/// addressing (`F1 05 62 ...` -> `05 62 ...`) so ISO-TP reassembly sees the PCI
+/// first, exactly as with normal addressing.
+List<int> stripExtendedAddress(List<int> data) {
+  if (data.length < 2) {
+    throw const FormatException('Extended-addressing frame too short');
+  }
+  return data.sublist(1);
 }
+
+/// True for a single-frame UDS "response pending" (`03 7F <sid> 78`). A slow
+/// ECU sends it before the real answer; it is not the answer, so drop it before
+/// reassembly.
+bool isResponsePending(List<int> dataField) =>
+    dataField.length >= 4 &&
+    dataField[0] == 0x03 &&
+    dataField[1] == 0x7F &&
+    dataField[3] == 0x78;
+
+/// Turn the CAN frames of one response into ISO-TP data fields: strip the
+/// address byte under extended addressing and drop response-pending frames.
+List<List<int>> responseDataFields(List<ElmFrame> frames,
+        {required bool extendedAddressing}) =>
+    frames
+        .map((f) =>
+            extendedAddressing ? stripExtendedAddress(f.data) : f.data)
+        .where((d) => !isResponsePending(d))
+        .toList();
+
+String _hex2(int b) => b.toRadixString(16).padLeft(2, '0').toUpperCase();
 
 /// Errors/adapter states surfaced as text rather than hex.
 const Set<String> elmErrorTokens = {

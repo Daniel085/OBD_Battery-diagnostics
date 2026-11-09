@@ -1,10 +1,10 @@
 {
   "$schema": "../signalset.schema.json",
   "vehicle": "BMW-330e-2018",
-  "description": "2018 BMW 330e (F30 PHEV). CONFIRMED on-vehicle: HV-battery SOC and other data via STANDARD J1979 PIDs on ECU 7EB/7E8. The proprietary SME DIDs (6F1/607, from i3) do NOT respond on this car's OBD-II bus (SME is on an internal BMW bus not bridged to the port).",
+  "description": "2018 BMW 330e (F30 PHEV). CONFIRMED on-vehicle: HV-battery SOC and other data via STANDARD J1979 PIDs on ECU 7EB/7E8. The SME DIDs (6F1/607, extended address 07, from i3) returned NO DATA in Aug 2026, but every request then was mis-framed (see docs/bmw-330e-sme.md); BimmerLink reads the SME over the same port, so they are UNTESTED, not unreachable.",
   "provenance": {
     "derivedFrom": "OBDb/BMW-i3s (CC BY-SA 4.0) \u2014 shares the SME battery-ECU architecture and addressing with the F30 330e",
-    "confidence": "Standard J1979 PIDs (015B SOC, 015C oil, 0146 ambient, 012F fuel, 0142 voltage): CONFIRMED live on the 330e. SME 6F1 DIDs (SOH/cell V/cell temp): present in set but NO DATA on this vehicle's OBD port \u2014 kept for reference / other buses.",
+    "confidence": "Standard J1979 PIDs (015B SOC, 015C oil, 0146 ambient, 012F fuel, 0142 voltage): CONFIRMED live on the 330e. SME 6F1 DIDs (SOH/cell V/cell temp): i3-derived, not yet read with correct BMW extended-address framing \u2014 UNVALIDATED.",
     "license": "CC BY-SA 4.0"
   },
   "protocol": {

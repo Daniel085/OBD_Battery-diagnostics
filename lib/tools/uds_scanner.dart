@@ -102,6 +102,12 @@ class UdsScanner {
   }
 
   Future<void> _applyAddressing() async {
+    for (final c in extendedAddress == null
+        ? normalAddressingCommands
+        : extendedAddressingCommands(
+            hdr: requestHeader, target: extendedAddress!)) {
+      await source.send(c);
+    }
     await source.send(setHeaderCommand(requestHeader));
     if (responseFilter != null) {
       await source.send(setReceiveFilterCommand(responseFilter!));
@@ -111,8 +117,7 @@ class UdsScanner {
   /// Read one DID and classify it.
   Future<DidScanResult> probe(int did) async {
     final didBytes = [(did >> 8) & 0xFF, did & 0xFF];
-    final line = requestLine([0x22, ...didBytes],
-        extendedAddress: extendedAddress);
+    final line = requestLine([0x22, ...didBytes]);
     String raw;
     try {
       raw = await source.send(line);
@@ -124,7 +129,8 @@ class UdsScanner {
     try {
       final frames = parseFrames(raw, is29Bit: is29Bit);
       if (frames.isEmpty) return DidScanResult(did, DidStatus.noData);
-      message = reassemble(frames.map((f) => f.data));
+      message = reassemble(responseDataFields(frames,
+          extendedAddressing: extendedAddress != null));
     } on ElmException {
       return DidScanResult(did, DidStatus.noData);
     } on FormatException {

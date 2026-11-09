@@ -6,9 +6,32 @@ void main() {
     test('formats message bytes as upper hex', () {
       expect(requestLine([0x22, 0xDD, 0xBC]), '22DDBC');
     });
-    test('prepends BMW extended address', () {
-      expect(requestLine([0x22, 0xDD, 0xBC], extendedAddress: 0x07),
-          '0722DDBC');
+    test('extended addressing mode = on-car recipe (2026-11-08)', () {
+      // Adapter inserts the 07 (ATCEA07); its own flow control lacks the
+      // address, so a custom FC 07 30 00 00 is required; the SME is slow.
+      expect(extendedAddressingCommands(hdr: '6F1', target: 0x07), [
+        'ATCAF1',
+        'ATCEA07',
+        'ATFCSH6F1',
+        'ATFCSD07300000',
+        'ATFCSM1',
+        'ATAT0',
+        'ATSTFF',
+      ]);
+      expect(normalAddressingCommands, ['ATCEA', 'ATFCSM0', 'ATAT1', 'ATST32']);
+    });
+    test('responseDataFields strips F1 and drops 7F xx 78 pending', () {
+      final frames = parseFrames(
+          '607F1037F2278FFFFFF\r607F1100962DDBC038B\r607F121030C00F6FFFF\r>',
+          is29Bit: false);
+      final fields = responseDataFields(frames, extendedAddressing: true);
+      expect(fields, hasLength(2));
+      expect(fields.first.take(3), [0x10, 0x09, 0x62]);
+    });
+    test('stripExtendedAddress drops the leading F1', () {
+      expect(stripExtendedAddress([0xF1, 0x05, 0x62, 0xDD, 0xBC, 0x03, 0x20]),
+          [0x05, 0x62, 0xDD, 0xBC, 0x03, 0x20]);
+      expect(() => stripExtendedAddress([0xF1]), throwsFormatException);
     });
   });
 
@@ -45,8 +68,7 @@ void main() {
   group('parseFrames (29-bit)', () {
     test('uses an 8-nibble header width', () {
       // 18DAF110 is a typical 29-bit diagnostic response id.
-      final frames =
-          parseFrames('18DAF110 03 41 0D 20\r>', is29Bit: true);
+      final frames = parseFrames('18DAF110 03 41 0D 20\r>', is29Bit: true);
       expect(frames.single.canId, '18DAF110');
       expect(frames.single.data, [0x03, 0x41, 0x0D, 0x20]);
     });

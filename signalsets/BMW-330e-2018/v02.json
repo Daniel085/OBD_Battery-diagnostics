@@ -1,0 +1,388 @@
+{
+  "$schema": "../signalset.schema.json",
+  "vehicle": "BMW-330e-2018",
+  "description": "2018 BMW 330e (F30 PHEV). J1979 PIDs on 7EB/7E8 and the SME battery ECU (6F1 -> 607, BMW extended address 07), both read on-vehicle 2026-11-08 over the OBD port with an ELM327 v2.2 clone.",
+  "provenance": {
+    "derivedFrom": "OBDb/BMW-i3s (CC BY-SA 4.0) for the SME DID numbers; F30 layouts corrected from on-vehicle reads",
+    "confidence": "v02 (2026-11-08): SME read on-vehicle (captures/bmw_sme_2026-11-08.txt). Cross-checked vs BimmerLink on the same car/day: SOC window bounds (exact), cell V and cell SoC ranges, current, cell temps vs ambient. Same-moment check vs BimmerLink confirms DFA0 bytes 6-11 as the live cell-V triple. NOT ground-truthed: HVBAT_SOH (83 %, i3 layout). Pack voltage: the i3 DID DD68 returns 7F 22 31 on the F30; the F30 pack voltage is DD66 (found by DD00-DDFF sweep, consistent with 80 cells x avg cell V and BimmerLink). v01 -> v02: fixed the request framing (v01's SME reads never worked), DFA0 offsets moved (i3 layout was wrong for F30), DDBC/DDC0/DFA0 gained window/avg/cell-SoC signals.",
+    "license": "CC BY-SA 4.0"
+  },
+  "protocol": {
+    "canFormat": "11bit",
+    "obdProtocol": 6,
+    "note": "SME: tester 6F1, response 607, extended address 07 BEFORE the ISO-TP PCI. Adapter recipe: ATCAF1, ATCEA07, ATFCSH6F1, ATFCSD07300000, ATFCSM1, ATAT0, ATSTFF (see lib/transport/elm327_protocol.dart)."
+  },
+  "commands": [
+    {
+      "_confirmed": "on-vehicle 2026: 0xC7=199 -> 78.0%",
+      "hdr": "7DF",
+      "rax": "7EB",
+      "cmd": {
+        "01": "5B"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_SOC_STD",
+          "name": "HV battery charge (hybrid)",
+          "group": "summary",
+          "fmt": {
+            "bix": 0,
+            "len": 8,
+            "mul": 100,
+            "div": 255,
+            "unit": "percent"
+          }
+        }
+      ]
+    },
+    {
+      "_confirmed": "on-vehicle 2026: 0x5B=91 -> 51C",
+      "hdr": "7DF",
+      "rax": "7E8",
+      "cmd": {
+        "01": "5C"
+      },
+      "signals": [
+        {
+          "id": "ENGINE_OIL_TEMP",
+          "name": "Engine oil temperature",
+          "group": "temperature",
+          "fmt": {
+            "bix": 0,
+            "len": 8,
+            "add": -40,
+            "unit": "celsius"
+          }
+        }
+      ]
+    },
+    {
+      "_confirmed": "on-vehicle 2026: 0x41=65 -> 25C",
+      "hdr": "7DF",
+      "rax": "7E8",
+      "cmd": {
+        "01": "46"
+      },
+      "signals": [
+        {
+          "id": "AMBIENT_TEMP",
+          "name": "Ambient air temperature",
+          "group": "temperature",
+          "fmt": {
+            "bix": 0,
+            "len": 8,
+            "add": -40,
+            "unit": "celsius"
+          }
+        }
+      ]
+    },
+    {
+      "_confirmed": "on-vehicle 2026: 0x81=129 -> 50.6%",
+      "hdr": "7DF",
+      "rax": "7E8",
+      "cmd": {
+        "01": "2F"
+      },
+      "signals": [
+        {
+          "id": "FUEL_LEVEL",
+          "name": "Fuel level",
+          "group": "summary",
+          "fmt": {
+            "bix": 0,
+            "len": 8,
+            "mul": 100,
+            "div": 255,
+            "unit": "percent"
+          }
+        }
+      ]
+    },
+    {
+      "_confirmed": "on-vehicle 2026: 0x36D8=14040 -> 14.04V",
+      "hdr": "7DF",
+      "rax": "7E8",
+      "cmd": {
+        "01": "42"
+      },
+      "signals": [
+        {
+          "id": "CONTROL_MODULE_VOLTAGE",
+          "name": "Control module voltage",
+          "group": "summary",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 1000,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_onVehicle": "2026-11-08: 00 00 00 53 -> 83 %. Layout from i3; plausible but NO ground truth yet (BimmerLink SoH is paywalled).",
+      "hdr": "6F1",
+      "rax": "607",
+      "eax": "07",
+      "cmd": {
+        "22": "6335"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_SOH",
+          "name": "HV battery state of health (BMS-reported)",
+          "group": "summary",
+          "fmt": {
+            "bix": 24,
+            "len": 8,
+            "max": 100,
+            "unit": "percent"
+          }
+        }
+      ]
+    },
+    {
+      "_onVehicle": "2026-11-08: 038B 030C 00F6 -> 90.7 / 78.0 / 24.6 %. Bounds match BimmerLink 'SOC Upper/Lower Bound' 78 / 25.",
+      "hdr": "6F1",
+      "rax": "607",
+      "eax": "07",
+      "cmd": {
+        "22": "DDBC"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_SOC",
+          "name": "HV battery state of charge (displayed)",
+          "group": "summary",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "max": 100,
+            "div": 10,
+            "unit": "percent"
+          }
+        },
+        {
+          "id": "HVBAT_SOC_WINDOW_MAX",
+          "name": "SOC window upper bound (raw cell SoC)",
+          "group": "summary",
+          "fmt": {
+            "bix": 16,
+            "len": 16,
+            "max": 100,
+            "div": 10,
+            "unit": "percent"
+          }
+        },
+        {
+          "id": "HVBAT_SOC_WINDOW_MIN",
+          "name": "SOC window lower bound (raw cell SoC)",
+          "group": "summary",
+          "fmt": {
+            "bix": 32,
+            "len": 16,
+            "max": 100,
+            "div": 10,
+            "unit": "percent"
+          }
+        }
+      ]
+    },
+    {
+      "_onVehicle": "2026-11-08 DD sweep: 7B5F -> 315.83 V (u16 /100). 80 cells x avg 3.9518 V = 316.1 V at the same read; BimmerLink showed 317 V 15 min earlier at higher SoC. DDB4 reads within 0.05 V (7B5B) - pack-side vs link-side unknown; DDEF = 0x013B = 315 V integer.",
+      "hdr": "6F1",
+      "rax": "607",
+      "eax": "07",
+      "cmd": {
+        "22": "DD66"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_VOLTAGE",
+          "name": "HV battery pack voltage",
+          "group": "summary",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "max": 655.35,
+            "div": 100,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_onVehicle": "2026-11-08: FFFFFF6C -> -1.48 A (BimmerLink parked: -1.28 A).",
+      "hdr": "6F1",
+      "rax": "607",
+      "eax": "07",
+      "cmd": {
+        "22": "DD69"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_CURRENT",
+          "name": "HV battery pack current",
+          "group": "summary",
+          "fmt": {
+            "bix": 0,
+            "len": 32,
+            "max": 10000,
+            "min": -10000,
+            "div": 100,
+            "sign": true,
+            "unit": "amps"
+          }
+        }
+      ]
+    },
+    {
+      "_onVehicle": "2026-11-08: 063F 06A3 0655 01 -> 15.99 / 16.99 / 16.21 C, ambient 15.5 C. min<avg<max holds. Trailing byte 01 unknown.",
+      "hdr": "6F1",
+      "rax": "607",
+      "eax": "07",
+      "cmd": {
+        "22": "DDC0"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_CELLTEMP_MIN",
+          "name": "HV battery cell temperature (min)",
+          "group": "temperature",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "max": 327.67,
+            "min": -327.67,
+            "div": 100,
+            "sign": true,
+            "unit": "celsius"
+          }
+        },
+        {
+          "id": "HVBAT_CELLTEMP_MAX",
+          "name": "HV battery cell temperature (max)",
+          "group": "temperature",
+          "fmt": {
+            "bix": 16,
+            "len": 16,
+            "max": 327.67,
+            "min": -327.67,
+            "div": 100,
+            "sign": true,
+            "unit": "celsius"
+          }
+        },
+        {
+          "id": "HVBAT_CELLTEMP_AVG",
+          "name": "HV battery cell temperature (avg)",
+          "group": "temperature",
+          "fmt": {
+            "bix": 32,
+            "len": 16,
+            "max": 327.67,
+            "min": -327.67,
+            "div": 100,
+            "sign": true,
+            "unit": "celsius"
+          }
+        }
+      ]
+    },
+    {
+      "_onVehicle": "2026-11-08: 62-byte record of six [min,max,avg] u16 triples + trailer, NOT the i3 layout. Bytes 6-11 cell V /10000 (3.9669/3.9760/3.9724); bytes 24-29 cell SoC /100 (71.44/74.47/73.42). Bytes 30-35 are a SECOND cell-V triple (3.9880/3.9930/3.9904) - which one BimmerLink shows is unresolved. Bytes 0-5 (2364/2460/2424) and 18-23 (14881/18731/16235) unknown; 12-17 duplicate DDC0 temps. Bytes 58-61 = 00 01 2F 82 = 77,698 km = 48,279 mi; BimmerLink showed 48,281 mi. The same stamp appears in DME records, so it may be the odometer at the SME's last record rather than live; fine for SoH-history mileage.",
+      "hdr": "6F1",
+      "rax": "607",
+      "eax": "07",
+      "cmd": {
+        "22": "DFA0"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_CELL_V_MIN",
+          "name": "HV battery cell voltage (min)",
+          "group": "cells",
+          "fmt": {
+            "bix": 48,
+            "len": 16,
+            "max": 6.5535,
+            "div": 10000,
+            "unit": "volts"
+          }
+        },
+        {
+          "id": "HVBAT_CELL_V_MAX",
+          "name": "HV battery cell voltage (max)",
+          "group": "cells",
+          "fmt": {
+            "bix": 64,
+            "len": 16,
+            "max": 6.5535,
+            "div": 10000,
+            "unit": "volts"
+          }
+        },
+        {
+          "id": "HVBAT_CELL_V_AVG",
+          "name": "HV battery cell voltage (avg)",
+          "group": "cells",
+          "fmt": {
+            "bix": 80,
+            "len": 16,
+            "max": 6.5535,
+            "div": 10000,
+            "unit": "volts"
+          }
+        },
+        {
+          "id": "HVBAT_CELL_SOC_MIN",
+          "name": "HV battery cell SoC (min)",
+          "group": "cells",
+          "fmt": {
+            "bix": 192,
+            "len": 16,
+            "max": 100,
+            "div": 100,
+            "unit": "percent"
+          }
+        },
+        {
+          "id": "HVBAT_CELL_SOC_MAX",
+          "name": "HV battery cell SoC (max)",
+          "group": "cells",
+          "fmt": {
+            "bix": 208,
+            "len": 16,
+            "max": 100,
+            "div": 100,
+            "unit": "percent"
+          }
+        },
+        {
+          "id": "HVBAT_CELL_SOC_AVG",
+          "name": "HV battery cell SoC (avg)",
+          "group": "cells",
+          "fmt": {
+            "bix": 224,
+            "len": 16,
+            "max": 100,
+            "div": 100,
+            "unit": "percent"
+          }
+        },
+        {
+          "id": "ODOMETER",
+          "name": "Odometer (SME record stamp)",
+          "group": "vehicle",
+          "fmt": {
+            "bix": 464,
+            "len": 32,
+            "max": 4294967295,
+            "unit": "km"
+          }
+        }
+      ]
+    }
+  ]
+}
