@@ -13,3 +13,7 @@ pubspec.lock
 
 # OS
 .DS_Store
+
+# Python (tools/)
+__pycache__/
+*.pyc
