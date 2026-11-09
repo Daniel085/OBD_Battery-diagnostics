@@ -15,12 +15,14 @@ import '../engine/drive_record.dart';
 import '../engine/drive_session.dart';
 import '../engine/logging.dart';
 import '../engine/signal_set.dart';
+import '../engine/soh_history.dart';
 import '../transport/data_source.dart';
 import '../transport/elm_ble_source.dart';
 import 'capacity_test_store.dart';
 import 'drive_record_store.dart';
 import 'onboarding_store.dart';
 import 'signal_set_repository.dart';
+import 'soh_history_store.dart';
 
 enum ConnectionPhase { idle, scanning, connecting, initializing, polling, error }
 
@@ -40,8 +42,74 @@ class AppController extends ChangeNotifier {
     this.capacityStore,
     this.driveStore,
     this.onboardingStore,
+    this.sohStore,
   })  : _bleInstance = ble,
         repo = repository ?? SignalSetRepository();
+
+  // ---- SoH history -----------------------------------------------------------
+
+  /// Persistence for the SoH history (null in tests → in-memory only).
+  final SohHistoryStore? sohStore;
+
+  /// Every SoH figure seen, one entry per vehicle/source/day. Grows across
+  /// connects and app restarts; the dashboard charts it.
+  SohHistory sohHistory = SohHistory();
+
+  Future<void> restoreSohHistory() async {
+    final store = sohStore;
+    if (store == null) return;
+    final loaded = await store.load();
+    // Keep anything recorded before the load finished.
+    for (final e in sohHistory.entries) {
+      loaded.record(e);
+    }
+    sohHistory = loaded;
+    notifyListeners();
+  }
+
+  /// Signal ids that carry an SoH figure, and what kind. Generic ids (the
+  /// signal sets map each vehicle onto them), so no vehicle logic here.
+  static const _sohSignals = {
+    'HVBAT_SOH': SohSource.reported,
+    'HVBAT_BMS_HEALTH_INDEX': SohSource.bmsIndex,
+  };
+
+  /// Record the current SoH figures into the history; saves only on change.
+  void _recordSoh() {
+    final vehicle = selectedVehicle?.id ?? _signalSet?.vehicle;
+    if (vehicle == null) return;
+    final now = DateTime.now();
+    final odo = latest['ODOMETER']?.value;
+    var changed = false;
+    for (final MapEntry(key: id, value: source) in _sohSignals.entries) {
+      final r = latest[id];
+      if (r == null) continue;
+      changed |= sohHistory.record(SohEntry(
+          at: now,
+          vehicle: vehicle,
+          source: source,
+          sohPct: r.value,
+          odometerKm: odo));
+    }
+    final measured = capacityTest?.analyze().sohPct;
+    if (measured != null) {
+      changed |= sohHistory.record(SohEntry(
+          at: now,
+          vehicle: vehicle,
+          source: SohSource.measured,
+          sohPct: double.parse(measured.toStringAsFixed(1)),
+          odometerKm: odo));
+    }
+    if (changed) unawaited(_saveSohHistory());
+  }
+
+  Future<void> _saveSohHistory() async {
+    try {
+      await sohStore?.save(sohHistory);
+    } catch (_) {
+      // Best-effort: the in-memory history stays authoritative this session.
+    }
+  }
 
   // ---- Onboarding ------------------------------------------------------------
 
@@ -550,6 +618,7 @@ class AppController extends ChangeNotifier {
       if (readings.isNotEmpty) {
         await sessionLog.add(LogSample.fromReadings(readings));
         _feedCapacityTest(readings);
+        _recordSoh();
       }
       notifyListeners();
     } catch (e) {

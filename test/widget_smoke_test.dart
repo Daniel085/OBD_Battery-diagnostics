@@ -8,6 +8,8 @@ import 'package:obd_battery_diagnostics/app/app_controller.dart';
 import 'package:obd_battery_diagnostics/app/signal_set_repository.dart';
 import 'package:obd_battery_diagnostics/engine/diagnostics_client.dart';
 import 'package:obd_battery_diagnostics/engine/signal_set.dart';
+import 'package:obd_battery_diagnostics/engine/soh_history.dart';
+import 'package:obd_battery_diagnostics/ui/battery_visuals.dart';
 import 'package:obd_battery_diagnostics/transport/simulated_source.dart';
 import 'package:obd_battery_diagnostics/ui/dashboard_screen.dart';
 import 'package:obd_battery_diagnostics/ui/drive_screen.dart';
@@ -83,7 +85,11 @@ void main() {
     expect(find.textContaining('Charging'), findsOneWidget);
     // Demoted signals render as sections, not heroes. DYNAMICS sits below
     // the test viewport's fold, so scroll it into view first.
-    expect(find.text('CELLS'), findsOneWidget);
+    // Module voltages collapse into one spread row in Cell balance.
+    await tester.scrollUntilVisible(find.text('Module voltage'), 200,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.text('Module voltage'), findsOneWidget);
+    expect(find.text('3 readings'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('DYNAMICS'), 200,
         scrollable: find.byType(Scrollable).first);
     expect(find.text('DYNAMICS'), findsOneWidget);
@@ -141,6 +147,64 @@ void main() {
     controller.dispose();
   });
 
+  testWidgets('BMW dashboard: charge ring, spread rows, SoH history',
+      (tester) async {
+    final set = SignalSet.parse(
+        File('signalsets/BMW-330e-2018/v02.json').readAsStringSync());
+    final source = SimulatedBmwSource();
+    await source.connect();
+    final client = DiagnosticsClient(source, set);
+    await client.initialize();
+    final readings = await client.readAll();
+
+    final controller = AppController();
+    controller.selectedVehicle = SignalSetRepository.catalogue
+        .firstWhere((v) => v.id == 'BMW-330e-2018');
+    controller.latest.addAll(readings);
+    // Two prior days of history -> the chart renders.
+    for (final (d, v) in [
+      (DateTime(2026, 10, 1), 84.0),
+      (DateTime(2026, 11, 1), 83.0)
+    ]) {
+      controller.sohHistory.record(SohEntry(
+          at: d,
+          vehicle: 'BMW-330e-2018',
+          source: SohSource.reported,
+          sohPct: v));
+    }
+
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      ChangeNotifierProvider<AppController>.value(
+        value: controller,
+        child: const MaterialApp(home: DashboardScreen()),
+      ),
+    );
+
+    // Pack card: ring + current/power/voltage + window explanation.
+    expect(find.byType(ChargeRing), findsOneWidget);
+    expect(find.text('Pack voltage'), findsOneWidget);
+    expect(find.text('Power'), findsOneWidget);
+    expect(find.textContaining('Outer ring: the car uses 25–78 %'),
+        findsOneWidget);
+    // Health: reported SoH + history chart.
+    expect(find.text('83 %'), findsOneWidget);
+    expect(find.byType(SohHistoryChart), findsOneWidget);
+    // Balance: the three min/avg/max families as spread rows; cell temps take
+    // the place of the generic battery-temp row; oil/ambient stay in the list.
+    await tester.scrollUntilVisible(find.text('Cell balance'), 200,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.byType(SpreadRow), findsNWidgets(3));
+    expect(find.text('Cell voltage'), findsOneWidget);
+    expect(find.text('Cell SoC'), findsOneWidget);
+    expect(find.text('Cell temperature'), findsOneWidget);
+    expect(find.textContaining('spread 9 mV'), findsOneWidget);
+    expect(find.text('Battery temps'), findsNothing);
+    controller.dispose();
+  });
+
   testWidgets('drive screen explains itself when nothing is connected',
       (tester) async {
     final controller = AppController();
@@ -151,8 +215,8 @@ void main() {
       ),
     );
     await tester.pump(); // post-frame startDriveMode() -> unsupported
-    expect(
-        find.textContaining('needs a live pack-current signal'), findsOneWidget);
+    expect(find.textContaining('needs a live pack-current signal'),
+        findsOneWidget);
     controller.dispose();
   });
 }

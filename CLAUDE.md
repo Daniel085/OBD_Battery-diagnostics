@@ -51,6 +51,7 @@ The README status section lags. Current state is tracked in `docs/` and git log:
 lib/ui/         screens: home, dashboard, report (+PDF), capacity, scanner, terminal
 lib/app/        controller, signal-set repository, capacity-test store
 lib/engine/     signal-set loader, formula evaluator, battery health, capacity test,
+                SoH history (daily per-vehicle/per-source log, trend),
                 diagnostics clients (J1979 + UDS)
 lib/protocol/   isotp.dart, uds.dart, doip.dart (pure Dart)
 lib/transport/  DataSource impls: elm_ble_source (BLE ELM327), doip_source,
@@ -68,6 +69,7 @@ flutter pub get
 flutter test          # full suite, no hardware needed
 flutter analyze       # keep clean
 flutter run           # on-device; demo mode works with no adapter/car
+flutter run -d <simulator-udid>   # iOS Simulator (see gotcha below)
 ```
 
 ## Hardware gotchas (hard-won, don't rediscover)
@@ -86,6 +88,12 @@ flutter run           # on-device; demo mode works with no adapter/car
   wrong. Use `extendedAddressingCommands()`: ATCEA07 + custom FC
   `07 30 00 00` (the clone's own FC omits the address → only the First Frame
   arrives) + ATAT0/ATSTFF (the SME sends `7F 22 78` pending first).
+
+- **iOS build (Flutter 3.44 + current Xcode):** deployment target must be
+  ≥ 15.0 (raised from 13.0). `flutter build ios --simulator` fails at
+  `debug_unpack_ios` ("does not contain architectures arm64 x86_64") because
+  this Xcode's `lipo -verify_arch` rejects Flutter's arguments; use
+  `flutter run -d <simulator-udid>` (builds only arm64) instead.
 
 ## Contribution / licensing
 
