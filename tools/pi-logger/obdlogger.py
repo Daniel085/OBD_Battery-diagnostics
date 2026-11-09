@@ -29,7 +29,12 @@ PROFILE = os.environ.get("OBD_PROFILE", "charge")
 CHARGE = [("18DA17F1", "18DAF117", ["2414", "2429"]),
           ("18DA40F1", "18DAF140", ["441F", "4149", "44C0", "44C1", "416C",
                                      "4127", "40E5", "44C5", "406E",
-                                     "443C", "4441", "451D"])]
+                                     "443C", "4441", "451D",
+                                     # Open questions from the 09-24 drive:
+                                     # 4124 froze while driving (constant?),
+                                     # 434F read ~28 C above 40E5 (not pack?),
+                                     # 40E6 is the other live-looking temp.
+                                     "4124", "40E6", "434F"])]
 # Drive profile: focus on fast-changing signals — pack current (power),
 # nominal V, temps, module V, plus the dynamics ECU (speed/accel/steering).
 # Fewer DIDs per burst = higher effective rate for the power trace.

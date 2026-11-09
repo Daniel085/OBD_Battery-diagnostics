@@ -631,3 +631,48 @@ the dash-spanned window at ~285-300 Ah ≈ the nameplate 102 kWh / 352 V ≈ 290
 Ah, i.e. ~100%. Whether that window is "gross" or "usable" cannot be resolved
 without the BMS's own SOC (ECU CB, gateway-blocked) — the earlier claim to
 have found it via `441F` is withdrawn above.
+
+## 2026-09-27 — charge to 100%, extended temp set (`captures/chg100_2026-09-27.txt`)
+
+Pi logger (charge profile + `4124`/`40E6`/`434F` added after the 09-24 drive
+raised doubts about them), 30 s cadence, flock supervisor. Car answered from
+11:20; charging 11:20:11 → 20:22:26 (9.04 h), current 0 by 20:23. **Zero data
+gaps** — first session with no interpolation.
+
+**Charge delivered: 203.5 Ah = 71.66 kWh DC at 352.1 V nominal.** Mean
+22.5 A (range 13.8-25.2), ~7.9 kW DC, drifting down from ~23.8 to ~21 Ah/h
+over the day. **Capacity PENDING the dash SOC at plug-in** (not recorded
+yet). Ah per dash point = 203.5 / (end% − start%). If the charge ended at a
+true 100% and the pack matches the four earlier sessions (~2.96 Ah/pt), the
+start was ~31%. A start well below that would mean fewer Ah per point, i.e.
+a capacity drop, so the start figure matters. Also unknown: whether the car
+stopped on its own at 100% (current fell 21 → 17 → 0 A within ~2 min, which
+is abrupt for a full-charge taper) and the wall meter reading.
+
+**Register findings — several "live" signals are not:**
+- `4124` = 0x01A2 (13.06 °C) for all 9 h, and the same value on the 09-24
+  drive. **Not a sensor — demote like `4127`** (0x0418 all session again).
+- `44C0` = 57,57,57,57 for all 9 h while 203 Ah went in. **Not SOC.** Equals
+  `441F` byte 0 (0x39), so both look like a value latched at some event.
+- `416C` = 0 until 17:27:53, then **51.08 V frozen for 3 h of charging** at
+  ~21 A. A real module voltage must rise under that charge. The 09-24 drive
+  showed `416E` = 51.08 V too. **The "module voltages confirmed" status is in
+  doubt** — at minimum they are not live in this wake mode.
+- `434F` raw is 0x00 (decodes to −40 °C) in most samples; 66 non-zero reads
+  of 43/52/62/70 raw (3-30 °C). **Intermittent; raw 0 means "no value" and
+  the app must not display it.** The 53-56 °C seen driving is still
+  unexplained.
+- `4149` read 16.0 until 17:27:53, then 9.6. Neither matches a ~39 A pilot
+  implied by ~9.4 kW AC. **The "EVSE pilot current" label is in doubt**
+  (09-17's 38.8 A match may be coincidence or a different charger setting).
+- `40E5` 22.2 → 25.5 °C and `40E6` 16.4 → 21.7 → 20.9 °C: **the only
+  temperatures that behaved like live sensors.**
+- Wake-mode change at 17:27:53: `416C` and `4149` changed in the same sample.
+  Cause unknown (app wake, unlock, or a scheduled BMS event?).
+- SOH regs: `443C`/`4441` flickered to 100 intermittently, `451D` stayed 0 —
+  consistent with sparse mode; no Ready period was logged by 20:26.
+
+**Next:** get plug-in dash % → finish capacity. Update the signal set: demote
+`4124`, drop `44C0` as an SOC candidate, mark `416C-E` and `4149` unverified,
+and treat `434F` raw 0 as missing. Re-test module voltages with the car in
+Ready under load (drive) where they should move.
