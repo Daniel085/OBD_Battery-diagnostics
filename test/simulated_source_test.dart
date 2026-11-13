@@ -58,7 +58,7 @@ void main() {
 
   test('simulated Lyriq source answers the ENTIRE Lyriq signal set', () async {
     final set = SignalSet.parse(
-        File('signalsets/Cadillac-Lyriq-2025/v01.json').readAsStringSync());
+        File('signalsets/Cadillac-Lyriq-2025/v02.json').readAsStringSync());
     final source = SimulatedLyriqSource();
     await source.connect();
     final client = DiagnosticsClient(source, set);

@@ -72,4 +72,29 @@ void main() {
       expect(f.decode([0x08]), closeTo(14.0, 1e-9));
     });
   });
+
+  group('SignalFormat null bounds (OBDb nullmin/nullmax)', () {
+    test('a value at or past a bound decodes to null', () {
+      const lo = SignalFormat(len: 8, add: -40, nullmin: -40);
+      expect(lo.decodeOrNull([0x00]), isNull); // raw 0 -> -40 -> no value
+      expect(lo.decodeOrNull([0x46]), closeTo(30, 1e-9));
+      const hi = SignalFormat(len: 8, nullmax: 255);
+      expect(hi.decodeOrNull([0xFF]), isNull);
+      expect(hi.decodeOrNull([0xFE]), 254);
+    });
+
+    test('no bounds -> unchanged; decode() ignores bounds', () {
+      const f = SignalFormat(len: 8);
+      expect(f.decodeOrNull([0x00]), 0);
+      const lo = SignalFormat(len: 8, add: -40, nullmin: -40);
+      expect(lo.decode([0x00]), -40);
+    });
+
+    test('parsed from JSON', () {
+      final f = SignalFormat.fromJson(
+          {'len': 8, 'add': -40, 'nullmin': -40, 'nullmax': 200});
+      expect(f.nullmin, -40);
+      expect(f.nullmax, 200);
+    });
+  });
 }

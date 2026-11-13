@@ -14,7 +14,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   test('drive recording captures ticks end-to-end via the sim', () async {
     final set = SignalSet.parse(
-        File('signalsets/Cadillac-Lyriq-2025/v01.json').readAsStringSync());
+        File('signalsets/Cadillac-Lyriq-2025/v02.json').readAsStringSync());
     final c = AppController(repository: _Repo(set));
     final lyriq = SignalSetRepository.catalogue
         .firstWhere((v) => v.id == 'Cadillac-Lyriq-2025');

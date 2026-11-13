@@ -672,7 +672,8 @@ is abrupt for a full-charge taper) and the wall meter reading.
 - SOH regs: `443C`/`4441` flickered to 100 intermittently, `451D` stayed 0 —
   consistent with sparse mode; no Ready period was logged by 20:26.
 
-**Next:** get plug-in dash % → finish capacity. Update the signal set: demote
+**Next:** get plug-in dash % → finish capacity. ~~Update the signal set: demote
 `4124`, drop `44C0` as an SOC candidate, mark `416C-E` and `4149` unverified,
-and treat `434F` raw 0 as missing. Re-test module voltages with the car in
+and treat `434F` raw 0 as missing.~~ Done in `Cadillac-Lyriq-2025/v02.json`
+(2026-11-08; `434F` uses OBDb's `nullmin`). Re-test module voltages with the car in
 Ready under load (drive) where they should move.

@@ -323,8 +323,10 @@ List<_Triple> _numberedFamilies(Map<String, Reading> latest, Set<String> skip,
   for (final MapEntry(key: base, value: rs) in fams.entries) {
     if (rs.length < 2 || rs.any((r) => r.unit != rs.first.unit)) continue;
     final vs = rs.map((r) => r.value).toList();
+    // "HV battery module voltage 2 (unverified)" -> "Module voltage
+    // (unverified)": drop the member number, keep any trailing qualifier.
     final label = rs.first.signal.name
-        .replaceFirst(RegExp(r'\s*\d+\s*$'), '')
+        .replaceFirst(RegExp(r'\s*\d+(?=\s*(\([^)]*\))?\s*$)'), '')
         .replaceFirst(RegExp(r'^HV battery\s+', caseSensitive: false), '');
     out.add(_Triple(
       label.isEmpty ? base : '${label[0].toUpperCase()}${label.substring(1)}',

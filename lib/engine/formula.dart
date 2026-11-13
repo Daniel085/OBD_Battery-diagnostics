@@ -20,6 +20,11 @@ class SignalFormat {
   final num add;
   final num? min;
   final num? max;
+
+  /// Physical values at or below [nullmin] / at or above [nullmax] mean "no
+  /// value" (e.g. a raw 0 sentinel), as in the OBDb v3 schema.
+  final num? nullmin;
+  final num? nullmax;
   final String? unit;
 
   const SignalFormat({
@@ -31,6 +36,8 @@ class SignalFormat {
     this.add = 0,
     this.min,
     this.max,
+    this.nullmin,
+    this.nullmax,
     this.unit,
   })  : assert(len > 0, 'len must be positive'),
         assert(len <= 64, 'len must be <= 64 bits'),
@@ -45,6 +52,8 @@ class SignalFormat {
         add: j['add'] as num? ?? 0,
         min: j['min'] as num?,
         max: j['max'] as num?,
+        nullmin: j['nullmin'] as num?,
+        nullmax: j['nullmax'] as num?,
         unit: j['unit'] as String?,
       );
 
@@ -80,9 +89,21 @@ class SignalFormat {
     return value;
   }
 
-  /// Decode [payload] into the scaled physical value.
+  /// Decode [payload] into the scaled physical value. Ignores the null
+  /// bounds; readers that should drop "no value" replies use [decodeOrNull].
   double decode(List<int> payload) {
     final raw = extractRaw(payload);
     return (raw * mul / div) + add;
+  }
+
+  /// True when [value] falls on or past a null bound.
+  bool isNull(double value) =>
+      (nullmin != null && value <= nullmin!) ||
+      (nullmax != null && value >= nullmax!);
+
+  /// Like [decode], but null when the value is on or past a null bound.
+  double? decodeOrNull(List<int> payload) {
+    final v = decode(payload);
+    return isNull(v) ? null : v;
   }
 }

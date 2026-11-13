@@ -1,7 +1,9 @@
 import 'dart:io';
 
+import 'package:obd_battery_diagnostics/engine/diagnostics_client.dart';
 import 'package:obd_battery_diagnostics/engine/signal_set.dart';
 import 'package:obd_battery_diagnostics/protocol/uds.dart';
+import 'package:obd_battery_diagnostics/transport/data_source.dart';
 import 'package:test/test.dart';
 
 /// Verifies the Lyriq battery signals confirmed on-vehicle 2026-08-14/15
@@ -9,7 +11,7 @@ import 'package:test/test.dart';
 void main() {
   late SignalSet set;
   setUpAll(() => set = SignalSet.parse(
-      File('signalsets/Cadillac-Lyriq-2025/v01.json').readAsStringSync()));
+      File('signalsets/Cadillac-Lyriq-2025/v02.json').readAsStringSync()));
 
   double decodeFromResponse(String id, List<int> message) {
     final cmd = set.commands.firstWhere((c) => c.signals.any((s) => s.id == id));
@@ -66,5 +68,38 @@ void main() {
     expect(set.signalsById['EVSE_PILOT_CURRENT']!.group, 'charging');
     // The wrong pack-voltage signal must be gone.
     expect(set.signalsById.containsKey('HVBAT_PACK_VOLTAGE'), isFalse);
+  });
+
+  // v02 corrections from the 2026-09-27 charge (docs/lyriq-re-log.md).
+  test('434F raw 0 is "no value": the reading is dropped, not shown as -40 C',
+      () async {
+    final cmd = set.commands
+        .firstWhere((c) => c.signals.any((s) => s.id == 'HVBAT_TEMP_MAIN'));
+    Future<List<double>> readWith(String byte) async {
+      final source = ReplaySource({'22434F': '18DAF140 04 62 43 4F $byte\r>'});
+      await source.connect();
+      final client = DiagnosticsClient(source, set);
+      await client.initialize();
+      return [for (final r in await client.read(cmd)) r.value];
+    }
+
+    expect(await readWith('00'), isEmpty);
+    expect(await readWith('46'), [30.0]);
+  });
+
+  test('4124 is out of the temperature group; 416C-E and 4149 unverified', () {
+    expect(set.signalsById.containsKey('HVBAT_TEMP_2'), isFalse);
+    final latched = set.signalsById['HVBAT_TEMP_4124_LATCHED']!;
+    expect(latched.group, 'other');
+    final temps = set.commands
+        .expand((c) => c.signals)
+        .where((s) => s.group == 'temperature')
+        .map((s) => s.id);
+    expect(temps, isNot(contains('HVBAT_TEMP_4124_LATCHED')));
+    for (final i in [1, 2, 3]) {
+      expect(
+          set.signalsById['HVBAT_MODULE_V_$i']!.name, contains('unverified'));
+    }
+    expect(set.signalsById['EVSE_PILOT_CURRENT']!.name, contains('unverified'));
   });
 }

@@ -60,7 +60,7 @@ void main() {
     // Decode real readings through the full pipeline, then hand them to the
     // dashboard as the controller's latest snapshot.
     final set = SignalSet.parse(
-        File('signalsets/Cadillac-Lyriq-2025/v01.json').readAsStringSync());
+        File('signalsets/Cadillac-Lyriq-2025/v02.json').readAsStringSync());
     final source = SimulatedLyriqSource();
     await source.connect();
     final client = DiagnosticsClient(source, set);
@@ -86,9 +86,10 @@ void main() {
     // Demoted signals render as sections, not heroes. DYNAMICS sits below
     // the test viewport's fold, so scroll it into view first.
     // Module voltages collapse into one spread row in Cell balance.
-    await tester.scrollUntilVisible(find.text('Module voltage'), 200,
+    await tester.scrollUntilVisible(
+        find.text('Module voltage (unverified)'), 200,
         scrollable: find.byType(Scrollable).first);
-    expect(find.text('Module voltage'), findsOneWidget);
+    expect(find.text('Module voltage (unverified)'), findsOneWidget);
     expect(find.text('3 readings'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('DYNAMICS'), 200,
         scrollable: find.byType(Scrollable).first);
@@ -99,7 +100,7 @@ void main() {
   testWidgets('dashboard shows BMS SOH alongside measured, and never 0%',
       (tester) async {
     final set = SignalSet.parse(
-        File('signalsets/Cadillac-Lyriq-2025/v01.json').readAsStringSync());
+        File('signalsets/Cadillac-Lyriq-2025/v02.json').readAsStringSync());
     final source = SimulatedLyriqSource();
     await source.connect();
     final client = DiagnosticsClient(source, set);
@@ -130,7 +131,7 @@ void main() {
     // 0 means sparse mode / not yet converged — showing "0 %" would read as a
     // dead battery. Must degrade to a dash.
     final set = SignalSet.parse(
-        File('signalsets/Cadillac-Lyriq-2025/v01.json').readAsStringSync());
+        File('signalsets/Cadillac-Lyriq-2025/v02.json').readAsStringSync());
     final sohSignal = set.signalsById['HVBAT_BMS_HEALTH_INDEX']!;
     final controller = AppController();
     controller.latest['HVBAT_BMS_HEALTH_INDEX'] =

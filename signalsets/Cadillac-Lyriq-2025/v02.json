@@ -1,0 +1,563 @@
+{
+  "$schema": "../signalset.schema.json",
+  "vehicle": "Cadillac-Lyriq-2025",
+  "description": "2025 Cadillac Lyriq (GM Ultium) diagnostics. 29-bit CAN (ISO 15765-4, ATSP7; 11-bit is gateway-blocked). Confirmed on-vehicle: pack CURRENT (ECU 17), nominal pack voltage, live battery/coolant temps (40E5, 40E6), odometer. Unverified since the 2026-09-27 charge: module voltages (froze under charge) and the EVSE pilot label. SOC / live pack voltage / per-cell voltages / capacity registers are on gateway-blocked ECUs (CB and the cell monitor) and are NOT reachable via the OBD port; capacity is instead measured by coulomb-counting a charge between target cutoffs (measured 292 Ah / ~103 kWh = ~100% SOH on 2026-08-15). See docs/lyriq-did-map.md and docs/lyriq-re-log.md.",
+  "provenance": {
+    "derivedFrom": "Live 2025 Lyriq (VIN 1GYKPTRL5SZ302606) via a Pi BLE bridge + Viecar ELM327 clone, cross-referenced with the community OBDb database and the Chevy Bolt PID set (partial Ultium crossover: 2414 current family + 434F temp carry over; 41A3 capacity / 8334 & 43AF SOC do NOT — rejected in every vehicle mode). See docs/lyriq-re-log.md.",
+    "confidence": "CONFIRMED on-vehicle: protocol, ECU map, pack current (17.2414 s16/20 A, sign checked both directions), nominal pack V (17.2429 /64), live temps 40.40E5/40E6 /32, odometer (40.448F /64 km vs dash), 12V rail (33E5 /10, multi-ECU). UNVERIFIED: module voltages 40.416C-E /100 (51.08 V frozen for 3 h of ~21 A charging on 2026-09-27), EVSE pilot 40.4149 /10 (16.0 then 9.6 A against a ~39 A pilot implied by 9.4 kW AC), pack temp 40.434F -40 (intermittent; raw 0 = no value). NOT LIVE: 40.4127 (constant 32.75 C on this car since August; another 2025 read 7.31 C) and 40.4124 (latched per session: 0x03DC on 08-14, 0x01A2 for all of 09-24 and 09-27). NOT available via port: SOC, live pack V, per-cell V, GM capacity register (gateway-blocked; DoIP candidate). Register availability is wake-mode-dependent: unattended charging = sparse ECU 40. v01 -> v02 (2026-11-08, from captures/chg100_2026-09-27.txt): demoted 4124 out of the temperature group, marked 416C-E and 4149 unverified, 434F raw 0 is now null (nullmin), 44C0 dropped as an SOC candidate.",
+    "license": "Battery signals cross-referenced with OBDb/Cadillac-LYRIQ (CC BY-SA). J1979 signals are public-domain."
+  },
+  "protocol": {
+    "canFormat": "29bit",
+    "obdProtocol": 7,
+    "note": "CONFIRMED on-vehicle: ISO 15765-4 CAN 29-bit/500k, force with ATSP7 (auto-detect ATSP0 FAILS on the Lyriq). Battery/propulsion controller (BECM) is ECU 40: request header 18DA40F1, response filter 18DAF140. A Viecar ELM327 clone DID handle 29-bit multiframe here, though an STN adapter (OBDLink CX/MX+) is still recommended for reliability."
+  },
+  "ecuMap": {
+    "_comment": "ECUs seen answering the 0100 functional broadcast (18DB33F1) on this Lyriq. Battery data lives on ECU 40.",
+    "battery": "40",
+    "responders": [
+      "45",
+      "CB",
+      "1D",
+      "17",
+      "40",
+      "28"
+    ]
+  },
+  "commands": [
+    {
+      "hdr": "7DF",
+      "rax": "7E8",
+      "cmd": {
+        "01": "0D"
+      },
+      "signals": [
+        {
+          "id": "VEHICLE_SPEED",
+          "name": "Vehicle speed",
+          "group": "summary",
+          "fmt": {
+            "bix": 0,
+            "len": 8,
+            "max": 255,
+            "unit": "km/h"
+          }
+        }
+      ]
+    },
+    {
+      "hdr": "7DF",
+      "rax": "7E8",
+      "cmd": {
+        "01": "42"
+      },
+      "signals": [
+        {
+          "id": "CONTROL_MODULE_VOLTAGE",
+          "name": "12V control module voltage",
+          "group": "summary",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 1000,
+            "max": 65.535,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_unverified": "2026-09-27 charge: 416C read 0 until 17:27:53, then 51.08 V FROZEN for 3 h at ~21 A charge; a live module voltage must rise under charge. 416E also read 51.08 V on the 09-24 drive. At minimum not live in the unattended-charging wake mode; re-test in Ready under load. Earlier note: on-vehicle 2026-08-13: rose 51.14V charging -> 50.98V idle",
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "416C"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_MODULE_V_1",
+          "name": "HV battery module voltage 1 (unverified)",
+          "group": "cells",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 100,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_unverified": "2026-09-27 charge: 416C read 0 until 17:27:53, then 51.08 V FROZEN for 3 h at ~21 A charge; a live module voltage must rise under charge. 416E also read 51.08 V on the 09-24 drive. At minimum not live in the unattended-charging wake mode; re-test in Ready under load.",
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "416D"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_MODULE_V_2",
+          "name": "HV battery module voltage 2 (unverified)",
+          "group": "cells",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 100,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_unverified": "2026-09-27 charge: 416C read 0 until 17:27:53, then 51.08 V FROZEN for 3 h at ~21 A charge; a live module voltage must rise under charge. 416E also read 51.08 V on the 09-24 drive. At minimum not live in the unattended-charging wake mode; re-test in Ready under load.",
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "416E"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_MODULE_V_3",
+          "name": "HV battery module voltage 3 (unverified)",
+          "group": "cells",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 100,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_confirmed": "on-vehicle 2026-08-14..09-17: reads 0x0418 (32.75 C) on EVERY sample across three multi-hour charges and a Ready dwell — NOT a live sensor on this car. Kept for completeness; excluded from the temperature group so it cannot skew temp aggregates. See docs/lyriq-re-log.md 2026-09-18. Another 2025 LYRIQ (OBDb/Cadillac-LYRIQ#24 test data, one reply, conditions unknown) read 0x00EA (7.31 C), so 4127 is not a fixed constant across cars; on this car it has not moved since August. Meaning unknown (setpoint guess withdrawn).",
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "4127"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_THERMAL_SETPOINT",
+          "name": "HV battery value 4127 (°C, not live)",
+          "group": "other",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 32,
+            "unit": "celsius"
+          }
+        }
+      ]
+    },
+    {
+      "_notLive": "2026-09-27: 0x01A2 (13.06 C) on every sample for 9 h of charging, and the same value on the 09-24 drive; 2026-08-14 read 0x03DC (30.9 C). Latched per session, not a live sensor; moved out of the temperature group (like 4127) so it cannot skew temp aggregates. Another 2025 LYRIQ (OBDb/Cadillac-LYRIQ#24 test data, one reply, conditions unknown) read 0x036B (27.3 C).",
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "4124"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_TEMP_4124_LATCHED",
+          "name": "HV battery temp 4124 (latched, not live)",
+          "group": "other",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 32,
+            "unit": "celsius"
+          }
+        }
+      ]
+    },
+    {
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "40E5"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_TEMP_3",
+          "name": "HV battery temperature 3 (coolant?)",
+          "group": "temperature",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 32,
+            "unit": "celsius"
+          }
+        }
+      ]
+    },
+    {
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "40E6"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_TEMP_4",
+          "name": "HV battery temperature 4 (coolant?)",
+          "group": "temperature",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 32,
+            "unit": "celsius"
+          }
+        }
+      ]
+    },
+    {
+      "_confirmed": "CORRECTED 2026-08-15: 33E5 is the 12V rail x0.1V, per-ECU (17=13.1V, 1D=13.3V, 28=13.9V under DCDC float). Earlier 'pack voltage x2.7' reading was a coincidence. OBDb's pack-voltage attribution for DA1D.2233E5 is wrong.",
+      "hdr": "18DA1DF1",
+      "rax": "18DAF11D",
+      "cmd": {
+        "22": "33E5"
+      },
+      "signals": [
+        {
+          "id": "LV_RAIL_VOLTAGE",
+          "name": "12V rail voltage (ECU 1D)",
+          "group": "summary",
+          "fmt": {
+            "bix": 0,
+            "len": 8,
+            "div": 10,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_confirmed": "on-vehicle 2026-08-15: s16/20 A, negative=charging. -22.75A steady @ 9.22kW AC charge (FE39); +0.9A aux draw in Ready (0012). Live jitter proves realtime. ECU 17 = Lyriq analog of Bolt 7E1 powertrain module; Bolt PID 222414 crossover.",
+      "hdr": "18DA17F1",
+      "rax": "18DAF117",
+      "cmd": {
+        "22": "2414"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_CURRENT",
+          "name": "HV battery pack current",
+          "group": "summary",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "sign": true,
+            "div": 20,
+            "unit": "amps"
+          }
+        }
+      ]
+    },
+    {
+      "_confirmed": "on-vehicle 2026-08-15: constant 0x5806/64 = 352.1V at both 70%-charging and 80%-Ready -> NOMINAL (rated) pack voltage, not live. Copies at 2428/242D/2434/2489. Useful for Ah->kWh rating math. Live pack V is on gateway-blocked ECU CB.",
+      "hdr": "18DA17F1",
+      "rax": "18DAF117",
+      "cmd": {
+        "22": "2429"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_NOMINAL_VOLTAGE",
+          "name": "HV battery nominal voltage",
+          "group": "summary",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 64,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_unverified": "2026-09-27: read 16.0 A until 17:27:53, then 9.6 A, while ~9.4 kW AC implies a ~39 A pilot. The 09-17 38.8 A match may be coincidence or a different charger setting. Earlier note: on-vehicle 2026-08-15: EVSE pilot advertised current x0.1A. 384-388 (38.4-38.8A ~ 9.2-9.3kW @ 240V) while plugged; snaps to 100 (10.0A default) on unplug; NOT cell voltage (early guess). 441E carries a related table of 0x0180 entries. Another 2025 LYRIQ (OBDb/Cadillac-LYRIQ#24 test data, one reply, conditions unknown) read 0x038C (90.8 A), too high for an L2 pilot.",
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "4149"
+      },
+      "signals": [
+        {
+          "id": "EVSE_PILOT_CURRENT",
+          "name": "EVSE pilot current? (4149, unverified)",
+          "group": "charging",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 10,
+            "unit": "amps"
+          }
+        }
+      ]
+    },
+    {
+      "_confirmed": "on-vehicle 2026-09-14/17: reads 0x5D=93 steady. SOC-INDEPENDENT (93 at 73% SOC and again at a true 100% charge), so it is a battery-health figure, not a charge level. Only populates VEHICLE-ON (Ready); reads 0x00 in unattended-charging sparse mode, and needs ~5 min in Ready to converge after wake. Distinct from our coulomb-counted capacity (~100% of gross) — likely a conservative/spec-discounted controller SOH. See docs/lyriq-re-log.md.",
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "451D"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_BMS_HEALTH_INDEX",
+          "name": "BMS health index (451D) — unverified as SOH",
+          "group": "summary",
+          "fmt": {
+            "bix": 0,
+            "len": 8,
+            "max": 100,
+            "unit": "percent"
+          }
+        }
+      ]
+    },
+    {
+      "_onVehicle": "on-vehicle 2026-08-14: 0x46=70, raw-40=30C, fits temp cluster. 2026-09-27: raw 0x00 (-40 C) in most charging samples; 66 non-zero reads of 43/52/62/70 raw (3-30 C). Raw 0 means no value -> nullmin -40. The 53-56 C seen while driving on 09-24 is unexplained. Another 2025 LYRIQ (OBDb/Cadillac-LYRIQ#24 test data, one reply, conditions unknown) read 0x64 (60 C).",
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "434F"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_TEMP_MAIN",
+          "name": "HV battery temperature (434F)",
+          "group": "temperature",
+          "fmt": {
+            "bix": 0,
+            "len": 8,
+            "add": -40,
+            "unit": "celsius",
+            "nullmin": -40
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb DA28.224A7A (0x64=100 -> direct); addressing 18DA28F1/18DAF128",
+      "hdr": "18DA28F1",
+      "rax": "18DAF128",
+      "cmd": {
+        "22": "4A7A"
+      },
+      "signals": [
+        {
+          "id": "WHEEL_SPEED_FL",
+          "name": "Wheel speed front-left",
+          "group": "dynamics",
+          "fmt": {
+            "bix": 0,
+            "len": 8,
+            "unit": "km/h"
+          }
+        },
+        {
+          "id": "WHEEL_SPEED_FR",
+          "name": "Wheel speed front-right",
+          "group": "dynamics",
+          "fmt": {
+            "bix": 8,
+            "len": 8,
+            "unit": "km/h"
+          }
+        },
+        {
+          "id": "WHEEL_SPEED_RL",
+          "name": "Wheel speed rear-left",
+          "group": "dynamics",
+          "fmt": {
+            "bix": 16,
+            "len": 8,
+            "unit": "km/h"
+          }
+        },
+        {
+          "id": "WHEEL_SPEED_RR",
+          "name": "Wheel speed rear-right",
+          "group": "dynamics",
+          "fmt": {
+            "bix": 24,
+            "len": 8,
+            "unit": "km/h"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb DA28.224C2F samples: FF50=-0.28033, FFFC=-0.00637 -> s16/627.9",
+      "hdr": "18DA28F1",
+      "rax": "18DAF128",
+      "cmd": {
+        "22": "4C2F"
+      },
+      "signals": [
+        {
+          "id": "ACCEL_LATERAL",
+          "name": "Lateral acceleration",
+          "group": "dynamics",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "sign": true,
+            "div": 627.9,
+            "unit": "g"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb DA28.224C30 samples: FF68=-0.24211, FFFC=-0.00637 -> s16/627.9",
+      "hdr": "18DA28F1",
+      "rax": "18DAF128",
+      "cmd": {
+        "22": "4C30"
+      },
+      "signals": [
+        {
+          "id": "ACCEL_LONGITUDINAL",
+          "name": "Longitudinal acceleration",
+          "group": "dynamics",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "sign": true,
+            "div": 627.9,
+            "unit": "g"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb DA28.224C2D (steering angle) - formula UNVERIFIED, s16/scale TBD; verify on-car",
+      "hdr": "18DA28F1",
+      "rax": "18DAF128",
+      "cmd": {
+        "22": "4C2D"
+      },
+      "signals": [
+        {
+          "id": "STEERING_ANGLE",
+          "name": "Steering wheel angle",
+          "group": "dynamics",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "sign": true,
+            "div": 10,
+            "unit": "degrees"
+          }
+        }
+      ]
+    },
+    {
+      "_confirmed": "on-vehicle 2026-08-15: u32/64 = km, verified against dash (0x001EFE52/64 = 31,737 km = 19,720 mi exact). Answered by ECU 40 directly (415B is the same register). Frozen while parked AND while charging (it is distance, not energy).",
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "cmd": {
+        "22": "448F"
+      },
+      "signals": [
+        {
+          "id": "ODOMETER",
+          "name": "Odometer",
+          "group": "vehicle",
+          "fmt": {
+            "bix": 0,
+            "len": 32,
+            "div": 64,
+            "unit": "km"
+          }
+        }
+      ]
+    }
+  ],
+  "_unconfirmed_hv_bms": {
+    "_comment": "Candidate ECU-40 signals captured live (SOC 49%, charging 1.4kW). Hypotheses only — NOT confirmed and NOT loaded. All use ATSH 18DA40F1 / ATCRA 18DAF140. Confirm by correlating against SOC/load changes. See docs/lyriq-re-log.md.",
+    "addressing": {
+      "hdr": "18DA40F1",
+      "rax": "18DAF140",
+      "canFormat": "29bit"
+    },
+    "candidates": [
+      {
+        "did": "416C",
+        "name": "module/section voltage 1? UNVERIFIED: froze at 51.08 V under charge on 2026-09-27",
+        "guessRaw": 5108,
+        "guessValue": 51.08,
+        "unit": "volts",
+        "formula": "u16/100"
+      },
+      {
+        "did": "416D",
+        "name": "module/section voltage 2? UNVERIFIED: froze at 51.08 V under charge on 2026-09-27",
+        "guessRaw": 5103,
+        "guessValue": 51.03,
+        "unit": "volts",
+        "formula": "u16/100"
+      },
+      {
+        "did": "416E",
+        "name": "module/section voltage 3? UNVERIFIED: froze at 51.08 V under charge on 2026-09-27",
+        "guessRaw": 5108,
+        "guessValue": 51.08,
+        "unit": "volts",
+        "formula": "u16/100"
+      },
+      {
+        "did": "406E",
+        "name": "DEMOTED (2026-08-15): NOT SOC - wanders 35-45 while parked in Ready; likely aux/DCDC load related",
+        "formula": "u8 (last byte)"
+      },
+      {
+        "did": "44C0",
+        "name": "DEMOTED, NOT SOC: read 59-61 with dash at 80% post-charge (2026-08-15), and 57,57,57,57 for all 9 h of the 2026-09-27 charge while 203.5 Ah went in. Equals 441F byte 0 (0x39): both look like a value latched at some event. Meaning unknown",
+        "formula": "4 x u8"
+      },
+      {
+        "did": "44C5",
+        "name": "multi-field state record, changes between sessions (samples: 0160/0362 pairs, then 0056/0159/0257/0258) - undecoded",
+        "formula": "8 bytes, u16 fields"
+      },
+      {
+        "did": "441F",
+        "name": "charge-session record: populates ONLY during vehicle-on charging (3E=gross-SOC-at-start, 035F=? , 1A1A=26,26 current-ish, 02=state); zero otherwise; cleared at next wake after unplug",
+        "formula": "10 bytes"
+      },
+      {
+        "did": "4127",
+        "name": "temperature sensor (x3 identical)",
+        "guessRaw": 1048,
+        "unit": "celsius?",
+        "formula": "TBD scaling"
+      },
+      {
+        "did": "4124",
+        "name": "latched value, not a live sensor (see command 4124)",
+        "guessRaw": 988,
+        "unit": "celsius?",
+        "formula": "TBD scaling"
+      },
+      {
+        "did": "415B",
+        "name": "CONFIRMED 2026-08-15: identical to 448F = odometer u32/64 km (NOT an energy counter; frozen during charging)",
+        "formula": "u32/64 km"
+      },
+      {
+        "did": "415C",
+        "name": "u32 counter, moves only with driving; odometer-adjacent (trip/energy-distance?); NOT confirmed",
+        "formula": "u32"
+      },
+      {
+        "did": "418D-4191",
+        "name": "per-cell/module data block (multiframe, mostly zero this capture)",
+        "formula": "array of 18DAF140-2N frames"
+      }
+    ]
+  }
+}

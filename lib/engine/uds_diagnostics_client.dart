@@ -41,9 +41,12 @@ class UdsDiagnosticsClient {
         identifierLength: command.echoedIdentifierBytes().length,
       );
       final ts = now ?? DateTime.now();
-      return command.signals
-          .map((s) => Reading(s, s.fmt.decode(resp.data), ts))
-          .toList(growable: false);
+      // A value on a null bound (e.g. a raw-0 "no reading" sentinel) is
+      // dropped rather than shown as a real measurement.
+      return [
+        for (final s in command.signals)
+          if (s.fmt.decodeOrNull(resp.data) case final v?) Reading(s, v, ts),
+      ];
     } on CommandFailure {
       rethrow;
     } catch (e) {

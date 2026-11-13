@@ -92,6 +92,8 @@
             "add": { "type": "number", "default": 0, "description": "Offset added after scaling." },
             "min": { "type": "number", "description": "Documentation only: expected physical minimum." },
             "max": { "type": "number", "description": "Documentation only: expected physical maximum." },
+            "nullmin": { "type": "number", "description": "Physical values at or below this are 'no value' and are not reported (OBDb v3 semantics)." },
+            "nullmax": { "type": "number", "description": "Physical values at or above this are 'no value' and are not reported (OBDb v3 semantics)." },
             "unit": { "type": "string", "description": "Physical unit, e.g. 'percent', 'volts', 'amps', 'celsius'." }
           }
         }

@@ -39,7 +39,7 @@ app flags this case so you don't chase a dead end.
 
 Set `protocol.canFormat = "29bit"` and try the GM tester/response ids. Standard
 J1979 mode-01 PIDs (speed `010D`, 12V `0142`) respond even on the Lyriq and are
-the confirmed baseline in `signalsets/Cadillac-Lyriq-2025/v01.json` — use them to
+the confirmed baseline in `signalsets/Cadillac-Lyriq-2025/v02.json` — use them to
 prove the transport works before hunting BMS DIDs.
 
 ## 2. Sweep DIDs (`UdsScanner`)

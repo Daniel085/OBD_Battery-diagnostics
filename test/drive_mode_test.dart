@@ -19,7 +19,7 @@ void main() {
   test('drive mode fast-polls pack current and accumulates a session',
       () async {
     final set = SignalSet.parse(
-        File('signalsets/Cadillac-Lyriq-2025/v01.json').readAsStringSync());
+        File('signalsets/Cadillac-Lyriq-2025/v02.json').readAsStringSync());
     final controller = AppController(repository: _InMemoryRepo(set));
     final lyriq = SignalSetRepository.catalogue
         .firstWhere((v) => v.id == 'Cadillac-Lyriq-2025');

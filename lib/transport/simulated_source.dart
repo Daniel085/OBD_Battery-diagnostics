@@ -238,7 +238,7 @@ class SimulatedLyriqSource implements DataSource {
       ('40', '416D') => _u16(_drift(0x13EF, 6)),
       ('40', '416E') => _u16(_drift(0x13F4, 6)),
       ('40', '4127') => _u16(0x0418), // constant 32.75 C setpoint, as on the car
-      ('40', '4124') => _u16(_drift(0x0410, 8)),
+      ('40', '4124') => _u16(0x01A2), // latched 13.06 C, as on 09-24/09-27
       ('40', '40E5') => _u16(_drift(0x0366, 6)), // ~27.2 C
       ('40', '40E6') => _u16(_drift(0x0361, 6)),
       ('40', '434F') => [25 + 40 + _rng.nextInt(2)], // byte-40 C

@@ -9,7 +9,7 @@ import 'package:test/test.dart';
 void main() {
   late SignalSet set;
   setUpAll(() => set = SignalSet.parse(
-      File('signalsets/Cadillac-Lyriq-2025/v01.json').readAsStringSync()));
+      File('signalsets/Cadillac-Lyriq-2025/v02.json').readAsStringSync()));
 
   Signal sig(String id) => set.signalsById[id]!;
 
