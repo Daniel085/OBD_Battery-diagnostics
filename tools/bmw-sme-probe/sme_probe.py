@@ -20,6 +20,7 @@ Run ON THE PI, car fully RUNNING (READY):
     python3 sme_probe.py --sweep DD00 DDFF     # also sweep an SME DID range
     python3 sme_probe.py --target 12 --sweep 4000 40FF   # sweep another ECU
     python3 sme_probe.py --read DFAC DF67 DF62           # raw-read chosen DIDs
+    python3 sme_probe.py --no-gate             # charging: J1979 silent, try SME
 Output: printed and written to bmw_sme_<timestamp>.txt
 
 (sme_probe2.py / sme_probe3.py are the 2026-11-08 experiments that found the
@@ -181,6 +182,9 @@ def main():
     ap.add_argument("--fast", action="store_true",
                     help="short timeout for --sweep (fast ECUs like the DME; "
                          "the SME needs the default long one)")
+    ap.add_argument("--no-gate", action="store_true",
+                    help="keep going when J1979 is silent (engine ECU asleep, "
+                         "e.g. plugged in and charging) and try the SME anyway")
     args = ap.parse_args()
 
     LOG = open(f"bmw_sme_{time.strftime('%Y%m%d_%H%M%S')}.txt", "w")
@@ -195,10 +199,13 @@ def main():
     cmd(child, "ATRV", label="battery (needs ~14 V)")
     r = cmd(child, "015B", 4.0, label="015B J1979 HV SOC")
     m = re.search(r"415B([0-9A-F]{2})", r.replace(" ", ""))
-    if not m:
+    if m:
+        out(f"  {'':26}    = {int(m.group(1), 16) * 100 / 255:.1f} %")
+    elif args.no_gate:
+        out("!! no J1979 reply (engine ECU asleep); --no-gate: trying the SME")
+    else:
         out("!! no J1979 reply: bus asleep. The car must be fully RUNNING.")
         sys.exit(2)
-    out(f"  {'':26}    = {int(m.group(1), 16) * 100 / 255:.1f} %")
 
     out("\n== SME (07) ==")
     ext_mode(child, 0x07)
