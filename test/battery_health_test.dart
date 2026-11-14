@@ -63,6 +63,55 @@ void main() {
       expect(report.metrics['cell_imbalance_volts'], closeTo(0.06, 1e-9));
     });
 
+    group('cell imbalance is graded only near rest', () {
+      // The 2026-11-14 BMW read: 79 mV spread while drawing 12.5 A in Drive.
+      Map<String, Reading> pack(double? amps) => {
+            'HVBAT_CELL_V_MIN': _r('HVBAT_CELL_V_MIN', 'min', 3.473, 'volts'),
+            'HVBAT_CELL_V_MAX': _r('HVBAT_CELL_V_MAX', 'max', 3.552, 'volts'),
+            if (amps != null)
+              'HVBAT_CURRENT': _r('HVBAT_CURRENT', 'I', amps, 'amps'),
+          };
+      HealthReport run(double? amps) =>
+          analyzer.analyze(vehicle: 'v', readings: pack(amps), now: at);
+
+      test('under load, either direction: reported, not graded', () {
+        for (final amps in [12.5, -12.5, 2.0]) {
+          final r = run(amps);
+          expect(r.overallSeverity, Severity.info, reason: '$amps A');
+          final w = r.warnings.single;
+          expect(w.code, 'CELL_IMBALANCE_UNDER_LOAD');
+          expect(w.message, contains('79.0 mV'));
+          expect(w.message, contains('${amps.abs().toStringAsFixed(1)} A'));
+          // The measurement itself is still in the report.
+          expect(r.metrics['cell_imbalance_volts'], closeTo(0.079, 1e-9));
+          expect(r.metrics['pack_current_amps'], amps);
+        }
+      });
+
+      test('near rest: the same spread is critical', () {
+        for (final amps in [0.0, 1.5, -1.9]) {
+          final r = run(amps);
+          expect(r.overallSeverity, Severity.critical, reason: '$amps A');
+          expect(r.warnings.single.code, 'CELL_IMBALANCE_HIGH');
+        }
+      });
+
+      test('no current signal: load unknown, graded as read', () {
+        final r = run(null);
+        expect(r.overallSeverity, Severity.critical);
+        expect(r.metrics.containsKey('pack_current_amps'), isFalse);
+      });
+
+      test('a healthy spread under load says nothing', () {
+        final r = analyzer.analyze(vehicle: 'v', now: at, readings: {
+          'HVBAT_CELL_V_MIN': _r('HVBAT_CELL_V_MIN', 'min', 3.646, 'volts'),
+          'HVBAT_CELL_V_MAX': _r('HVBAT_CELL_V_MAX', 'max', 3.656, 'volts'),
+          'HVBAT_CURRENT': _r('HVBAT_CURRENT', 'I', -11.0, 'amps'),
+        });
+        expect(r.overallSeverity, Severity.ok);
+      });
+    });
+
     test('temperature warning text follows the display unit', () {
       final readings = {
         'HVBAT_CELLTEMP_MIN':

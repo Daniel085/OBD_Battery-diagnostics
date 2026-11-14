@@ -35,6 +35,11 @@ class HealthThresholds {
   final double cellImbalanceWarn;
   final double cellImbalanceCritical;
 
+  /// Pack current (A, either direction) below which the pack counts as at
+  /// rest. Cell voltages spread apart under load (weaker and colder cells sag
+  /// more), so the imbalance limits above only mean something near rest.
+  final double restCurrentAmps;
+
   /// Module temperature spread above which we warn (celsius).
   final double tempSpreadWarn;
 
@@ -45,10 +50,16 @@ class HealthThresholds {
   const HealthThresholds({
     this.cellImbalanceWarn = 0.020,
     this.cellImbalanceCritical = 0.050,
+    this.restCurrentAmps = 2.0,
     this.tempSpreadWarn = 10.0,
     this.sohWarn = 80.0,
     this.sohCritical = 70.0,
   });
+
+  /// True when [amps] (pack current, either sign) is known and above the rest
+  /// band. Unknown current is not "under load".
+  bool isUnderLoad(double? amps) =>
+      amps != null && amps.abs() >= restCurrentAmps;
 }
 
 class HealthReport {
@@ -171,10 +182,26 @@ class BatteryHealthAnalyzer {
       }
     }
 
-    // Cell imbalance grading (most meaningful at rest / low current).
+    // Cell imbalance grading: only near rest. Under load the spread is not
+    // comparable to the limits, so it is reported but never graded. With no
+    // current signal the load is unknown and the spread is graded as read.
+    final amps = val('HVBAT_CURRENT');
+    final underLoad = thresholds.isUnderLoad(amps);
+    if (amps != null) metrics['pack_current_amps'] = amps;
     if (imbalance != null) {
       final mv = (imbalance * 1000).toStringAsFixed(1);
-      if (imbalance >= thresholds.cellImbalanceCritical) {
+      if (underLoad) {
+        if (imbalance >= thresholds.cellImbalanceWarn) {
+          warnings.add(HealthWarning(
+              Severity.info,
+              'CELL_IMBALANCE_UNDER_LOAD',
+              'Cell voltage spread $mv mV was read under load '
+                  '(${amps!.abs().toStringAsFixed(1)} A), where cells always '
+                  'spread apart. It is only graded near rest (under '
+                  '${thresholds.restCurrentAmps.toStringAsFixed(0)} A): '
+                  'check again with the car idle.'));
+        }
+      } else if (imbalance >= thresholds.cellImbalanceCritical) {
         warnings.add(HealthWarning(Severity.critical, 'CELL_IMBALANCE_HIGH',
             'Cell voltage spread $mv mV suggests a weak or failing cell/module.'));
       } else if (imbalance >= thresholds.cellImbalanceWarn) {

@@ -166,11 +166,22 @@ class _DashboardBody extends StatelessWidget {
 
     // ---- Balance: every min/avg/max triple, plus a battery-temp fallback --
     final rows = <Widget>[];
+    // Cell voltages spread apart under load, so that row is only graded near
+    // rest (same rule as the health report).
+    final underLoad =
+        controller.analyzer.thresholds.isUnderLoad(current?.value);
+    SpreadRow balanceRow(_Triple t, {String? note}) {
+      final loaded = underLoad && t.unit == 'volts' && t.max < 5;
+      return _spreadRow(units, t,
+          judged: !loaded,
+          note: loaded ? 'Under load: spread not graded' : note);
+    }
+
     var hasTempRow = false;
     for (final t in _triples(latest, consumed)) {
       consumed.addAll(t.ids);
       hasTempRow |= t.unit == 'celsius';
-      rows.add(_spreadRow(units, t));
+      rows.add(balanceRow(t));
     }
     final hvTemps = latest.values
         .where((x) =>
@@ -200,7 +211,7 @@ class _DashboardBody extends StatelessWidget {
     }
     for (final fam in _numberedFamilies(latest, consumed, group: 'cells')) {
       consumed.addAll(fam.ids);
-      rows.add(_spreadRow(units, fam, note: '${fam.ids.length} readings'));
+      rows.add(balanceRow(fam, note: '${fam.ids.length} readings'));
     }
     if (rows.isNotEmpty) {
       cards.add(_SectionCard(
