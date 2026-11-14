@@ -21,6 +21,13 @@ import 'package:obd_battery_diagnostics/ui/settings_screen.dart';
 // the PDF renderer, and the BLE-source imports) through the compiler, catching
 // integration errors that pure-Dart tests miss. We construct the controller
 // without touching real BLE (no scan is started), so it is device-independent.
+class _FixedRepo implements SignalSetRepository {
+  final SignalSet set;
+  _FixedRepo(this.set);
+  @override
+  Future<SignalSet> load(VehicleEntry entry) async => set;
+}
+
 void main() {
   testWidgets('home screen renders with vehicle catalogue', (tester) async {
     final controller = AppController();
@@ -205,6 +212,96 @@ void main() {
     expect(find.text('Cell temperature'), findsOneWidget);
     expect(find.textContaining('spread 9 mV'), findsOneWidget);
     expect(find.text('Battery temps'), findsNothing);
+    // The sim idles at ~1.5 A: near rest, so the spread IS graded.
+    expect(find.text('Under load: spread not graded'), findsNothing);
+    controller.dispose();
+  });
+
+  testWidgets('BMW under load: cell-voltage spread shown but not graded',
+      (tester) async {
+    Reading r(String id, String name, String group, String unit, double v) =>
+        Reading(
+            Signal(
+                id: id,
+                name: name,
+                group: group,
+                fmt: SignalFormat(len: 16, unit: unit)),
+            v,
+            DateTime.now());
+    Map<String, Reading> pack(double amps) => {
+          // The 2026-11-14 read in Drive: 79 mV spread at 12.5 A.
+          'HVBAT_CURRENT': r('HVBAT_CURRENT', 'Pack current', 'summary',
+              'amps', amps),
+          'HVBAT_CELL_V_MIN': r('HVBAT_CELL_V_MIN',
+              'HV battery cell voltage (min)', 'cells', 'volts', 3.473),
+          'HVBAT_CELL_V_AVG': r('HVBAT_CELL_V_AVG',
+              'HV battery cell voltage (avg)', 'cells', 'volts', 3.522),
+          'HVBAT_CELL_V_MAX': r('HVBAT_CELL_V_MAX',
+              'HV battery cell voltage (max)', 'cells', 'volts', 3.552),
+        };
+    final controller = AppController();
+    controller.latest.addAll(pack(12.5));
+    await tester.pumpWidget(
+      ChangeNotifierProvider<AppController>.value(
+        value: controller,
+        child: const MaterialApp(home: DashboardScreen()),
+      ),
+    );
+    Color chip() => tester
+        .widget<Text>(find.textContaining('spread 79 mV'))
+        .style!
+        .color!;
+    final scheme = Theme.of(tester.element(find.byType(DashboardScreen)))
+        .colorScheme;
+
+    expect(find.text('Under load: spread not graded'), findsOneWidget);
+    expect(chip(), scheme.onSurfaceVariant); // neutral, no verdict
+
+    // The same spread at rest is graded, and 79 mV is past the limit.
+    controller.latest.addAll(pack(0.5));
+    controller.notifyListeners();
+    await tester.pumpAndSettle();
+    expect(find.text('Under load: spread not graded'), findsNothing);
+    expect(chip(), scheme.error);
+    controller.dispose();
+  });
+
+  testWidgets('history from a source this vehicle cannot report is not charted',
+      (tester) async {
+    final set = SignalSet.parse(
+        File('signalsets/BMW-330e-2018/v02.json').readAsStringSync());
+    final bmw = SignalSetRepository.catalogue
+        .firstWhere((v) => v.id == 'BMW-330e-2018');
+    final controller = AppController(repository: _FixedRepo(set));
+    await tester.runAsync(() async {
+      await controller.connectWithSource(SimulatedBmwSource(), bmw);
+      for (var i = 0; i < 100 && controller.latest['HVBAT_SOH'] == null; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+      await controller.disconnect();
+    });
+    // A stray point already saved by the old bug: a Lyriq BMS index (93)
+    // filed under the BMW.
+    for (final (source, v) in [
+      (SohSource.reported, 84.0),
+      (SohSource.bmsIndex, 93.0)
+    ]) {
+      controller.sohHistory.record(SohEntry(
+          at: DateTime(2026, 10, 1),
+          vehicle: 'BMW-330e-2018',
+          source: source,
+          sohPct: v));
+    }
+    await tester.pumpWidget(
+      ChangeNotifierProvider<AppController>.value(
+        value: controller,
+        child: const MaterialApp(home: DashboardScreen()),
+      ),
+    );
+    final chart =
+        tester.widget<SohHistoryChart>(find.byType(SohHistoryChart));
+    expect(chart.series.keys, [SohSource.reported]);
+    expect(find.text('BMS index'), findsNothing);
     controller.dispose();
   });
 

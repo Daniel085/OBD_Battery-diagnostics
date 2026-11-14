@@ -24,7 +24,7 @@ class HomeScreen extends StatelessWidget {
     final DataSource source = vehicleId.startsWith('Cadillac')
         ? SimulatedLyriqSource()
         : SimulatedBmwSource();
-    await c.connectWithSource(source, entry);
+    await c.connectWithSource(source, entry, demo: true);
     if (context.mounted && c.phase == ConnectionPhase.polling) {
       Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const DashboardScreen()));

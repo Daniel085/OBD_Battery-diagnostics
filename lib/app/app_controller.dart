@@ -120,8 +120,36 @@ class AppController extends ChangeNotifier {
     'HVBAT_BMS_HEALTH_INDEX': SohSource.bmsIndex,
   };
 
+  /// The SoH sources the connected vehicle can produce: a capacity test
+  /// always, plus whichever SoH signals its signal set defines. With no
+  /// signal set loaded, all of them.
+  Set<SohSource> get sohSources {
+    final set = _signalSet;
+    return {
+      SohSource.measured,
+      for (final MapEntry(key: id, value: source) in _sohSignals.entries)
+        if (set == null || set.signalsById.containsKey(id)) source,
+    };
+  }
+
+  /// True while connected to a simulated source (demo mode). Demo readings
+  /// are shown but never written to the SoH history.
+  bool get isDemo => _demo;
+  bool _demo = false;
+
+  /// Start a connection from a clean slate: readings left over from an
+  /// earlier connection (possibly another vehicle) must not be shown, logged
+  /// or recorded as this one's.
+  void _beginConnection({required bool demo}) {
+    _demo = demo;
+    latest.clear();
+    lastFailures.clear();
+    driveSession = null;
+  }
+
   /// Record the current SoH figures into the history; saves only on change.
   void _recordSoh() {
+    if (_demo) return;
     final vehicle = selectedVehicle?.id ?? _signalSet?.vehicle;
     if (vehicle == null) return;
     final now = DateTime.now();
@@ -590,6 +618,7 @@ class AppController extends ChangeNotifier {
       return;
     }
     stopScan();
+    _beginConnection(demo: false);
     ElmBleSource? source;
     try {
       _setPhase(ConnectionPhase.connecting);
@@ -625,8 +654,13 @@ class AppController extends ChangeNotifier {
   }
 
   /// Connect over an arbitrary (e.g. test/replay) source without BLE scanning.
-  Future<void> connectWithSource(DataSource source, VehicleEntry vehicle) async {
+  ///
+  /// Pass [demo] for a simulated source: its readings are displayed like any
+  /// other but are not saved to the SoH history.
+  Future<void> connectWithSource(DataSource source, VehicleEntry vehicle,
+      {bool demo = false}) async {
     selectedVehicle = vehicle;
+    _beginConnection(demo: demo);
     try {
       _setPhase(ConnectionPhase.connecting);
       await source.connect();

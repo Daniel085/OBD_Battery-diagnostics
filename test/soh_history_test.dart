@@ -147,4 +147,61 @@ void main() {
     expect((await store.load()).entries, hasLength(1));
     controller.dispose();
   });
+
+  group('readings and history stay with their own connection', () {
+    Future<void> firstPoll(AppController c, String id) async {
+      for (var i = 0; i < 100 && c.latest[id] == null; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+      expect(c.latest[id], isNotNull, reason: 'no $id reading');
+    }
+
+    final bmw = SignalSetRepository.catalogue
+        .firstWhere((v) => v.id == 'BMW-330e-2018');
+    final lyriq = SignalSetRepository.catalogue
+        .firstWhere((v) => v.id == 'Cadillac-Lyriq-2025');
+
+    test('a demo is shown but never written to the SoH history', () async {
+      final controller = AppController();
+      await controller.connectWithSource(SimulatedLyriqSource(), lyriq,
+          demo: true);
+      await firstPoll(controller, 'HVBAT_BMS_HEALTH_INDEX');
+      expect(controller.isDemo, isTrue);
+      expect(controller.latest['HVBAT_BMS_HEALTH_INDEX']!.value, 93);
+      expect(controller.sohHistory.entries, isEmpty);
+      await controller.disconnect();
+      controller.dispose();
+    });
+
+    test('a second vehicle starts clean: no readings from the first',
+        () async {
+      // The 2026-11-13 bug: Lyriq demo, then the BMW in the same app run.
+      // The Lyriq's BMS index (93) stayed in `latest` and was saved into the
+      // BMW's history.
+      final controller = AppController();
+      await controller.connectWithSource(SimulatedLyriqSource(), lyriq,
+          demo: true);
+      await firstPoll(controller, 'HVBAT_BMS_HEALTH_INDEX');
+      await controller.disconnect();
+
+      await controller.connectWithSource(SimulatedBmwSource(), bmw);
+      expect(controller.isDemo, isFalse);
+      await firstPoll(controller, 'HVBAT_SOH');
+      await controller.disconnect();
+
+      expect(controller.latest.containsKey('HVBAT_BMS_HEALTH_INDEX'), isFalse);
+      expect(controller.latest.containsKey('EVSE_PILOT_CURRENT'), isFalse);
+      expect(
+          controller.sohHistory.series('BMW-330e-2018', SohSource.bmsIndex),
+          isEmpty);
+      expect(
+          controller.sohHistory.series('BMW-330e-2018', SohSource.reported),
+          hasLength(1));
+      expect(controller.sohHistory.entries, hasLength(1));
+      // The BMW's signal set has no BMS index, so that source is not offered.
+      expect(controller.sohSources,
+          {SohSource.measured, SohSource.reported});
+      controller.dispose();
+    });
+  });
 }

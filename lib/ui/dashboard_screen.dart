@@ -162,6 +162,7 @@ class _DashboardBody extends StatelessWidget {
       bmsIndex: r('HVBAT_BMS_HEALTH_INDEX'),
       history: controller.sohHistory,
       vehicle: controller.selectedVehicle?.id,
+      sources: controller.sohSources,
     ));
 
     // ---- Balance: every min/avg/max triple, plus a battery-temp fallback --
@@ -529,12 +530,17 @@ class _HealthCard extends StatelessWidget {
   final SohHistory history;
   final String? vehicle;
 
+  /// The SoH sources this vehicle can produce; history from any other source
+  /// is not charted.
+  final Set<SohSource> sources;
+
   const _HealthCard({
     required this.capacity,
     required this.reported,
     required this.bmsIndex,
     required this.history,
     required this.vehicle,
+    required this.sources,
   });
 
   @override
@@ -591,7 +597,7 @@ class _HealthCard extends StatelessWidget {
     final series = <SohSource, List<SohEntry>>{
       if (vehicle != null)
         for (final s in SohSource.values)
-          if (history.series(vehicle!, s).isNotEmpty)
+          if (sources.contains(s) && history.series(vehicle!, s).isNotEmpty)
             s: history.series(vehicle!, s),
     };
     final count = series.values.fold<int>(0, (n, s) => n + s.length);
