@@ -4,12 +4,14 @@ import 'package:provider/provider.dart';
 import '../app/app_controller.dart';
 import '../engine/capacity_test.dart';
 import '../engine/diagnostics_client.dart';
+import '../engine/display_units.dart';
 import '../engine/soh_history.dart';
 import 'battery_visuals.dart';
 import 'capacity_screen.dart';
 import 'drive_screen.dart';
 import 'report_screen.dart';
 import 'scanner_screen.dart';
+import 'settings_screen.dart';
 import 'terminal_screen.dart';
 
 /// Live dashboard with an explicit hierarchy: what a battery-focused user
@@ -60,6 +62,9 @@ class DashboardScreen extends StatelessWidget {
                 case 'scanner':
                   Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const ScannerScreen()));
+                case 'settings':
+                  Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const SettingsScreen()));
                 case 'disconnect':
                   await c.disconnect();
                   if (context.mounted) Navigator.of(context).pop();
@@ -80,6 +85,13 @@ class DashboardScreen extends StatelessWidget {
                   leading: Icon(Icons.travel_explore),
                   title: Text('DID scanner'),
                   subtitle: Text('Advanced'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'settings',
+                child: ListTile(
+                  leading: Icon(Icons.settings),
+                  title: Text('Settings'),
                 ),
               ),
               PopupMenuDivider(),
@@ -108,6 +120,7 @@ class _DashboardBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final latest = controller.latest;
+    final units = controller.units;
     Reading? r(String id) => latest[id];
 
     final capacity = controller.capacityTest?.analyze();
@@ -153,16 +166,11 @@ class _DashboardBody extends StatelessWidget {
 
     // ---- Balance: every min/avg/max triple, plus a battery-temp fallback --
     final rows = <Widget>[];
+    var hasTempRow = false;
     for (final t in _triples(latest, consumed)) {
       consumed.addAll(t.ids);
-      rows.add(SpreadRow(
-        label: t.label,
-        unitLabel: _unitLabel(t.unit),
-        min: t.min,
-        max: t.max,
-        avg: t.avg,
-        scale: SpreadScale.forUnit(t.unit, t.min, t.max),
-      ));
+      hasTempRow |= t.unit == 'celsius';
+      rows.add(_spreadRow(units, t));
     }
     final hvTemps = latest.values
         .where((x) =>
@@ -170,35 +178,29 @@ class _DashboardBody extends StatelessWidget {
             x.signal.id.startsWith('HVBAT_') &&
             !consumed.contains(x.signal.id))
         .toList();
-    if (hvTemps.isNotEmpty &&
-        !rows.any((w) => (w as SpreadRow).unitLabel == '°C')) {
+    if (hvTemps.isNotEmpty && !hasTempRow) {
       final vs = hvTemps.map((x) => x.value).toList();
-      final lo = vs.reduce((a, b) => a < b ? a : b);
-      final hi = vs.reduce((a, b) => a > b ? a : b);
-      consumed.addAll(hvTemps.map((x) => x.signal.id));
-      rows.add(SpreadRow(
-        label: 'Battery temps',
-        unitLabel: '°C',
-        min: lo,
-        max: hi,
-        avg: vs.reduce((a, b) => a + b) / vs.length,
+      final ids = [for (final x in hvTemps) x.signal.id];
+      consumed.addAll(ids);
+      rows.add(_spreadRow(
+        units,
+        _Triple(
+          'Battery temps',
+          'celsius',
+          vs.reduce((a, b) => a < b ? a : b),
+          vs.reduce((a, b) => a > b ? a : b),
+          vs.reduce((a, b) => a + b) / vs.length,
+          ids,
+        ),
         // Mixed sensors (cells, coolant, pack points): show the spread but
         // don't grade it as cell balance.
-        scale: SpreadScale.forUnit('celsius', lo, hi).unjudged,
+        judged: false,
         note: '${hvTemps.length} sensors',
       ));
     }
     for (final fam in _numberedFamilies(latest, consumed, group: 'cells')) {
       consumed.addAll(fam.ids);
-      rows.add(SpreadRow(
-        label: fam.label,
-        unitLabel: _unitLabel(fam.unit),
-        min: fam.min,
-        max: fam.max,
-        avg: fam.avg,
-        scale: SpreadScale.forUnit(fam.unit, fam.min, fam.max),
-        note: '${fam.ids.length} readings',
-      ));
+      rows.add(_spreadRow(units, fam, note: '${fam.ids.length} readings'));
     }
     if (rows.isNotEmpty) {
       cards.add(_SectionCard(
@@ -231,7 +233,9 @@ class _DashboardBody extends StatelessWidget {
           Wrap(
             spacing: 10,
             runSpacing: 10,
-            children: byGroup[g]!.map((x) => _ReadingCard(reading: x)).toList(),
+            children: byGroup[g]!
+                .map((x) => _ReadingCard(reading: x, units: units))
+                .toList(),
           ),
         ],
         for (final g in compactGroups) ...[
@@ -240,8 +244,9 @@ class _DashboardBody extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Column(
-                children:
-                    byGroup[g]!.map((x) => _CompactRow(reading: x)).toList(),
+                children: byGroup[g]!
+                    .map((x) => _CompactRow(reading: x, units: units))
+                    .toList(),
               ),
             ),
           ),
@@ -264,13 +269,25 @@ class _DashboardBody extends StatelessWidget {
             style: Theme.of(context).textTheme.labelLarge),
       );
 
-  static String _unitLabel(String unit) => switch (unit) {
-        'volts' => 'V',
-        'percent' => '%',
-        'celsius' => '°C',
-        'amps' => 'A',
-        _ => unit,
-      };
+  /// A spread row in the user's display units. Values are converted before
+  /// the scale is picked, and the Fahrenheit scale is the Celsius one
+  /// converted, so the verdict never depends on the display unit.
+  static SpreadRow _spreadRow(DisplayUnits units, _Triple t,
+      {String? note, bool judged = true}) {
+    final unit = units.unitFor(t.unit);
+    final min = units.convert(t.unit, t.min);
+    final max = units.convert(t.unit, t.max);
+    final scale = SpreadScale.forUnit(unit, min, max);
+    return SpreadRow(
+      label: t.label,
+      unitLabel: DisplayUnits.symbol(unit),
+      min: min,
+      max: max,
+      avg: t.avg == null ? null : units.convert(t.unit, t.avg!),
+      scale: judged ? scale : scale.unjudged,
+      note: note,
+    );
+  }
 }
 
 /// A `<base>_MIN` / `<base>_MAX` (/ optional `<base>_AVG`) family of signals.
@@ -658,7 +675,8 @@ class _HealthTile extends StatelessWidget {
 
 class _ReadingCard extends StatelessWidget {
   final Reading reading;
-  const _ReadingCard({required this.reading});
+  final DisplayUnits units;
+  const _ReadingCard({required this.reading, required this.units});
 
   @override
   Widget build(BuildContext context) {
@@ -684,12 +702,14 @@ class _ReadingCard extends StatelessWidget {
                   Flexible(
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
-                      child: Text(_valueText(reading, 2),
+                      child: Text(
+                          _valueText(
+                              units.convert(reading.unit, reading.value), 2),
                           style: Theme.of(context).textTheme.headlineSmall),
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Text(_unitText(reading.unit),
+                  Text(units.symbolFor(reading.unit),
                       style: Theme.of(context).textTheme.bodySmall),
                 ],
               ),
@@ -703,7 +723,8 @@ class _ReadingCard extends StatelessWidget {
 
 class _CompactRow extends StatelessWidget {
   final Reading reading;
-  const _CompactRow({required this.reading});
+  final DisplayUnits units;
+  const _CompactRow({required this.reading, required this.units});
 
   @override
   Widget build(BuildContext context) {
@@ -718,7 +739,7 @@ class _CompactRow extends StatelessWidget {
                 overflow: TextOverflow.ellipsis),
           ),
           Text(
-            _withUnit(reading),
+            _withUnit(reading, units),
             style: Theme.of(context)
                 .textTheme
                 .bodyMedium
@@ -759,23 +780,16 @@ class _WaitingState extends StatelessWidget {
   }
 }
 
-/// Display helpers for plain readings: short unit symbols instead of the
-/// signal set's unit names, no decimals on big counters, and miles alongside
-/// kilometres.
-String _unitText(String unit) => switch (unit) {
-      'celsius' => '°C',
-      'percent' => '%',
-      'volts' => 'V',
-      'amps' => 'A',
-      _ => unit,
-    };
+/// Display helpers for plain readings: the user's display units and short
+/// unit symbols instead of the signal set's unit names, no decimals on big
+/// counters, and miles alongside kilometres.
+String _valueText(double v, int decimals) =>
+    v.abs() >= 1000 ? v.round().toString() : v.toStringAsFixed(decimals);
 
-String _valueText(Reading r, int decimals) => r.value.abs() >= 1000
-    ? r.value.round().toString()
-    : r.value.toStringAsFixed(decimals);
-
-String _withUnit(Reading r) {
-  final v = '${_valueText(r, 1)} ${_unitText(r.unit)}'.trim();
+String _withUnit(Reading r, DisplayUnits units) {
+  final v = '${_valueText(units.convert(r.unit, r.value), 1)} '
+          '${units.symbolFor(r.unit)}'
+      .trim();
   if (r.unit == 'km') return '$v · ${(r.value / 1.609344).round()} mi';
   return v;
 }

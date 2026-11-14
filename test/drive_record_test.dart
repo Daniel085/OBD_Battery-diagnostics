@@ -1,3 +1,4 @@
+import 'package:obd_battery_diagnostics/engine/display_units.dart';
 import 'package:obd_battery_diagnostics/engine/drive_record.dart';
 import 'package:test/test.dart';
 
@@ -78,7 +79,19 @@ void main() {
     expect(txt, contains('Cadillac Lyriq'));
     expect(txt, contains('Peak power delivered: 120.0 kW'));
     expect(txt, contains('Min pack voltage under load: 370.0 V'));
-    expect(txt, contains('Battery temp: 22 → 23'));
+    expect(txt, contains('Battery temp: 22 → 23 °C (+1)'));
+  });
+
+  test('report text follows the temperature display unit', () {
+    final r = DriveRecord();
+    r.add(DriveTick(t: at(0), kw: 10, amps: 30, tempC: 20));
+    r.add(DriveTick(t: at(5), kw: 10, amps: 30, tempC: 25));
+    final txt = r.reportText(
+        units: const DisplayUnits(temperature: TemperatureUnit.fahrenheit));
+    // 20 -> 25 °C is 68 -> 77 °F, and the 5 °C rise is 9 °F (no offset).
+    expect(txt, contains('Battery temp: 68 → 77 °F (+9)'));
+    // The recorded data itself stays in Celsius.
+    expect(r.summarize().tempRiseC, 5);
   });
 
   test('JSON round-trip preserves ticks and summary', () {

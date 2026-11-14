@@ -8,6 +8,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../engine/battery_health.dart';
+import '../engine/display_units.dart';
 
 PdfColor _severityColor(Severity s) {
   switch (s) {
@@ -22,7 +23,10 @@ PdfColor _severityColor(Severity s) {
   }
 }
 
-Future<Uint8List> buildReportPdf(HealthReport report) async {
+/// [units] sets how the readings table shows temperatures; the report's
+/// metrics keep their own named units.
+Future<Uint8List> buildReportPdf(HealthReport report,
+    {DisplayUnits units = const DisplayUnits()}) async {
   final doc = pw.Document();
   final readings = report.readings.values.toList()
     ..sort((a, b) => (a.signal.group ?? '').compareTo(b.signal.group ?? ''));
@@ -82,8 +86,8 @@ Future<Uint8List> buildReportPdf(HealthReport report) async {
               .map((r) => [
                     r.signal.group ?? '',
                     r.signal.name,
-                    r.value.toStringAsFixed(3),
-                    r.unit,
+                    units.convert(r.unit, r.value).toStringAsFixed(3),
+                    units.unitFor(r.unit),
                   ])
               .toList(),
         ),

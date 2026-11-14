@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:obd_battery_diagnostics/engine/battery_health.dart';
 import 'package:obd_battery_diagnostics/engine/diagnostics_client.dart';
+import 'package:obd_battery_diagnostics/engine/display_units.dart';
 import 'package:obd_battery_diagnostics/engine/logging.dart';
 import 'package:obd_battery_diagnostics/engine/signal_set.dart';
 import 'package:test/test.dart';
@@ -60,6 +61,29 @@ void main() {
       );
       expect(report.overallSeverity, Severity.critical);
       expect(report.metrics['cell_imbalance_volts'], closeTo(0.06, 1e-9));
+    });
+
+    test('temperature warning text follows the display unit', () {
+      final readings = {
+        'HVBAT_CELLTEMP_MIN':
+            _r('HVBAT_CELLTEMP_MIN', 'tmin', 20, 'celsius', 'temperature'),
+        'HVBAT_CELLTEMP_MAX':
+            _r('HVBAT_CELLTEMP_MAX', 'tmax', 35, 'celsius', 'temperature'),
+      };
+      final c = analyzer.analyze(vehicle: 'x', readings: readings, now: at);
+      final f = analyzer.analyze(
+          vehicle: 'x',
+          readings: readings,
+          now: at,
+          units: const DisplayUnits(temperature: TemperatureUnit.fahrenheit));
+      String msg(HealthReport r) =>
+          r.warnings.singleWhere((w) => w.code == 'TEMP_SPREAD').message;
+      expect(msg(c), contains('15.0 °C'));
+      // A 15 °C spread is 27 °F: scaled, no +32 offset.
+      expect(msg(f), contains('27.0 °F'));
+      // Same verdict and the same Celsius metric either way.
+      expect(f.overallSeverity, c.overallSeverity);
+      expect(f.metrics['temp_spread_celsius'], 15);
     });
 
     test('serialises to JSON and CSV', () {

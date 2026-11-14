@@ -5,6 +5,7 @@ import 'app/app_controller.dart';
 import 'app/capacity_test_store.dart';
 import 'app/drive_record_store.dart';
 import 'app/onboarding_store.dart';
+import 'app/settings_store.dart';
 import 'app/soh_history_store.dart';
 import 'ui/home_screen.dart';
 
@@ -23,11 +24,13 @@ class ObdBatteryApp extends StatelessWidget {
         driveStore: DriveRecordStore.documents(),
         onboardingStore: OnboardingStore.documents(),
         sohStore: SohHistoryStore.documents(),
+        settingsStore: SettingsStore.documents(),
       )
         ..restoreCapacityTest()
         ..restoreDriveRecording()
         ..restoreOnboarding()
-        ..restoreSohHistory(),
+        ..restoreSohHistory()
+        ..restoreSettings(),
       child: MaterialApp(
         title: 'OBD Battery Diagnostics',
         theme: ThemeData(

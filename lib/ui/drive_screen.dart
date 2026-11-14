@@ -95,7 +95,7 @@ class _RecordBar extends StatelessWidget {
   const _RecordBar({required this.controller});
 
   Future<void> _shareReport(BuildContext context, DriveRecord rec) async {
-    await Share.share(rec.reportText(),
+    await Share.share(rec.reportText(units: controller.units),
         subject: 'EV Drive Health Report');
   }
 

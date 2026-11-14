@@ -46,7 +46,7 @@ class _ReportScreenState extends State<ReportScreen> {
             tooltip: 'Print / save PDF',
             icon: const Icon(Icons.picture_as_pdf),
             onPressed: () async {
-              final bytes = await buildReportPdf(report);
+              final bytes = await buildReportPdf(report, units: c.units);
               await Printing.layoutPdf(onLayout: (_) async => bytes);
             },
           ),

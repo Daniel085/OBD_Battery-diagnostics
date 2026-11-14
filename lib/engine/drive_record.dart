@@ -18,6 +18,8 @@ library;
 
 import 'dart:convert';
 
+import 'display_units.dart';
+
 /// One fully-populated sample during a drive. Any field may be null if that
 /// signal wasn't read on a given poll (the drive profile prioritises current).
 class DriveTick {
@@ -198,7 +200,8 @@ class DriveRecord {
   }
 
   /// Plain-text buyer-facing report (also the basis for the shareable card).
-  String reportText() {
+  /// [units] only affects how the temperatures are written.
+  String reportText({DisplayUnits units = const DisplayUnits()}) {
     final s = summarize();
     String kwh(double v) => '${v.toStringAsFixed(2)} kWh';
     final b = StringBuffer()
@@ -218,9 +221,11 @@ class DriveRecord {
           'at ${s.ampsAtMinVolts!.toStringAsFixed(0)} A');
     }
     if (s.tempRiseC != null) {
-      b.writeln('Battery temp: ${s.tempStartC!.toStringAsFixed(0)} → '
-          '${s.tempEndC!.toStringAsFixed(0)} °C '
-          '(${s.tempRiseC! >= 0 ? '+' : ''}${s.tempRiseC!.toStringAsFixed(0)})');
+      String t(double c) => units.convert('celsius', c).toStringAsFixed(0);
+      final rise = units.convertDelta('celsius', s.tempRiseC!);
+      b.writeln('Battery temp: ${t(s.tempStartC!)} → ${t(s.tempEndC!)} '
+          '${units.symbolFor('celsius')} '
+          '(${rise >= 0 ? '+' : ''}${rise.toStringAsFixed(0)})');
     }
     return b.toString().trimRight();
   }

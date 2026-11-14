@@ -11,6 +11,7 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import '../engine/battery_health.dart';
 import '../engine/capacity_test.dart';
 import '../engine/diagnostics_client.dart';
+import '../engine/display_units.dart';
 import '../engine/drive_record.dart';
 import '../engine/drive_session.dart';
 import '../engine/logging.dart';
@@ -21,6 +22,7 @@ import '../transport/elm_ble_source.dart';
 import 'capacity_test_store.dart';
 import 'drive_record_store.dart';
 import 'onboarding_store.dart';
+import 'settings_store.dart';
 import 'signal_set_repository.dart';
 import 'soh_history_store.dart';
 
@@ -43,8 +45,40 @@ class AppController extends ChangeNotifier {
     this.driveStore,
     this.onboardingStore,
     this.sohStore,
+    this.settingsStore,
   })  : _bleInstance = ble,
         repo = repository ?? SignalSetRepository();
+
+  // ---- Settings --------------------------------------------------------------
+
+  /// Persistence for app settings (null in tests → in-memory only).
+  final SettingsStore? settingsStore;
+
+  /// How values are displayed. Display only: readings, logs and exports stay
+  /// in the signal set's own units.
+  DisplayUnits units = const DisplayUnits();
+
+  Future<void> restoreSettings() async {
+    final store = settingsStore;
+    if (store == null) return;
+    units = await store.loadUnits();
+    notifyListeners();
+  }
+
+  void setTemperatureUnit(TemperatureUnit unit) {
+    if (units.temperature == unit) return;
+    units = units.copyWith(temperature: unit);
+    notifyListeners();
+    unawaited(_saveSettings());
+  }
+
+  Future<void> _saveSettings() async {
+    try {
+      await settingsStore?.saveUnits(units);
+    } catch (_) {
+      // Best-effort: the in-memory setting stays in effect this session.
+    }
+  }
 
   // ---- SoH history -----------------------------------------------------------
 
@@ -659,6 +693,7 @@ class AppController extends ChangeNotifier {
       readings: Map.of(latest),
       vin: vin,
       extraMetrics: extra,
+      units: units,
     );
   }
 

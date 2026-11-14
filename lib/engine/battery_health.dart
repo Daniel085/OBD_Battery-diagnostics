@@ -12,6 +12,7 @@ library;
 import 'dart:convert';
 
 import 'diagnostics_client.dart';
+import 'display_units.dart';
 
 enum Severity { ok, info, warning, critical }
 
@@ -131,6 +132,9 @@ class BatteryHealthAnalyzer {
     /// Externally measured metrics (e.g. the charge-session capacity test's
     /// measured_soh_percent) merged into the report's metrics map.
     Map<String, double?> extraMetrics = const {},
+    /// Units for the human-readable warning text only; metrics and
+    /// thresholds stay in the signal set's units.
+    DisplayUnits units = const DisplayUnits(),
   }) {
     final metrics = <String, double?>{...extraMetrics};
     final warnings = <HealthWarning>[];
@@ -182,7 +186,9 @@ class BatteryHealthAnalyzer {
     // Temperature spread grading.
     if (tempSpread != null && tempSpread >= thresholds.tempSpreadWarn) {
       warnings.add(HealthWarning(Severity.warning, 'TEMP_SPREAD',
-          'Module temperature spread ${tempSpread.toStringAsFixed(1)} °C is high.'));
+          'Module temperature spread '
+          '${units.convertDelta('celsius', tempSpread).toStringAsFixed(1)} '
+          '${units.symbolFor('celsius')} is high.'));
     }
 
     if (warnings.isEmpty && readings.isNotEmpty) {

@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:obd_battery_diagnostics/app/app_controller.dart';
 import 'package:obd_battery_diagnostics/app/signal_set_repository.dart';
 import 'package:obd_battery_diagnostics/engine/diagnostics_client.dart';
+import 'package:obd_battery_diagnostics/engine/display_units.dart';
 import 'package:obd_battery_diagnostics/engine/signal_set.dart';
 import 'package:obd_battery_diagnostics/engine/soh_history.dart';
 import 'package:obd_battery_diagnostics/ui/battery_visuals.dart';
@@ -14,6 +15,7 @@ import 'package:obd_battery_diagnostics/transport/simulated_source.dart';
 import 'package:obd_battery_diagnostics/ui/dashboard_screen.dart';
 import 'package:obd_battery_diagnostics/ui/drive_screen.dart';
 import 'package:obd_battery_diagnostics/ui/home_screen.dart';
+import 'package:obd_battery_diagnostics/ui/settings_screen.dart';
 
 // Compiling this file forces the whole UI tree (home/dashboard/report screens,
 // the PDF renderer, and the BLE-source imports) through the compiler, catching
@@ -203,6 +205,75 @@ void main() {
     expect(find.text('Cell temperature'), findsOneWidget);
     expect(find.textContaining('spread 9 mV'), findsOneWidget);
     expect(find.text('Battery temps'), findsNothing);
+    controller.dispose();
+  });
+
+  testWidgets('settings: the temperature toggle flips the controller',
+      (tester) async {
+    final controller = AppController();
+    await tester.pumpWidget(
+      ChangeNotifierProvider<AppController>.value(
+        value: controller,
+        child: const MaterialApp(home: HomeScreen()),
+      ),
+    );
+    // Reachable from the home screen.
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsOneWidget);
+    expect(controller.units.temperature, TemperatureUnit.celsius);
+
+    await tester.tap(find.text('°F'));
+    await tester.pumpAndSettle();
+    expect(controller.units.temperature, TemperatureUnit.fahrenheit);
+    await tester.tap(find.text('°C'));
+    await tester.pumpAndSettle();
+    expect(controller.units.temperature, TemperatureUnit.celsius);
+    controller.dispose();
+  });
+
+  testWidgets('dashboard temperatures follow the display unit, verdict fixed',
+      (tester) async {
+    Reading temp(String id, String name, double v) => Reading(
+        Signal(
+            id: id,
+            name: name,
+            group: 'temperature',
+            fmt: const SignalFormat(len: 16, unit: 'celsius')),
+        v,
+        DateTime.now());
+    final controller = AppController();
+    controller.latest.addAll({
+      // A min/avg/max triple: 20 / 22 / 26 °C, a 6 °C spread ("watch").
+      'HVBAT_CELLTEMP_MIN': temp('HVBAT_CELLTEMP_MIN', 'Cell temp (min)', 20),
+      'HVBAT_CELLTEMP_AVG': temp('HVBAT_CELLTEMP_AVG', 'Cell temp (avg)', 22),
+      'HVBAT_CELLTEMP_MAX': temp('HVBAT_CELLTEMP_MAX', 'Cell temp (max)', 26),
+      // A plain reading outside the battery card.
+      'AMBIENT_TEMP': temp('AMBIENT_TEMP', 'Ambient temperature', 10),
+    });
+    await tester.pumpWidget(
+      ChangeNotifierProvider<AppController>.value(
+        value: controller,
+        child: const MaterialApp(home: DashboardScreen()),
+      ),
+    );
+    Color chipColor(String text) =>
+        tester.widget<Text>(find.text(text)).style!.color!;
+
+    expect(find.text('spread 6.0 °C'), findsOneWidget);
+    expect(find.text('10.0 °C'), findsOneWidget);
+    expect(find.textContaining('°F'), findsNothing);
+    final celsiusVerdict = chipColor('spread 6.0 °C');
+
+    controller.setTemperatureUnit(TemperatureUnit.fahrenheit);
+    await tester.pumpAndSettle();
+    // 6 °C spread = 10.8 °F; 10 °C = 50 °F; min 20 °C = 68 °F.
+    expect(find.text('spread 10.8 °F'), findsOneWidget);
+    expect(find.text('50.0 °F'), findsOneWidget);
+    expect(find.textContaining('68.0'), findsOneWidget);
+    expect(find.textContaining('°C'), findsNothing);
+    // Same data, same verdict colour.
+    expect(chipColor('spread 10.8 °F'), celsiusVerdict);
     controller.dispose();
   });
 

@@ -11,6 +11,7 @@ import '../transport/data_source.dart';
 import '../transport/simulated_source.dart';
 import 'dashboard_screen.dart';
 import 'onboarding_screen.dart';
+import 'settings_screen.dart';
 import 'terminal_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -59,6 +60,13 @@ class HomeScreen extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => const TerminalScreen()),
               ),
             ),
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ),
+          ),
         ],
       ),
       body: ListView(

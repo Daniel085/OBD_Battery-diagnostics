@@ -7,6 +7,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../engine/display_units.dart';
 import '../engine/soh_history.dart';
 
 // ---------------------------------------------------------------------------
@@ -160,8 +161,8 @@ class SpreadScale {
 
   /// Pick a scale from the unit and magnitude. Cell voltages (< 5 V) use a
   /// lithium-ion working range and judge spread in mV (healthy packs at rest
-  /// sit under ~20 mV; > 50 mV deserves a look). Percent and °C judge spread
-  /// in points / degrees.
+  /// sit under ~20 mV; > 50 mV deserves a look). Percent and temperatures
+  /// judge spread in points / degrees.
   static SpreadScale forUnit(String unit, double min, double max) {
     switch (unit) {
       case 'volts' when max < 5:
@@ -170,10 +171,13 @@ class SpreadScale {
         return const SpreadScale(0, 100, 5, 10, 'pts', 1, 1);
       case 'celsius':
         return const SpreadScale(-10, 50, 5, 10, '°C', 1, 1);
+      case 'fahrenheit':
+        // The Celsius scale, converted: same track, same verdicts.
+        return const SpreadScale(14, 122, 9, 18, '°F', 1, 1);
       default:
         final pad = math.max((max - min).abs(), max.abs() * 0.05 + 1e-9);
         return SpreadScale(min - pad, max + pad, double.infinity,
-            double.infinity, _shortUnit(unit), 1, 2);
+            double.infinity, DisplayUnits.symbol(unit), 1, 2);
     }
   }
 
@@ -183,14 +187,6 @@ class SpreadScale {
       double.infinity, spreadUnit, spreadFactor, decimals);
 
   bool get judges => watchAt.isFinite;
-
-  static String _shortUnit(String unit) => switch (unit) {
-        'volts' => 'V',
-        'percent' => '%',
-        'celsius' => '°C',
-        'amps' => 'A',
-        _ => unit,
-      };
 
   SpreadVerdict verdict(double spread) {
     final s = spread * spreadFactor;
