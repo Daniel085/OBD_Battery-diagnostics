@@ -88,8 +88,32 @@ void main() {
     expect(v['HVBAT_VOLTAGE'], closeTo(315.83, 1e-9));
   });
 
-  test('pack current (DD69, signed)', () {
-    expect(v['HVBAT_CURRENT'], closeTo(-1.48, 1e-9));
+  test('pack current (DD69): running and parked is a small DISCHARGE', () {
+    // Raw FFFFFF6C = -1.48 A in the SME's own sign (+charge). The app's
+    // convention is +discharge / -charge, so the signal set negates it.
+    expect(v['HVBAT_CURRENT'], closeTo(1.48, 1e-9));
+  });
+
+  test('pack current while plug-in charging reads NEGATIVE (2026-11-13)',
+      () async {
+    // First sample of captures/bmw_chg_2026-11-13.txt, taken at ~3.2 kW AC
+    // charging with displayed SOC rising: raw 0000044E = +11.02 A.
+    final line = File('captures/bmw_chg_2026-11-13.txt')
+        .readAsLinesSync()
+        .firstWhere((l) => RegExp(r'^\d\d:\d\d:\d\d DD69=').hasMatch(l));
+    final fields = {
+      for (final f in line.split(' ').skip(1)) f.split('=')[0]: f.split('=')[1]
+    };
+    expect(fields['DD69'], '0000044e');
+    final source = ReplaySource({
+      for (final did in ['DD69', 'DD66', 'DDBC'])
+        '22$did': _frame([0x62, ...hexBytes(did), ...hexBytes(fields[did]!)]),
+    });
+    await source.connect();
+    final all = await DiagnosticsClient(source, set).readAll(onFailure: (_) {});
+    expect(all['HVBAT_CURRENT']!.value, closeTo(-11.02, 1e-9));
+    expect(all['HVBAT_VOLTAGE']!.value, closeTo(293.74, 1e-9));
+    expect(all['HVBAT_SOC']!.value, closeTo(9.0, 1e-9));
   });
 
   test('cell temperatures (DDC0)', () {

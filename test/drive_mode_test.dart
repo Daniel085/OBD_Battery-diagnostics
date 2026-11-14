@@ -51,6 +51,34 @@ void main() {
     controller.dispose();
   });
 
+  test('BMW drive mode: a running, stationary car is drawing, never regen',
+      () async {
+    // The SME's raw current sign is +charge; the signal set negates it to the
+    // app's +discharge convention. The sim replays the real parked-running
+    // read (raw -1.48 A): that is a small draw, and must not show as regen.
+    final set = SignalSet.parse(
+        File('signalsets/BMW-330e-2018/v02.json').readAsStringSync());
+    final controller = AppController(repository: _InMemoryRepo(set));
+    final bmw = SignalSetRepository.catalogue
+        .firstWhere((v) => v.id == 'BMW-330e-2018');
+
+    await controller.connectWithSource(SimulatedBmwSource(), bmw);
+    expect(controller.startDriveMode(), isTrue);
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    final session = controller.driveSession!;
+    expect(session.sampleCount, greaterThan(5));
+
+    // ~1.1-1.9 A x ~316 V: a few hundred watts out of the pack.
+    expect(session.currentKw, inInclusiveRange(0.3, 0.65));
+    expect(session.peakRegenKw, 0);
+    expect(session.peakDrawKw, greaterThan(0));
+    expect(session.energyRecoveredKwh, 0);
+    expect(session.energyUsedKwh, greaterThan(0));
+
+    await controller.disconnect();
+    controller.dispose();
+  });
+
   test('drive mode refuses a vehicle without a pack-current signal', () async {
     // BMW set HAS a pack-current command; strip it to simulate a vehicle
     // without one.

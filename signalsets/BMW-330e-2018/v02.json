@@ -4,7 +4,7 @@
   "description": "2018 BMW 330e (F30 PHEV). J1979 PIDs on 7EB/7E8 and the SME battery ECU (6F1 -> 607, BMW extended address 07), both read on-vehicle 2026-11-08 over the OBD port with an ELM327 v2.2 clone.",
   "provenance": {
     "derivedFrom": "OBDb/BMW-i3s (CC BY-SA 4.0) for the SME DID numbers; F30 layouts corrected from on-vehicle reads",
-    "confidence": "v02 (2026-11-08): SME read on-vehicle (captures/bmw_sme_2026-11-08.txt). Cross-checked vs BimmerLink on the same car/day: SOC window bounds (exact), cell V and cell SoC ranges, current, cell temps vs ambient. Same-moment check vs BimmerLink confirms DFA0 bytes 6-11 as the live cell-V triple. NOT ground-truthed: HVBAT_SOH (83 %, i3 layout). Pack voltage: the i3 DID DD68 returns 7F 22 31 on the F30; the F30 pack voltage is DD66 (found by DD00-DDFF sweep, consistent with 80 cells x avg cell V and BimmerLink). v01 -> v02: fixed the request framing (v01's SME reads never worked), DFA0 offsets moved (i3 layout was wrong for F30), DDBC/DDC0/DFA0 gained window/avg/cell-SoC signals.",
+    "confidence": "v02 (2026-11-08): SME read on-vehicle (captures/bmw_sme_2026-11-08.txt). Cross-checked vs BimmerLink on the same car/day: SOC window bounds (exact), cell V and cell SoC ranges, current, cell temps vs ambient. Same-moment check vs BimmerLink confirms DFA0 bytes 6-11 as the live cell-V triple. NOT ground-truthed: HVBAT_SOH (83 %, i3 layout). Pack voltage: the i3 DID DD68 returns 7F 22 31 on the F30; the F30 pack voltage is DD66 (found by DD00-DDFF sweep, consistent with 80 cells x avg cell V and BimmerLink). v01 -> v02: fixed the request framing (v01's SME reads never worked), DFA0 offsets moved (i3 layout was wrong for F30), DDBC/DDC0/DFA0 gained window/avg/cell-SoC signals. 2026-11-14: HVBAT_CURRENT negated (mul -1). The SME's raw sign is +charge; the app expects +discharge, so drive mode showed REGEN under load and the dashboard would have shown a plug-in charge as discharging.",
     "license": "CC BY-SA 4.0"
   },
   "protocol": {
@@ -213,7 +213,8 @@
       ]
     },
     {
-      "_onVehicle": "2026-11-08: FFFFFF6C -> -1.48 A (BimmerLink parked: -1.28 A).",
+      "_onVehicle": "2026-11-08: FFFFFF6C = raw -1.48 A with the car running and parked (BimmerLink parked: -1.28 A). 2026-11-13: 0000044E = raw +11.02 A while plug-in charging at ~3.2 kW (captures/bmw_chg_2026-11-13.txt).",
+      "_sign": "The SME reports charge as POSITIVE and discharge as negative. The app's HVBAT_CURRENT convention is the opposite (positive = discharge, negative = charge/regen, as on the Lyriq), so the raw value is negated here (mul -1). BimmerLink shows the raw sign, so the two apps disagree in sign by design.",
       "hdr": "6F1",
       "rax": "607",
       "eax": "07",
@@ -230,6 +231,7 @@
             "len": 32,
             "max": 10000,
             "min": -10000,
+            "mul": -1,
             "div": 100,
             "sign": true,
             "unit": "amps"

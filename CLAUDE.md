@@ -85,6 +85,11 @@ flutter run -d <simulator-udid>   # iOS Simulator (see gotcha below)
 - Lyriq is 29-bit CAN (`ATSP7`), request `18DA<ecu>F1` / response
   `18DAF1<ecu>`; cheap clones struggle with 29-bit multiframe — prefer
   OBDLink CX/MX+.
+- **Pack-current sign:** the app's `HVBAT_CURRENT` is positive = discharge,
+  negative = charge/regen (dashboard, drive mode and capacity test all rely
+  on it). The Lyriq reports that natively; the BMW SME reports the opposite,
+  so its signal set negates it (`mul: -1`). Check the sign on any new vehicle
+  against a known charge AND a known load.
 - **BMW extended addressing:** request `6F1: 07 03 22 DD BC`, response
   `607: F1 05 62 ...`. The target byte comes BEFORE the PCI, so prepending
   `07` to a line while CAN auto-formatting is on (`04 07 22 ...`) is silently

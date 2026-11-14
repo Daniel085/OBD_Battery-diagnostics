@@ -10,7 +10,7 @@ log: `captures/bmw_sme_2026-11-08.txt`. Signal set: `signalsets/BMW-330e-2018/v0
 |---|---|---|---|
 | `DDBC` | `038B 030C 00F6` | SOC 90.7 %, window max 78.0 %, window min 24.6 % | BimmerLink bounds 78 / 25 ✓ |
 | `6335` | `00 00 00 53` | SOH **83 %** (i3 layout, byte 3) | no ground truth (BimmerLink paywall) |
-| `DD69` | `FFFFFF6C` | pack current −1.48 A (s32 /100) | BimmerLink −1.28 A parked ✓ |
+| `DD69` | `FFFFFF6C` | pack current −1.48 A raw (s32 /100; raw sign is **+charge**, see below) | BimmerLink −1.28 A parked ✓ |
 | `DDC0` | `063F 06A3 0655 01` | cell temp min/max/avg 15.99 / 16.99 / 16.21 °C | ambient 15.5 °C ✓ |
 | `DFA0` | 62 bytes | see layout below | ✓ ranges |
 | `DD66` | `7B5F` | pack voltage **315.83 V** (u16 /100) | 80 × avg cell 3.9518 = 316.1 V ✓; BimmerLink 317 V 15 min earlier |
@@ -35,6 +35,18 @@ reads it moved (min 3.9669 → 3.9546 V while idling), while bytes 30–35 staye
 identical every time (3.9880 / 3.9930 / 3.9904). The 30–35 triple is a stored
 snapshot (last rest/OCV?), as are bytes 0–5 and 18–23. Bytes 44–45 change on
 every read (`610A`, `61AB`, `75CB`): a counter or timestamp?
+
+### Current sign (corrected 2026-11-14)
+
+The SME reports **charge as positive, discharge as negative**: raw −1.48 A
+running and parked (2026-11-08), raw +11.02 A while plug-in charging at
+~3.2 kW (2026-11-13, `captures/bmw_chg_2026-11-13.txt`). BimmerLink shows the
+same raw sign. The app's `HVBAT_CURRENT` convention is the opposite (positive
+= discharge, negative = charge/regen, as on the Lyriq), so the v02 signal set
+negates the raw value (`mul: -1`). Before this fix drive mode showed REGEN for
+a stationary car in Drive, and the dashboard and capacity test would have
+read a plug-in charge as a discharge. Raw values in this document and in the
+probe output keep the SME's own sign.
 
 ### Same-moment check vs BimmerLink (2026-11-08, car running)
 
