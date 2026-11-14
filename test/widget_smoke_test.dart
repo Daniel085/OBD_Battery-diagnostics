@@ -229,6 +229,57 @@ void main() {
     await tester.tap(find.text('°C'));
     await tester.pumpAndSettle();
     expect(controller.units.temperature, TemperatureUnit.celsius);
+
+    // Distance is its own switch and leaves temperature alone.
+    expect(controller.units.distance, DistanceUnit.kilometers);
+    await tester.tap(find.text('mi'));
+    await tester.pumpAndSettle();
+    expect(controller.units.distance, DistanceUnit.miles);
+    expect(controller.units.temperature, TemperatureUnit.celsius);
+    await tester.tap(find.text('km'));
+    await tester.pumpAndSettle();
+    expect(controller.units.distance, DistanceUnit.kilometers);
+    controller.dispose();
+  });
+
+  testWidgets('dashboard distances and speeds follow the distance unit',
+      (tester) async {
+    Reading reading(
+            String id, String name, String group, String unit, double v) =>
+        Reading(
+            Signal(
+                id: id,
+                name: name,
+                group: group,
+                fmt: SignalFormat(len: 32, unit: unit)),
+            v,
+            DateTime.now());
+    final controller = AppController();
+    controller.latest.addAll({
+      'ODOMETER': reading('ODOMETER', 'Odometer', 'vehicle', 'km', 77698),
+      'VEHICLE_SPEED':
+          reading('VEHICLE_SPEED', 'Vehicle speed', 'dynamics', 'km/h', 100),
+      'AMBIENT_TEMP':
+          reading('AMBIENT_TEMP', 'Ambient', 'temperature', 'celsius', 10),
+    });
+    await tester.pumpWidget(
+      ChangeNotifierProvider<AppController>.value(
+        value: controller,
+        child: const MaterialApp(home: DashboardScreen()),
+      ),
+    );
+    // One unit at a time: km only, no miles alongside.
+    expect(find.text('77698 km'), findsOneWidget);
+    expect(find.text('100.0 km/h'), findsOneWidget);
+    expect(find.textContaining(' mi'), findsNothing);
+
+    controller.setDistanceUnit(DistanceUnit.miles);
+    await tester.pumpAndSettle();
+    expect(find.text('48279 mi'), findsOneWidget);
+    expect(find.text('62.1 mph'), findsOneWidget);
+    expect(find.textContaining('km'), findsNothing);
+    // Temperature is untouched by the distance switch.
+    expect(find.text('10.0 °C'), findsOneWidget);
     controller.dispose();
   });
 

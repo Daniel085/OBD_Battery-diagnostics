@@ -1,3 +1,5 @@
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -7,6 +9,7 @@ import 'app/drive_record_store.dart';
 import 'app/onboarding_store.dart';
 import 'app/settings_store.dart';
 import 'app/soh_history_store.dart';
+import 'engine/display_units.dart';
 import 'ui/home_screen.dart';
 
 void main() {
@@ -25,6 +28,9 @@ class ObdBatteryApp extends StatelessWidget {
         onboardingStore: OnboardingStore.documents(),
         sohStore: SohHistoryStore.documents(),
         settingsStore: SettingsStore.documents(),
+        // First-run units follow the phone's region; a saved choice wins.
+        defaultUnits: DisplayUnits.forRegion(
+            PlatformDispatcher.instance.locale.countryCode),
       )
         ..restoreCapacityTest()
         ..restoreDriveRecording()

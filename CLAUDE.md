@@ -53,7 +53,8 @@ lib/ui/         screens: home, dashboard, report (+PDF), capacity, scanner, term
 lib/app/        controller, signal-set repository, capacity-test store, settings store
 lib/engine/     signal-set loader, formula evaluator, battery health, capacity test,
                 SoH history (daily per-vehicle/per-source log, trend),
-                display units (°C/°F for display only; data stays in signal-set units),
+                display units (°C/°F and km/mi, separate choices, display only;
+                data stays in signal-set units; first-run defaults by region),
                 diagnostics clients (J1979 + UDS)
 lib/protocol/   isotp.dart, uds.dart, doip.dart (pure Dart)
 lib/transport/  DataSource impls: elm_ble_source (BLE ELM327), doip_source,

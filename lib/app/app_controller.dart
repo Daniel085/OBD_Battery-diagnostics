@@ -46,6 +46,7 @@ class AppController extends ChangeNotifier {
     this.onboardingStore,
     this.sohStore,
     this.settingsStore,
+    this.defaultUnits = const DisplayUnits(),
   })  : _bleInstance = ble,
         repo = repository ?? SignalSetRepository();
 
@@ -54,20 +55,31 @@ class AppController extends ChangeNotifier {
   /// Persistence for app settings (null in tests → in-memory only).
   final SettingsStore? settingsStore;
 
+  /// Units used until the user chooses: the device region's (main.dart), or
+  /// Celsius and km when none is given.
+  final DisplayUnits defaultUnits;
+
   /// How values are displayed. Display only: readings, logs and exports stay
   /// in the signal set's own units.
-  DisplayUnits units = const DisplayUnits();
+  late DisplayUnits units = defaultUnits;
 
   Future<void> restoreSettings() async {
     final store = settingsStore;
     if (store == null) return;
-    units = await store.loadUnits();
+    units = await store.loadUnits(defaults: defaultUnits);
     notifyListeners();
   }
 
   void setTemperatureUnit(TemperatureUnit unit) {
     if (units.temperature == unit) return;
     units = units.copyWith(temperature: unit);
+    notifyListeners();
+    unawaited(_saveSettings());
+  }
+
+  void setDistanceUnit(DistanceUnit unit) {
+    if (units.distance == unit) return;
+    units = units.copyWith(distance: unit);
     notifyListeners();
     unawaited(_saveSettings());
   }

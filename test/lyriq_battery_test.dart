@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:obd_battery_diagnostics/engine/diagnostics_client.dart';
+import 'package:obd_battery_diagnostics/engine/display_units.dart';
 import 'package:obd_battery_diagnostics/engine/signal_set.dart';
 import 'package:obd_battery_diagnostics/protocol/uds.dart';
 import 'package:obd_battery_diagnostics/transport/data_source.dart';
@@ -85,6 +86,21 @@ void main() {
 
     expect(await readWith('00'), isEmpty);
     expect(await readWith('46'), [30.0]);
+  });
+
+  test('not-live 4127 and 4124 stay in Celsius under any display setting', () {
+    const us = DisplayUnits(
+        temperature: TemperatureUnit.fahrenheit, distance: DistanceUnit.miles);
+    for (final id in ['HVBAT_THERMAL_SETPOINT', 'HVBAT_TEMP_4124_LATCHED']) {
+      final unit = set.signalsById[id]!.fmt.unit!;
+      expect(unit, 'celsius?', reason: id);
+      expect(us.convert(unit, 32.75), 32.75, reason: id);
+      expect(us.symbolFor(unit), '°C?', reason: id);
+    }
+    // A live, identified temperature does follow the setting.
+    final live = set.signalsById['HVBAT_TEMP_3']!.fmt.unit!;
+    expect(us.convert(live, 25), 77);
+    expect(us.symbolFor(live), '°F');
   });
 
   test('4124 is out of the temperature group; 416C-E and 4149 unverified', () {

@@ -22,21 +22,23 @@ class SettingsStore {
   factory SettingsStore.inDirectory(Directory dir) =>
       SettingsStore(() async => File('${dir.path}/settings.json'));
 
-  /// The saved display units, or the defaults if nothing usable is saved.
-  Future<DisplayUnits> loadUnits() async {
+  /// The saved display units. Anything not saved (the whole file, or one
+  /// setting added after the file was written) comes from [defaults].
+  Future<DisplayUnits> loadUnits(
+      {DisplayUnits defaults = const DisplayUnits()}) async {
     try {
       final f = await _resolve();
-      if (!await f.exists()) return const DisplayUnits();
+      if (!await f.exists()) return defaults;
       final j = jsonDecode(await f.readAsString());
-      if (j is! Map<String, dynamic>) return const DisplayUnits();
+      if (j is! Map<String, dynamic>) return defaults;
       final units = j['units'];
       return units is Map<String, dynamic>
-          ? DisplayUnits.fromJson(units)
-          : const DisplayUnits();
+          ? DisplayUnits.fromJson(units, defaults: defaults)
+          : defaults;
     } on FormatException {
-      return const DisplayUnits(); // corrupt file: defaults, not a crash
+      return defaults; // corrupt file: defaults, not a crash
     } on IOException {
-      return const DisplayUnits();
+      return defaults;
     }
   }
 

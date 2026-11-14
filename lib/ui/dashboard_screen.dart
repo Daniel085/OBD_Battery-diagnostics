@@ -781,15 +781,12 @@ class _WaitingState extends StatelessWidget {
 }
 
 /// Display helpers for plain readings: the user's display units and short
-/// unit symbols instead of the signal set's unit names, no decimals on big
-/// counters, and miles alongside kilometres.
+/// unit symbols instead of the signal set's unit names, and no decimals on
+/// big counters.
 String _valueText(double v, int decimals) =>
     v.abs() >= 1000 ? v.round().toString() : v.toStringAsFixed(decimals);
 
-String _withUnit(Reading r, DisplayUnits units) {
-  final v = '${_valueText(units.convert(r.unit, r.value), 1)} '
-          '${units.symbolFor(r.unit)}'
-      .trim();
-  if (r.unit == 'km') return '$v · ${(r.value / 1.609344).round()} mi';
-  return v;
-}
+String _withUnit(Reading r, DisplayUnits units) =>
+    '${_valueText(units.convert(r.unit, r.value), 1)} '
+            '${units.symbolFor(r.unit)}'
+        .trim();

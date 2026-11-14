@@ -4,7 +4,7 @@
   "description": "2025 Cadillac Lyriq (GM Ultium) diagnostics. 29-bit CAN (ISO 15765-4, ATSP7; 11-bit is gateway-blocked). Confirmed on-vehicle: pack CURRENT (ECU 17), nominal pack voltage, live battery/coolant temps (40E5, 40E6), odometer. Unverified since the 2026-09-27 charge: module voltages (froze under charge) and the EVSE pilot label. SOC / live pack voltage / per-cell voltages / capacity registers are on gateway-blocked ECUs (CB and the cell monitor) and are NOT reachable via the OBD port; capacity is instead measured by coulomb-counting a charge between target cutoffs (measured 292 Ah / ~103 kWh = ~100% SOH on 2026-08-15). See docs/lyriq-did-map.md and docs/lyriq-re-log.md.",
   "provenance": {
     "derivedFrom": "Live 2025 Lyriq (VIN 1GYKPTRL5SZ302606) via a Pi BLE bridge + Viecar ELM327 clone, cross-referenced with the community OBDb database and the Chevy Bolt PID set (partial Ultium crossover: 2414 current family + 434F temp carry over; 41A3 capacity / 8334 & 43AF SOC do NOT — rejected in every vehicle mode). See docs/lyriq-re-log.md.",
-    "confidence": "CONFIRMED on-vehicle: protocol, ECU map, pack current (17.2414 s16/20 A, sign checked both directions), nominal pack V (17.2429 /64), live temps 40.40E5/40E6 /32, odometer (40.448F /64 km vs dash), 12V rail (33E5 /10, multi-ECU). UNVERIFIED: module voltages 40.416C-E /100 (51.08 V frozen for 3 h of ~21 A charging on 2026-09-27), EVSE pilot 40.4149 /10 (16.0 then 9.6 A against a ~39 A pilot implied by 9.4 kW AC), pack temp 40.434F -40 (intermittent; raw 0 = no value). NOT LIVE: 40.4127 (constant 32.75 C on this car since August; another 2025 read 7.31 C) and 40.4124 (latched per session: 0x03DC on 08-14, 0x01A2 for all of 09-24 and 09-27). NOT available via port: SOC, live pack V, per-cell V, GM capacity register (gateway-blocked; DoIP candidate). Register availability is wake-mode-dependent: unattended charging = sparse ECU 40. v01 -> v02 (2026-11-08, from captures/chg100_2026-09-27.txt): demoted 4124 out of the temperature group, marked 416C-E and 4149 unverified, 434F raw 0 is now null (nullmin), 44C0 dropped as an SOC candidate.",
+    "confidence": "CONFIRMED on-vehicle: protocol, ECU map, pack current (17.2414 s16/20 A, sign checked both directions), nominal pack V (17.2429 /64), live temps 40.40E5/40E6 /32, odometer (40.448F /64 km vs dash), 12V rail (33E5 /10, multi-ECU). UNVERIFIED: module voltages 40.416C-E /100 (51.08 V frozen for 3 h of ~21 A charging on 2026-09-27), EVSE pilot 40.4149 /10 (16.0 then 9.6 A against a ~39 A pilot implied by 9.4 kW AC), pack temp 40.434F -40 (intermittent; raw 0 = no value). NOT LIVE: 40.4127 (constant 32.75 C on this car since August; another 2025 read 7.31 C) and 40.4124 (latched per session: 0x03DC on 08-14, 0x01A2 for all of 09-24 and 09-27). NOT available via port: SOC, live pack V, per-cell V, GM capacity register (gateway-blocked; DoIP candidate). Register availability is wake-mode-dependent: unattended charging = sparse ECU 40. v01 -> v02 (2026-11-08, from captures/chg100_2026-09-27.txt): demoted 4124 out of the temperature group, marked 416C-E and 4149 unverified, 434F raw 0 is now null (nullmin), 44C0 dropped as an SOC candidate. 2026-11-14: 4127 and 4124 units marked unverified (celsius?) so the app shows them as read, never converted to Fahrenheit, until we know what they are.",
     "license": "Battery signals cross-referenced with OBDb/Cadillac-LYRIQ (CC BY-SA). J1979 signals are public-domain."
   },
   "protocol": {
@@ -145,7 +145,7 @@
             "bix": 0,
             "len": 16,
             "div": 32,
-            "unit": "celsius"
+            "unit": "celsius?"
           }
         }
       ]
@@ -166,7 +166,7 @@
             "bix": 0,
             "len": 16,
             "div": 32,
-            "unit": "celsius"
+            "unit": "celsius?"
           }
         }
       ]

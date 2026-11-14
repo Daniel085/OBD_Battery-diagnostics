@@ -32,6 +32,53 @@ void main() {
     }
   });
 
+  const us = DisplayUnits(
+      temperature: TemperatureUnit.fahrenheit, distance: DistanceUnit.miles);
+
+  test('region defaults fill in whatever is not saved', () async {
+    final store = SettingsStore.inDirectory(dir);
+    final file = File('${dir.path}/settings.json');
+    // Nothing saved, or nothing usable: the defaults as given.
+    expect(await store.loadUnits(defaults: us), us);
+    file.writeAsStringSync('{not json');
+    expect(await store.loadUnits(defaults: us), us);
+    // A file from before the distance setting: temperature kept, distance
+    // from the defaults.
+    file.writeAsStringSync('{"units": {"temperature": "celsius"}}');
+    expect(await store.loadUnits(defaults: us),
+        const DisplayUnits(distance: DistanceUnit.miles));
+    // A full saved choice beats the defaults.
+    await store.saveUnits(const DisplayUnits());
+    expect(await store.loadUnits(defaults: us), const DisplayUnits());
+  });
+
+  test('the controller starts on its region defaults and saves both units',
+      () async {
+    final first = AppController(
+        settingsStore: SettingsStore.inDirectory(dir), defaultUnits: us);
+    expect(first.units, us); // before anything is loaded
+    await first.restoreSettings();
+    expect(first.units, us);
+
+    first.setDistanceUnit(DistanceUnit.kilometers);
+    expect(first.units,
+        const DisplayUnits(temperature: TemperatureUnit.fahrenheit));
+    final file = File('${dir.path}/settings.json');
+    for (var i = 0; i < 100 && !file.existsSync(); i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+
+    // A later launch in a different region keeps the saved choice.
+    final second = AppController(
+        settingsStore: SettingsStore.inDirectory(dir),
+        defaultUnits: const DisplayUnits());
+    await second.restoreSettings();
+    expect(second.units,
+        const DisplayUnits(temperature: TemperatureUnit.fahrenheit));
+    first.dispose();
+    second.dispose();
+  });
+
   test('the controller persists the choice and restores it', () async {
     final first = AppController(settingsStore: SettingsStore.inDirectory(dir));
     await first.restoreSettings();
