@@ -336,6 +336,8 @@ class AppController extends ChangeNotifier {
     if (currentCmd == null) return false;
 
     _driveMode = true;
+    // One signal polled in a loop: use the shortest reply wait that works.
+    client.fastTiming = true;
     driveSession ??= DriveSession();
     _pollTimer?.cancel();
     _pollTimer = null;
@@ -349,6 +351,7 @@ class AppController extends ChangeNotifier {
   void stopDriveMode() {
     if (!_driveMode) return;
     _driveMode = false;
+    _client?.fastTiming = false; // the full poll goes back to the safe wait
     if (_client != null) _startPolling();
     notifyListeners();
   }
@@ -473,6 +476,7 @@ class AppController extends ChangeNotifier {
         await Future<void>.delayed(const Duration(milliseconds: 200));
       } catch (e) {
         _driveMode = false;
+        client.fastTiming = false;
         _fail(
           'Lost contact with the adapter during drive mode — reconnect and '
           'try again.',

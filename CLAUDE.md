@@ -95,7 +95,10 @@ flutter run -d <simulator-udid>   # iOS Simulator (see gotcha below)
   `07` to a line while CAN auto-formatting is on (`04 07 22 ...`) is silently
   wrong. Use `extendedAddressingCommands()`: ATCEA07 + custom FC
   `07 30 00 00` (the clone's own FC omits the address → only the First Frame
-  arrives) + ATAT0/ATSTFF (the SME sends `7F 22 78` pending first).
+  arrives) + ATAT0/ATSTFF (the SME sends `7F 22 78` pending first). ATSTFF
+  makes every read take ~1.25 s; drive mode uses `DiagnosticsClient.fastTiming`
+  (ATST40 → 80 → FF, steps back on a missed reply). Shorter waits are NOT yet
+  confirmed on the car.
 
 - **iOS build (Flutter 3.44 + current Xcode):** deployment target must be
   ≥ 15.0 (raised from 13.0). `flutter build ios --simulator` fails at

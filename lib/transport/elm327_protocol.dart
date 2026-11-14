@@ -56,7 +56,10 @@ const String clearReceiveFilterCommand = 'ATCRA';
 //     custom FC frame `<target> 30 00 00` (FCSM1). Without it only the First
 //     Frame of a multi-frame reply arrives;
 //   * the SME often answers `7F 22 78` (response pending) first, so adaptive
-//     timing is off and the timeout is maxed (ATSTFF, ~1 s per wait).
+//     timing is off and the timeout is maxed (ATSTFF, ~1 s per wait). That
+//     wait follows EVERY reply, so one request takes ~1.25 s (0.8 Hz). Drive
+//     mode shortens it through DiagnosticsClient.fastTiming, which falls back
+//     to this default by itself if a reply is missed.
 // Responses are still displayed with the leading F1 (strip it before ISO-TP).
 
 /// AT commands that switch the adapter into BMW extended addressing for
