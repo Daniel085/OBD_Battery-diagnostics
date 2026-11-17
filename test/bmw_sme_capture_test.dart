@@ -69,8 +69,14 @@ void main() {
     final failures = <CommandFailure>[];
     final all = await client.readAll(onFailure: failures.add);
     v = {for (final e in all.entries) e.key: e.value.value};
-    // Only the J1979 PIDs (not in this capture) may fail.
-    expect(failures.every((f) => f.command.service == '01'), isTrue,
+    // Only the J1979 PIDs and the EME motor and DME 12 V reads (none of
+    // them in this capture) may fail.
+    expect(
+        failures.every((f) =>
+            f.command.service == '01' ||
+            f.command.eax == '3A' ||
+            f.command.eax == '12'),
+        isTrue,
         reason: failures.join('\n'));
   });
 
@@ -114,6 +120,66 @@ void main() {
     expect(all['HVBAT_CURRENT']!.value, closeTo(-11.02, 1e-9));
     expect(all['HVBAT_VOLTAGE']!.value, closeTo(293.74, 1e-9));
     expect(all['HVBAT_SOC']!.value, closeTo(9.0, 1e-9));
+  });
+
+  test('ageing and lifetime figures (i3 layout, from the DD/DF sweeps)', () {
+    expect(v['HVBAT_SOH_RESISTANCE'], closeTo(62.8, 1e-9)); // DDB6 02 74
+    expect(v['HVBAT_ISOLATION'], 2000); // DD6A, in-operation value
+    expect(v['HVBAT_HV_ON_HOURS'], 10594); // DF60
+    expect(v['HVBAT_AGE_HOURS'], 78034); // 8.9 years: a late-2017 pack
+    expect(v['HVBAT_CONTACTOR_CYCLES'], 15403); // DD63
+    expect(v['HVBAT_CONTACTOR_CYCLES_LOAD'], 0);
+  });
+
+  test('those figures are marked unconfirmed and read every 5 minutes', () {
+    final health = set.commands
+        .where((c) => c.signals.any((s) => s.group == 'health'))
+        .toList();
+    expect(health.map((c) => c.payload),
+        ['DDB6', 'DD6A', 'DF60', 'DD63', 'DD73', 'DD74']);
+    for (final c in health) {
+      expect(c.freq, 300);
+      for (final s in c.signals) {
+        // Confirmed on 2026-11-15 (test/bmw_charging_capture_test.dart):
+        // battery age against the wall clock, charge in against the pack
+        // current. The rest still are not.
+        // Hours with HV on: one tick in the 1.6 h charge, hourly sibling.
+        if (const {'HVBAT_AGE_HOURS', 'HVBAT_HV_ON_HOURS', 'HVBAT_AH_CHARGED'}
+            .contains(s.id)) {
+          continue;
+        }
+        expect(s.fmt.unit, endsWith('?'), reason: s.id);
+        expect(s.name, contains('(unconfirmed)'), reason: s.id);
+      }
+    }
+    // Apart from the 12 V history and the module defect codes, everything
+    // else is read on every poll.
+    expect(
+        set.commands
+            .where((c) =>
+                !health.contains(c) && c.eax != '12' && c.payload != 'DFA6')
+            .every((c) => c.freq == null),
+        isTrue);
+  });
+
+  test('module status (DFA6): five modules, all OK', () {
+    final cmd = set.commands.singleWhere((c) => c.payload == 'DFA6');
+    expect(cmd.freq, 300);
+    expect(cmd.signals.map((s) => s.id),
+        [for (var n = 1; n <= 5; n++) 'HVBAT_MODULE_${n}_DEFECT']);
+    for (final s in cmd.signals) {
+      expect(v[s.id], 0, reason: s.id);
+      // 0 = OK is confirmed by the owner; a non-zero code has no name yet.
+      expect(s.fmt.unit, 'code');
+      expect(s.fmt.labelFor(0), 'OK');
+      expect(s.fmt.labelFor(3), isNull);
+      expect(s.name, isNot(contains('unconfirmed')));
+      expect(s.group, 'modules');
+    }
+  });
+
+  test('rated capacity for the cycle count comes from the signal set', () {
+    expect(set.ratedAh, 26);
   });
 
   test('cell temperatures (DDC0)', () {

@@ -1,0 +1,203 @@
+{
+ "vehicle": "Ford-F-150-Hybrid-2021",
+ "displayName": "Ford F-150 PowerBoost hybrid (2021+)",
+ "description": "Ford F-150 PowerBoost full hybrid, 2021 on. OBDb's F-150 data has NO hybrid-battery signals, so this set is two things: (1) the 12 V battery monitor and vehicle basics from OBDb's F-150 set, and (2) the HV battery signals Ford's hybrid battery controller (BECM 7E4) uses on the Maverick hybrid, Mustang Mach-E and F-150 Lightning, taken from OBDb's Maverick set and marked UNCONFIRMED: nobody has reported them from a PowerBoost. 11-bit CAN, UDS 0x22 reads only. NOT read on a vehicle by this project.",
+ "confidence": "Imported from OBDb by tools/obdb-import (map: tools/obdb-import/ford-f150-hybrid.map.json). Group (1) is OBDb's F-150 data for 2021+ trucks, unchanged except that the 12 V battery age (days) is shown in hours. Group (2), every HVBAT_* signal, is a guess that the PowerBoost's battery controller answers the same identifiers as its siblings; OBDb has no F-150 capture from 7E4/7EC to confirm or refute it. A read that fails is skipped by the app, so a wrong guess costs a little time per poll and shows nothing. First thing to do with a truck: see which of the 7E4 reads answer, then check the sign of HVBAT_CURRENT (positive must be discharge).",
+ "defaultSource": "OBDb/Ford-F-150",
+ "sources": {
+  "OBDb/Ford-F-150": {
+   "commit": "7b0146e3842736a6acb96b7fa32edc10414be6a6",
+   "date": "2026-11-15"
+  },
+  "OBDb/Ford-Maverick": {
+   "commit": "0417358dee689001592ebd59a9e0d83f1d7b7d31",
+   "date": "2026-11-15"
+  }
+ },
+ "modelYear": 2023,
+ "protocol": {
+  "canFormat": "11bit",
+  "obdProtocol": 6,
+  "note": "ISO 15765-4 CAN 11-bit/500k. Engine computer 7E0 -> 7E8, body 726 -> 72E, cluster 720 -> 728; hybrid battery controller assumed at 7E4 -> 7EC as on Ford's other hybrids."
+ },
+ "output": "signalsets/Ford-F-150-Hybrid-2021/v01.json",
+ "fixtures": "test/fixtures/obdb/Ford-F-150-Hybrid-2021.json",
+ "fixtureYears": [
+  2021,
+  2022,
+  2023,
+  2024,
+  2025
+ ],
+ "signals": [
+  {
+   "obdb": "MAVERICK_HVBAT_SOC",
+   "group": "summary",
+   "id": "HVBAT_SOC",
+   "name": "HV battery charge",
+   "from": "OBDb/Ford-Maverick",
+   "unconfirmed": true
+  },
+  {
+   "obdb": "MAVERICK_HVBAT_SOH",
+   "group": "summary",
+   "id": "HVBAT_SOH",
+   "name": "HV battery state of health",
+   "from": "OBDb/Ford-Maverick",
+   "unconfirmed": true
+  },
+  {
+   "obdb": "MAVERICK_HVBAT_V",
+   "group": "summary",
+   "id": "HVBAT_VOLTAGE",
+   "name": "HV battery voltage",
+   "from": "OBDb/Ford-Maverick",
+   "unconfirmed": true
+  },
+  {
+   "obdb": "MAVERICK_HVBAT_CURRENT",
+   "group": "summary",
+   "id": "HVBAT_CURRENT",
+   "name": "HV battery current",
+   "from": "OBDb/Ford-Maverick",
+   "unconfirmed": true
+  },
+  {
+   "obdb": "MAVERICK_T_RANGE_MIN",
+   "group": "temperature",
+   "id": "HVBAT_CELLTEMP_MIN",
+   "name": "HV battery temperature (min)",
+   "from": "OBDb/Ford-Maverick",
+   "unconfirmed": true
+  },
+  {
+   "obdb": "MAVERICK_T_RANGE_MAX",
+   "group": "temperature",
+   "id": "HVBAT_CELLTEMP_MAX",
+   "name": "HV battery temperature (max)",
+   "from": "OBDb/Ford-Maverick",
+   "unconfirmed": true
+  },
+  {
+   "obdb": "MAVERICK_T_RANGE_AVG",
+   "group": "temperature",
+   "id": "HVBAT_CELLTEMP_AVG",
+   "name": "HV battery temperature (avg)",
+   "from": "OBDb/Ford-Maverick",
+   "unconfirmed": true
+  },
+  {
+   "obdb": "MAVERICK_HVBAT_T",
+   "group": "temperature",
+   "id": "HVBAT_TEMP",
+   "name": "HV battery temperature",
+   "from": "OBDb/Ford-Maverick",
+   "unconfirmed": true
+  },
+  {
+   "obdb": "MAVERICK_MIN_MODULE_V",
+   "group": "cells",
+   "id": "HVBAT_MODULE_VOLT_MIN",
+   "from": "OBDb/Ford-Maverick",
+   "unconfirmed": true
+  },
+  {
+   "obdb": "MAVERICK_AVG_MODULE_V",
+   "group": "cells",
+   "id": "HVBAT_MODULE_VOLT_AVG",
+   "from": "OBDb/Ford-Maverick",
+   "unconfirmed": true
+  },
+  {
+   "obdb": "MAVERICK_V_VARIATION_BAT",
+   "group": "cells",
+   "id": "HVBAT_MODULE_VOLT_SPREAD",
+   "from": "OBDb/Ford-Maverick",
+   "unconfirmed": true
+  },
+  {
+   "obdb": "MAVERICK_SOC_VARIATION_BAT",
+   "group": "cells",
+   "id": "HVBAT_SOC_SPREAD",
+   "from": "OBDb/Ford-Maverick",
+   "unconfirmed": true
+  },
+  {
+   "obdb": "MAVERICK_HVBAT_AGE",
+   "group": "health",
+   "id": "HVBAT_AGE_HOURS",
+   "name": "Battery age",
+   "from": "OBDb/Ford-Maverick",
+   "unconfirmed": true
+  },
+  {
+   "obdb": "MAVERICK_BAT_PACK_LIFETIME",
+   "group": "health",
+   "id": "HVBAT_AH_DISCHARGED",
+   "name": "Lifetime charge out",
+   "from": "OBDb/Ford-Maverick",
+   "unconfirmed": true
+  },
+  {
+   "obdb": "MAVERICK_LEAKAGE_RES_BUS",
+   "group": "health",
+   "id": "HVBAT_ISOLATION",
+   "name": "Isolation resistance",
+   "from": "OBDb/Ford-Maverick",
+   "unconfirmed": true
+  },
+  {
+   "obdb": "F150_BATT_SOC",
+   "group": "12v",
+   "id": "LVBAT_SOC",
+   "name": "12 V battery charge"
+  },
+  {
+   "obdb": "F150_BATT_AGE",
+   "group": "12v",
+   "id": "LVBAT_AGE_HOURS",
+   "name": "12 V battery age",
+   "fmt": {
+    "mul": 24,
+    "max": 43800,
+    "unit": "hours"
+   }
+  },
+  {
+   "obdb": "F150_ODO",
+   "group": "vehicle",
+   "id": "ODOMETER",
+   "name": "Odometer"
+  },
+  {
+   "obdb": "F150_VSS",
+   "group": "vehicle",
+   "id": "VEHICLE_SPEED",
+   "name": "Vehicle speed"
+  },
+  {
+   "obdb": "F150_FLI",
+   "group": "vehicle",
+   "id": "FUEL_LEVEL",
+   "name": "Fuel level"
+  },
+  {
+   "obdb": "F150_DTE_DISP",
+   "group": "vehicle",
+   "id": "FUEL_RANGE",
+   "name": "Distance to empty"
+  },
+  {
+   "obdb": "F150_ECT",
+   "group": "temperature",
+   "id": "ENGINE_COOLANT_TEMP",
+   "name": "Engine coolant temperature"
+  },
+  {
+   "obdb": "F150_RPM",
+   "group": "vehicle",
+   "id": "ENGINE_RPM",
+   "name": "Engine speed"
+  }
+ ]
+}

@@ -12,6 +12,11 @@
     "obdProtocol": 7,
     "note": "CONFIRMED on-vehicle: ISO 15765-4 CAN 29-bit/500k, force with ATSP7 (auto-detect ATSP0 FAILS on the Lyriq). Battery/propulsion controller (BECM) is ECU 40: request header 18DA40F1, response filter 18DAF140. A Viecar ELM327 clone DID handle 29-bit multiframe here, though an STN adapter (OBDLink CX/MX+) is still recommended for reliability."
   },
+  "pack": {
+    "ratedKwh": 102,
+    "nominalVoltage": 352.1,
+    "_source": "102 kWh rated; nominal 352.1 V is what ECU 17 DID 2429 reads. The capacity test's long-standing constants, now in data."
+  },
   "ecuMap": {
     "_comment": "ECUs seen answering the 0100 functional broadcast (18DB33F1) on this Lyriq. Battery data lives on ECU 40.",
     "battery": "40",

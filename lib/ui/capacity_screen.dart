@@ -103,11 +103,18 @@ class _CapacityScreenState extends State<CapacityScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        FilledButton.icon(
-          onPressed: () => c.startCapacityTest(),
-          icon: const Icon(Icons.play_arrow),
-          label: const Text('Start capacity test'),
-        ),
+        if (c.capacityTestAvailable)
+          FilledButton.icon(
+            onPressed: () => c.startCapacityTest(),
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('Start capacity test'),
+          )
+        else
+          const Text(
+            'Not available for this vehicle yet: the test grades against '
+            'the pack\'s rated energy and nominal voltage, and this '
+            'vehicle\'s signal set does not give them.',
+          ),
       ],
     );
   }

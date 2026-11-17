@@ -124,4 +124,20 @@ void main() {
       }
     });
   });
+
+  test('hours read as days or years once they are long enough', () {
+    ({double value, String unit}) h(double v) => DisplayUnits.readableHours(v);
+    expect(h(5), (value: 5.0, unit: 'h'));
+    expect(h(23.9).unit, 'h');
+    expect(h(36), (value: 1.5, unit: 'days'));
+    expect(h(8765).unit, 'days');
+    expect(h(78200).unit, 'years');
+    expect(h(78200).value, closeTo(8.92, 0.005));
+
+    const units = DisplayUnits();
+    expect(units.display('hours', 10600).unit, 'years');
+    // An unverified unit is shown as read, as always.
+    expect(units.display('hours?', 10600), (value: 10600.0, unit: 'h?'));
+    expect(units.display('volts', 12.5), (value: 12.5, unit: 'V'));
+  });
 }

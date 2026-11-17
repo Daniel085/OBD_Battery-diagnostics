@@ -4,13 +4,20 @@
   "description": "2018 BMW 330e (F30 PHEV). J1979 PIDs on 7EB/7E8 and the SME battery ECU (6F1 -> 607, BMW extended address 07), both read on-vehicle 2026-11-08 over the OBD port with an ELM327 v2.2 clone.",
   "provenance": {
     "derivedFrom": "OBDb/BMW-i3s (CC BY-SA 4.0) for the SME DID numbers; F30 layouts corrected from on-vehicle reads",
-    "confidence": "v02 (2026-11-08): SME read on-vehicle (captures/bmw_sme_2026-11-08.txt). Cross-checked vs BimmerLink on the same car/day: SOC window bounds (exact), cell V and cell SoC ranges, current, cell temps vs ambient. Same-moment check vs BimmerLink confirms DFA0 bytes 6-11 as the live cell-V triple. NOT ground-truthed: HVBAT_SOH (83 %, i3 layout). Pack voltage: the i3 DID DD68 returns 7F 22 31 on the F30; the F30 pack voltage is DD66 (found by DD00-DDFF sweep, consistent with 80 cells x avg cell V and BimmerLink). v01 -> v02: fixed the request framing (v01's SME reads never worked), DFA0 offsets moved (i3 layout was wrong for F30), DDBC/DDC0/DFA0 gained window/avg/cell-SoC signals. 2026-11-14: HVBAT_CURRENT negated (mul -1). The SME's raw sign is +charge; the app expects +discharge, so drive mode showed REGEN under load and the dashboard would have shown a plug-in charge as discharging.",
+    "confidence": "v02 (2026-11-08): SME read on-vehicle (captures/bmw_sme_2026-11-08.txt). Cross-checked vs BimmerLink on the same car/day: SOC window bounds (exact), cell V and cell SoC ranges, current, cell temps vs ambient. Same-moment check vs BimmerLink confirms DFA0 bytes 6-11 as the live cell-V triple. NOT ground-truthed: HVBAT_SOH (83 %, i3 layout). Pack voltage: the i3 DID DD68 returns 7F 22 31 on the F30; the F30 pack voltage is DD66 (found by DD00-DDFF sweep, consistent with 80 cells x avg cell V and BimmerLink). v01 -> v02: fixed the request framing (v01's SME reads never worked), DFA0 offsets moved (i3 layout was wrong for F30), DDBC/DDC0/DFA0 gained window/avg/cell-SoC signals. 2026-11-14: HVBAT_CURRENT negated (mul -1). The SME's raw sign is +charge; the app expects +discharge, so drive mode showed REGEN under load and the dashboard would have shown a plug-in charge as discharging. 2026-11-15: added the EME (3A) motor signals MOTOR_* from the i3 layout, UNCONFIRMED on this car (units marked '?'). 2026-11-15: added SME ageing/lifetime signals (DDB6 resistance health, DD6A isolation, DF60 hours, DD63 contactor count) from the i3 layout. They decode the 2026-11-08 capture to plausible values but are NOT cross-checked (units marked '?'); read every 5 minutes (freq 300) because each SME read takes ~1.25 s. Also 2026-11-15: 12 V battery signals LVBAT_* from the DME (address 12) recharge history 409D, decoded from captures/bmw_dme_2026-11-08.txt, NOT cross-checked (units marked '?'). 2026-11-15 second read, car charging (captures/bmw_2026-11-15.txt): SME, DME and EME all answer UDS while J1979 is silent. HVBAT_AGE_HOURS confirmed against the wall clock (+166 h in 166 h) and promoted. The other ageing figures and the 12 V history moved the way their layouts predict (hours +6, contactor count +32, 12 V header km = odometer) but are still not cross-checked. EME motor temperatures read on the car for the first time (53.3 / 55.4 degC after a drive); motor speed is still open (raw 0 while charging, dropped via nullmin). 2026-11-15 charge log (captures/bmw_chg_2026-11-15.txt): added HVBAT_AH_CHARGED (DD73, confirmed against integrated pack current) and HVBAT_AH_DISCHARGED (DD74, same layout, not yet seen counting). Both are little-endian: fmt.le, a local extension to the OBDb format. 2026-11-15: added HVBAT_MODULE_1..5_DEFECT (SME DFA6, one byte per module, 0 = no defect), UNCONFIRMED: all zero in the only read, matched to BimmerLink's 'Defective cells' page by shape. Later on 2026-11-15: module status 0 = OK confirmed by the owner (marks dropped, 0 shown as OK via fmt.map); HVBAT_HV_ON_HOURS promoted on the charge-log evidence. LVBAT_TOPUP_KM added (odometer of the latest 12 V top-up record).",
     "license": "CC BY-SA 4.0"
   },
   "protocol": {
     "canFormat": "11bit",
     "obdProtocol": 6,
     "note": "SME: tester 6F1, response 607, extended address 07 BEFORE the ISO-TP PCI. Adapter recipe: ATCAF1, ATCEA07, ATFCSH6F1, ATFCSD07300000, ATFCSM1, ATAT0, ATSTFF (see lib/transport/elm327_protocol.dart)."
+  },
+  "pack": {
+    "ratedAh": 26,
+    "_source": "Rated cell capacity of BMW's generation-3 PHEV packs. Not read from the car. Basis: BMW's press data for the F30 330e gives 7.6 kWh gross at 293 V nominal = 25.9 Ah; BMW training material for the later packs says the cell capacity rose 'from 26 Ah to 34 Ah' with generation 4; and BMW's EU battery-regulation sheet lists the later 330e pack (SP041) with a rated capacity of 34.0 Ah, i.e. BMW quotes the cell rating as the pack's rated Ah. No F30 document giving 26 Ah directly was found (2026-11-15).",
+    "ratedKwh": 5.7,
+    "nominalVoltage": 293,
+    "_capacityTest": "ratedKwh is BMW's usable (net) 5.7 kWh, because HVBAT_SOC is the usable-window SOC; nominal 293 V from BMW's press data."
   },
   "commands": [
     {
@@ -382,6 +389,416 @@
             "len": 32,
             "max": 4294967295,
             "unit": "km"
+          }
+        }
+      ]
+    },
+    {
+      "_onVehicle": "2026-11-08 DD sweep: 02 74 -> 62.8 %. i3 meaning: R_new / R_now x 100 (100 % = new, falls with age). 2026-11-15 (charging, captures/bmw_2026-11-15.txt): 02 73 -> 62.7 %.",
+      "_unconfirmed": "Layout from the BMW i3 SME (OVMS vehicle_bmwi3 ecu_sme_defines.h, generated from EDIABAS data). The reply is from this car but the meaning is not cross-checked against another tool, so units carry '?'.",
+      "hdr": "6F1",
+      "rax": "607",
+      "eax": "07",
+      "freq": 300,
+      "cmd": {
+        "22": "DDB6"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_SOH_RESISTANCE",
+          "name": "Resistance health (unconfirmed)",
+          "group": "health",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "div": 10,
+            "max": 100,
+            "unit": "percent?"
+          }
+        }
+      ]
+    },
+    {
+      "_onVehicle": "2026-11-08 DD sweep: 07 D0 07 D0 00 00 01 01 00 -> 2000 kOhm after-run, 2000 kOhm in operation (both flagged plausible, bytes 6-7), internal 0 / not measured. 2000 looks like the measurement ceiling. The plausibility flag (byte 7) is not decoded: a 0 there means the value is not valid. 2026-11-15 (charging): identical reply.",
+      "_unconfirmed": "Layout from the BMW i3 SME (OVMS vehicle_bmwi3 ecu_sme_defines.h, generated from EDIABAS data). The reply is from this car but the meaning is not cross-checked against another tool, so units carry '?'.",
+      "hdr": "6F1",
+      "rax": "607",
+      "eax": "07",
+      "freq": 300,
+      "cmd": {
+        "22": "DD6A"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_ISOLATION",
+          "name": "Isolation resistance (unconfirmed)",
+          "group": "health",
+          "fmt": {
+            "bix": 16,
+            "len": 16,
+            "unit": "kiloohms?"
+          }
+        }
+      ]
+    },
+    {
+      "_onVehicle": "2026-11-08 DF sweep: 00 00 29 62 00 01 30 D2 -> 10594 h with the contactors closed, 78034 h total. 78034 h = 8.9 years, i.e. a pack that started counting in late 2017, which fits a 2018 model-year car. 2026-11-15 12:27 (charging, captures/bmw_2026-11-15.txt): 00 00 29 68 00 01 31 78 -> 10600 h / 78200 h. The total rose by 166 h in the 166 h of wall-clock time since the first read, so it is a running hour counter: HVBAT_AGE_HOURS is confirmed (unit without '?'). The contactors-closed figure rose by 6 h in that week (55 km of driving and at least one charge): plausible, not checked to the hour. 2026-11-15 charge log: with the contactors closed for the 1.6 h of the charge this word ticked exactly once (~13:13) while the total ticked hourly beside it, so one count is between 0.8 and 1.7 h; and it rose 4 in the 48 h before (one logged charge plus driving) and 6 in the week. HVBAT_HV_ON_HOURS is treated as confirmed hours from here.",
+      "_unconfirmed": "Layout from the BMW i3 SME (OVMS vehicle_bmwi3 ecu_sme_defines.h). Both words are confirmed against time on this car; no second tool has shown them.",
+      "hdr": "6F1",
+      "rax": "607",
+      "eax": "07",
+      "freq": 300,
+      "cmd": {
+        "22": "DF60"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_HV_ON_HOURS",
+          "name": "Time with HV on",
+          "group": "health",
+          "fmt": {
+            "bix": 0,
+            "len": 32,
+            "unit": "hours"
+          }
+        },
+        {
+          "id": "HVBAT_AGE_HOURS",
+          "name": "Battery age",
+          "group": "health",
+          "fmt": {
+            "bix": 32,
+            "len": 32,
+            "unit": "hours"
+          }
+        }
+      ]
+    },
+    {
+      "_onVehicle": "2026-11-08 DD sweep: 00 00 3C 2B 00 00 00 00 -> 15403 contactor switchings without load, 0 under load. Same order as DF63 (14080 terminal cycles). 2026-11-15 (charging): 00 00 3C 4B 00 00 00 00 -> 15435, +32 in a week, still 0 under load.",
+      "_unconfirmed": "Layout from the BMW i3 SME (OVMS vehicle_bmwi3 ecu_sme_defines.h, generated from EDIABAS data). The reply is from this car but the meaning is not cross-checked against another tool, so units carry '?'.",
+      "hdr": "6F1",
+      "rax": "607",
+      "eax": "07",
+      "freq": 300,
+      "cmd": {
+        "22": "DD63"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_CONTACTOR_CYCLES",
+          "name": "Contactor cycles (unconfirmed)",
+          "group": "health",
+          "fmt": {
+            "bix": 0,
+            "len": 32,
+            "unit": "count?"
+          }
+        },
+        {
+          "id": "HVBAT_CONTACTOR_CYCLES_LOAD",
+          "name": "Contactor cycles, loaded (unconfirmed)",
+          "group": "health",
+          "fmt": {
+            "bix": 32,
+            "len": 32,
+            "unit": "count?"
+          }
+        }
+      ]
+    },
+    {
+      "_onVehicle": "Charge-in counter in ampere-seconds, u32 LITTLE-endian (the i3's DD73 is big-endian; big-endian here gives an impossible 754,000 Ah). 2026-11-08: 34,021 Ah. 2026-11-15 12:27: 08 5C 4E 07 -> 34,048.9 Ah. Confirmed on the car by the charge of 2026-11-15 (captures/bmw_chg_2026-11-15.txt): read every ~10 minutes next to the pack current (DD69, every ~26 s), it rose by 34,487 A*s between 12:47:05 and 13:59:51 against 34,461 A*s of integrated current (0.08 % apart; each 10-minute step within 1.2 %). It counts regen as well as plug-in charge.",
+      "hdr": "6F1",
+      "rax": "607",
+      "eax": "07",
+      "freq": 300,
+      "cmd": {
+        "22": "DD73"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_AH_CHARGED",
+          "name": "Lifetime charge in",
+          "group": "health",
+          "fmt": {
+            "bix": 0,
+            "len": 32,
+            "le": true,
+            "div": 3600,
+            "unit": "amp_hours"
+          }
+        }
+      ]
+    },
+    {
+      "_onVehicle": "2026-11-08: 33,136 Ah. 2026-11-15 12:27: 2A 41 1E 07 -> 33,173.1 Ah. Did not move during the 2026-11-15 charge (as a discharge counter should not) and rose 37 Ah in the week before it.",
+      "_unconfirmed": "Same layout as DD73 (A*s, u32 little-endian), which is confirmed; this one has not been watched counting during a drive, so the unit carries '?'.",
+      "hdr": "6F1",
+      "rax": "607",
+      "eax": "07",
+      "freq": 300,
+      "cmd": {
+        "22": "DD74"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_AH_DISCHARGED",
+          "name": "Lifetime charge out (unconfirmed)",
+          "group": "health",
+          "fmt": {
+            "bix": 0,
+            "len": 32,
+            "le": true,
+            "div": 3600,
+            "unit": "amp_hours?"
+          }
+        }
+      ]
+    },
+    {
+      "_onVehicle": "2026-11-08 DF sweep: DFA6 = 00 x 11. One byte per module slot; this pack has 5 modules (slots 6-11 are FF in the per-module SoH DFAA and SoC DFAD, 7F FF in the per-module temperatures DFA9). BimmerLink's 'Defective cells' page showed 11 modules, all OK, on 2026-11-15. 2026-11-15: the owner confirms 0 = module OK (the car's modules are healthy and read 0). Names and unit lost their marks; 0 is shown as 'OK'.",
+      "_unconfirmed": "Only the meaning of a NON-zero code is unknown: none has ever been seen.",
+      "hdr": "6F1",
+      "rax": "607",
+      "eax": "07",
+      "freq": 300,
+      "cmd": {
+        "22": "DFA6"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_MODULE_1_DEFECT",
+          "name": "Module 1 status",
+          "group": "modules",
+          "fmt": {
+            "bix": 0,
+            "len": 8,
+            "unit": "code",
+            "map": {
+              "0": {
+                "value": "OK",
+                "description": "no defective cell reported"
+              }
+            }
+          }
+        },
+        {
+          "id": "HVBAT_MODULE_2_DEFECT",
+          "name": "Module 2 status",
+          "group": "modules",
+          "fmt": {
+            "bix": 8,
+            "len": 8,
+            "unit": "code",
+            "map": {
+              "0": {
+                "value": "OK",
+                "description": "no defective cell reported"
+              }
+            }
+          }
+        },
+        {
+          "id": "HVBAT_MODULE_3_DEFECT",
+          "name": "Module 3 status",
+          "group": "modules",
+          "fmt": {
+            "bix": 16,
+            "len": 8,
+            "unit": "code",
+            "map": {
+              "0": {
+                "value": "OK",
+                "description": "no defective cell reported"
+              }
+            }
+          }
+        },
+        {
+          "id": "HVBAT_MODULE_4_DEFECT",
+          "name": "Module 4 status",
+          "group": "modules",
+          "fmt": {
+            "bix": 24,
+            "len": 8,
+            "unit": "code",
+            "map": {
+              "0": {
+                "value": "OK",
+                "description": "no defective cell reported"
+              }
+            }
+          }
+        },
+        {
+          "id": "HVBAT_MODULE_5_DEFECT",
+          "name": "Module 5 status",
+          "group": "modules",
+          "fmt": {
+            "bix": 32,
+            "len": 8,
+            "unit": "code",
+            "map": {
+              "0": {
+                "value": "OK",
+                "description": "no defective cell reported"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "_onVehicle": "2026-11-08 DME sweep (captures/bmw_dme_2026-11-08.txt): 88 bytes = an 8-byte 'last park' header (u32 seconds clock, u24 km, 12 V SoC x2) and four 20-byte records of the last top-ups of the 12 V battery from the HV pack (park clock, km, SoC at park, start clock, SoC at start, ?, temperature +128, duration s, SoC at end, ?, end reason). Header: km 77698 (= the odometer that day), C7 -> 99.5 %. Latest top-up: 84 -> 66.0 % before, 93 -> 73.5 % after, 90 -> 16 degC, ~1 h, 6.3 days after parking at 79 %. 2026-11-15 (charging, captures/bmw_2026-11-15.txt): header km 77753 (= the odometer in the SME's DFA0 that minute), B1 -> 88.5 %; the four records are byte-identical, i.e. no top-up since 2026-11-08, and 409E is unchanged (23). 2026-11-15: LVBAT_TOPUP_KM = the latest record's odometer stamp (bytes 12-14, 77624 km). The unit is plain km (same 3-byte field as the header's, which matched the odometer on both reads), so it follows the km/mi setting; the name stays marked because the record's meaning is not cross-checked. The records also carry clock stamps, but they count seconds on the car's own running clock and no DID is known that returns that clock's current value, so the app shows no date: it could only be estimated from when the car was last parked.",
+      "_unconfirmed": "Structure taken from the BMW i3 EDME job ZYKLISCHES_NACHLADEN_INFO (OVMS vehicle_bmwi3 ecu_edm_defines.h), re-fitted to this car's DME (3-byte km, no forecast byte). Internally consistent: clocks ascend, km stamps match the odometer, record temperatures fit the season (16 degC late Oct, 24 and 37 degC in July), and 409E's two histograms each total 23 top-ups. NOT cross-checked against another tool; the two bytes the i3 calls HV SoC do not behave like one here and are not decoded.",
+      "hdr": "6F1",
+      "rax": "612",
+      "eax": "12",
+      "freq": 300,
+      "cmd": {
+        "22": "409D"
+      },
+      "signals": [
+        {
+          "id": "LVBAT_SOC_PARK",
+          "name": "12 V charge at last park (unconfirmed)",
+          "group": "12v",
+          "fmt": {
+            "bix": 56,
+            "len": 8,
+            "div": 2,
+            "max": 100,
+            "unit": "percent?"
+          }
+        },
+        {
+          "id": "LVBAT_TOPUP_SOC_START",
+          "name": "12 V before last top-up (unconfirmed)",
+          "group": "12v",
+          "fmt": {
+            "bix": 160,
+            "len": 8,
+            "div": 2,
+            "max": 100,
+            "unit": "percent?"
+          }
+        },
+        {
+          "id": "LVBAT_TOPUP_SOC_END",
+          "name": "12 V after last top-up (unconfirmed)",
+          "group": "12v",
+          "fmt": {
+            "bix": 200,
+            "len": 8,
+            "div": 2,
+            "max": 100,
+            "unit": "percent?"
+          }
+        },
+        {
+          "id": "LVBAT_TOPUP_KM",
+          "name": "12 V last top-up at (unconfirmed)",
+          "group": "12v",
+          "fmt": {
+            "bix": 96,
+            "len": 24,
+            "unit": "km"
+          }
+        }
+      ]
+    },
+    {
+      "_onVehicle": "2026-11-15 12:28 (plugged in, charging, minutes after a drive; captures/bmw_2026-11-15.txt): 0D 56 0D D9 -> 53.3 / 55.4 degC. The EME answers on 63A with the car asleep enough that J1979 is silent. Believable for a just-driven motor, and the two sensors are 2.0 degC apart exactly as in the BimmerLink reading of 2026-11-08 (39.7 / 41.7). Still no same-moment reading from a second tool.",
+      "_unconfirmed": "DID and layout are the BMW i3 EME's (EDIABAS job data as published in the OVMS vehicle_bmwi3 component: DEA6 = STAT_TEMP1/2_E_MOTOR, s16 x 0.0156 degC). The ECU address 3A is the 330e's EME per BimmerLink and the 2026-11-08 census (the i3's EME is 1A). Units carry '?' until a read on the car matches BimmerLink (2026-11-08, parked warm: 39.7 / 41.7 degC).",
+      "hdr": "6F1",
+      "rax": "63A",
+      "eax": "3A",
+      "cmd": {
+        "22": "DEA6"
+      },
+      "signals": [
+        {
+          "id": "MOTOR_TEMP_1",
+          "name": "Motor temperature 1 (unconfirmed)",
+          "group": "motor",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "max": 200,
+            "min": -40,
+            "div": 64,
+            "sign": true,
+            "unit": "celsius?"
+          }
+        },
+        {
+          "id": "MOTOR_TEMP_2",
+          "name": "Motor temperature 2 (unconfirmed)",
+          "group": "motor",
+          "fmt": {
+            "bix": 16,
+            "len": 16,
+            "max": 200,
+            "min": -40,
+            "div": 64,
+            "sign": true,
+            "unit": "celsius?"
+          }
+        }
+      ]
+    },
+    {
+      "_onVehicle": "2026-11-15 12:28 (plugged in, charging; captures/bmw_2026-11-15.txt): 00 00 00 00 00 00 0D, 7 bytes as on the i3. Torque 0 / 0 Nm, mode byte 13. The speed field is raw 0, which the i3 formula turns into -5000 rpm: either the EME reports 0 = no reading while the inverter is off, or this car has no -5000 offset. nullmin -5000 drops that value instead of showing it. To settle it: read once in Ready at a standstill. Raw 27 10 (10000) means the i3 offset is right; raw 00 00 means there is no offset.",
+      "_unconfirmed": "Speed and torque NOT yet read with the motor turning. i3 EME layout (OVMS vehicle_bmwi3, DEA7 = STAT_ELEKTRISCHE_MASCHINE): speed u16 x 0.5 - 5000 rpm, actual torque s16 x 0.5 Nm, target torque s16 x 0.5 Nm, then an operating-mode byte. min/max are the expected working range (used as the gauge range), not a validity limit.",
+      "hdr": "6F1",
+      "rax": "63A",
+      "eax": "3A",
+      "cmd": {
+        "22": "DEA7"
+      },
+      "signals": [
+        {
+          "id": "MOTOR_RPM",
+          "name": "Motor speed (unconfirmed)",
+          "group": "motor",
+          "fmt": {
+            "bix": 0,
+            "len": 16,
+            "max": 7000,
+            "min": 0,
+            "nullmin": -5000,
+            "div": 2,
+            "add": -5000,
+            "unit": "rpm?"
+          }
+        },
+        {
+          "id": "MOTOR_TORQUE",
+          "name": "Motor torque, actual (unconfirmed)",
+          "group": "motor",
+          "fmt": {
+            "bix": 16,
+            "len": 16,
+            "max": 250,
+            "min": -250,
+            "div": 2,
+            "sign": true,
+            "unit": "Nm?"
+          }
+        },
+        {
+          "id": "MOTOR_TORQUE_TARGET",
+          "name": "Motor torque, target (unconfirmed)",
+          "group": "motor",
+          "fmt": {
+            "bix": 32,
+            "len": 16,
+            "max": 250,
+            "min": -250,
+            "div": 2,
+            "sign": true,
+            "unit": "Nm?"
           }
         }
       ]

@@ -43,3 +43,5 @@ flutter:
     - signalsets/BMW-330e-2018/v02.json
     - signalsets/Cadillac-Lyriq-2025/v01.json
     - signalsets/Cadillac-Lyriq-2025/v02.json
+    - signalsets/Ford-F-150-Lightning-2022/v01.json
+    - signalsets/Ford-F-150-Hybrid-2021/v01.json

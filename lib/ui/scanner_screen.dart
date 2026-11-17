@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../app/app_controller.dart';
+import '../engine/signal_set.dart';
 import '../tools/uds_scanner.dart';
 
 /// In-app surface for the reverse-engineering DID scanner (Phase 5). Sweeps a
@@ -28,6 +29,9 @@ class _ScannerScreenState extends State<ScannerScreen> {
   bool _running = false;
   String? _error;
 
+  /// File the last sweep was saved to on this phone, if it was.
+  String? _savedAs;
+
   void _applyPreset({
     required String hdr,
     required String rax,
@@ -46,19 +50,25 @@ class _ScannerScreenState extends State<ScannerScreen> {
     });
   }
 
-  /// Self-documenting CSV of the sweep: header records the addressing used so a
-  /// saved result can be reproduced later.
-  String _resultsCsv() {
+  /// Self-documenting CSV of a sweep: the header records the addressing used
+  /// so a saved result can be reproduced later.
+  List<String> _csvHeader() => [
+        '# DID scan',
+        '# tester_hdr,${_hdr.text}',
+        '# response_filter,${_rax.text}',
+        '# ext_addr,${_eax.text}',
+        '# can_29bit,$_is29',
+        '# range,${_start.text}-${_end.text}',
+      ];
+
+  static String _csv(List<String> header, List<DidScanResult> hits,
+      {int? probed}) {
     final rows = <String>[
-      '# DID scan',
-      '# tester_hdr,${_hdr.text}',
-      '# response_filter,${_rax.text}',
-      '# ext_addr,${_eax.text}',
-      '# can_29bit,$_is29',
-      '# range,${_start.text}-${_end.text}',
+      ...header,
+      if (probed != null) '# probed,$probed',
       'did,bytes,hex',
     ];
-    for (final h in _hits) {
+    for (final h in hits) {
       final hex =
           h.data?.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ') ??
               '';
@@ -66,6 +76,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
     }
     return rows.join('\n');
   }
+
+  String _resultsCsv() => _csv(_csvHeader(), _hits);
 
   Future<void> _run(AppController c) async {
     final source = c.activeSource;
@@ -87,6 +99,16 @@ class _ScannerScreenState extends State<ScannerScreen> {
       _total = end - start + 1;
     });
 
+    // Kept apart from the widget's state so the result is saved even if the
+    // screen is closed during the sweep. (Every probe is also in the session
+    // recording as it happens.)
+    final found = <DidScanResult>[];
+    var probed = 0;
+    c.captureNote('DID sweep started: hdr ${_hdr.text} filter ${_rax.text} '
+        'ext ${_eax.text} range ${_start.text}-${_end.text}');
+    // The addressing as it is now: the fields can be edited during a sweep.
+    final header = _csvHeader();
+    await c.holdAdapter();
     final scanner = UdsScanner(
       source: source,
       requestHeader: _hdr.text.trim(),
@@ -101,6 +123,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
         startDid: start,
         endDid: end,
         onResult: (r) {
+          probed++;
+          if (r.isInteresting) found.add(r);
           if (!mounted) return;
           setState(() {
             _probed++;
@@ -111,8 +135,48 @@ class _ScannerScreenState extends State<ScannerScreen> {
     } catch (e) {
       if (mounted) setState(() => _error = 'Scan error: $e');
     } finally {
-      if (mounted) setState(() => _running = false);
+      c.releaseAdapter();
+      c.captureNote('DID sweep ended: $probed probed, ${found.length} answered');
+      final saved = probed == 0
+          ? null
+          : await c.saveCapture('scan', _csv(header, found, probed: probed));
+      if (mounted) {
+        setState(() {
+          _running = false;
+          _savedAs = saved;
+        });
+      }
     }
+  }
+
+  /// One preset per control unit of the connected vehicle's signal set,
+  /// covering the identifier blocks (xx00-xxFF) its known requests fall in.
+  List<Widget> _vehiclePresets(SignalSet set) {
+    final ranges = <(String, String?, String?), (int, int)>{};
+    for (final cmd in set.commands) {
+      if (cmd.hdr == null || cmd.service != '22' || cmd.payload.length != 4) {
+        continue;
+      }
+      final did = int.parse(cmd.payload, radix: 16);
+      final key = (cmd.hdr!, cmd.rax, cmd.eax);
+      final (lo, hi) = ranges[key] ?? (did, did);
+      ranges[key] = (did < lo ? did : lo, did > hi ? did : hi);
+    }
+    String hex4(int v) => v.toRadixString(16).padLeft(4, '0').toUpperCase();
+    return [
+      for (final MapEntry(key: (hdr, rax, eax), value: (lo, hi))
+          in ranges.entries)
+        ActionChip(
+          label: Text('$hdr → ${rax ?? 'any'}${eax == null ? '' : ' ($eax)'}'),
+          onPressed: () => _applyPreset(
+              hdr: hdr,
+              rax: rax ?? '',
+              eax: eax ?? '',
+              is29: set.protocol.canFormat == CanFormat.bits29,
+              start: hex4(lo & 0xFF00),
+              end: hex4(hi | 0xFF)),
+        ),
+    ];
   }
 
   @override
@@ -136,10 +200,18 @@ class _ScannerScreenState extends State<ScannerScreen> {
         children: [
           const Text(
             'Sweeps UDS service 0x22 across a DID range on the target ECU and '
-            'lists responders. Read-only. Run with the vehicle stationary.',
+            'lists responders. Read-only. Run with the vehicle stationary. '
+            'Dashboard readings pause during a sweep.',
             style: TextStyle(fontSize: 13),
           ),
           const SizedBox(height: 8),
+          if (c.signalSet case final set?) ...[
+            Text('Control units in ${set.vehicle}\'s signal set:',
+                style: const TextStyle(fontSize: 12)),
+            Wrap(spacing: 8, children: _vehiclePresets(set)),
+            const SizedBox(height: 4),
+            const Text('Other presets:', style: TextStyle(fontSize: 12)),
+          ],
           Wrap(spacing: 8, children: [
             ActionChip(
               label: const Text('BMW SME'),
@@ -198,6 +270,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
               padding: const EdgeInsets.only(top: 8),
               child: Text(_error!,
                   style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            ),
+          if (_savedAs != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text('Saved on this phone (Captures): $_savedAs',
+                  style: Theme.of(context).textTheme.bodySmall),
             ),
           const Divider(height: 32),
           Text('${_hits.length} responding DID(s)',

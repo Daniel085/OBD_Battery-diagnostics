@@ -111,6 +111,26 @@ class DisplayUnits {
     return rule == null ? delta : delta * rule.scale;
   }
 
+  /// 365.25 days.
+  static const hoursPerYear = 8766.0;
+
+  /// A duration in hours, in the unit it reads best in: hours up to a day,
+  /// days up to a year, years beyond that.
+  static ({double value, String unit}) readableHours(double hours) {
+    final h = hours.abs();
+    if (h < 24) return (value: hours, unit: 'h');
+    if (h < hoursPerYear) return (value: hours / 24, unit: 'days');
+    return (value: hours / hoursPerYear, unit: 'years');
+  }
+
+  /// A value and the unit symbol to show beside it. Verified `hours` become
+  /// days or years when that reads better; everything else is [convert] and
+  /// [symbolFor].
+  ({double value, String unit}) display(String unit, double value) =>
+      unit == 'hours'
+          ? readableHours(value)
+          : (value: convert(unit, value), unit: symbolFor(unit));
+
   /// Short symbol for a unit name (`celsius` -> `°C`); unknown names pass
   /// through unchanged.
   static String symbol(String unit) {
@@ -121,6 +141,9 @@ class DisplayUnits {
       'percent' => '%',
       'volts' => 'V',
       'amps' => 'A',
+      'kiloohms' => 'kΩ',
+      'hours' => 'h',
+      'amp_hours' => 'Ah',
       _ => base,
     };
     return '$s$mark';

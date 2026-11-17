@@ -8,6 +8,28 @@ import 'package:test/test.dart';
 SignalSet loadBmw() => SignalSet.parse(
     File('signalsets/BMW-330e-2018/v02.json').readAsStringSync());
 
+/// Answers from a script that a test can change between polls, and counts
+/// what was asked.
+class _ScriptedSource implements DataSource {
+  final Map<String, String> script;
+  final List<String> sent = [];
+  _ScriptedSource(this.script);
+
+  @override
+  String get name => 'scripted';
+  @override
+  bool get isConnected => true;
+  @override
+  Future<void> connect() async {}
+  @override
+  Future<void> disconnect() async {}
+  @override
+  Future<String> send(String command, {Duration? timeout}) async {
+    sent.add(command);
+    return script[command] ?? (command.startsWith('AT') ? 'OK\r>' : 'NO DATA\r>');
+  }
+}
+
 void main() {
   group('DiagnosticsClient over ReplaySource (simulated SME)', () {
     late SignalSet set;
@@ -87,6 +109,46 @@ void main() {
 
       expect(all.containsKey('HVBAT_SOC'), isTrue);
       expect(failures, isNotEmpty); // the other DIDs weren't scripted
+    });
+
+    test('a command with a freq is re-read only once that time has passed',
+        () async {
+      const fast = '7E8 03 41 5B 80\r>';
+      const slow = '7E8 06 62 DD B6 02 74 00 00\r>';
+      final set = SignalSet.parse('''
+{"vehicle": "freq-test", "protocol": {"canFormat": "11bit"}, "commands": [
+  {"hdr": "7E0", "rax": "7E8", "cmd": {"01": "5B"},
+   "signals": [{"id": "FAST", "name": "f", "fmt": {"len": 8}}]},
+  {"hdr": "7E0", "rax": "7E8", "freq": 300, "cmd": {"22": "DDB6"},
+   "signals": [{"id": "SLOW", "name": "s", "fmt": {"len": 16}}]}
+]}''');
+      final source = _ScriptedSource({'015B': fast});
+      final client = DiagnosticsClient(source, set);
+      int slowReads() => source.sent.where((c) => c == '22DDB6').length;
+      final t0 = DateTime.utc(2026, 1, 1);
+
+      // The slow command fails first: a failure does not start its clock.
+      var all = await client.readAll(now: t0, onFailure: (_) {});
+      expect(all.keys, ['FAST']);
+      source.script['22DDB6'] = slow;
+      all = await client.readAll(now: t0.add(const Duration(seconds: 2)));
+      expect(all.keys, ['FAST', 'SLOW']);
+      expect(all['SLOW']!.value, 628);
+      expect(slowReads(), 2); // the failed try, then the good one
+
+      // Within 300 s of the good read it is left out; the fast one is not.
+      all = await client.readAll(now: t0.add(const Duration(seconds: 200)));
+      expect(all.keys, ['FAST']);
+      expect(slowReads(), 2);
+
+      all = await client.readAll(now: t0.add(const Duration(seconds: 302)));
+      expect(all.keys, ['FAST', 'SLOW']);
+      expect(slowReads(), 3);
+
+      // A fresh adapter init starts over.
+      await client.initialize();
+      all = await client.readAll(now: t0.add(const Duration(seconds: 303)));
+      expect(all.keys, ['FAST', 'SLOW']);
     });
   });
 }

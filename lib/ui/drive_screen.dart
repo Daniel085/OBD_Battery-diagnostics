@@ -5,13 +5,17 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../app/app_controller.dart';
+import '../engine/diagnostics_client.dart';
+import '../engine/display_units.dart';
 import '../engine/drive_record.dart';
 import '../engine/drive_session.dart';
 
 /// Drive mode: a live EV power meter. The poll loop switches to hammering the
-/// pack-current DID alone (~5-15 Hz on a real adapter), showing instantaneous
+/// pack-current DID (~5-15 Hz on a real adapter), showing instantaneous
 /// kW draw/regen, a rolling power graph, and per-session energy stats —
-/// the "Scan My Tesla" view for Ultium, over a generic BLE adapter.
+/// the "Scan My Tesla" view for Ultium, over a generic BLE adapter. Vehicles
+/// whose signal set has motor signals also get a gauge card for them,
+/// refreshed every few seconds.
 class DriveScreen extends StatefulWidget {
   const DriveScreen({super.key});
 
@@ -82,7 +86,7 @@ class _DriveScreenState extends State<DriveScreen> {
               : Column(
                   children: [
                     _RecordBar(controller: c),
-                    Expanded(child: _DriveBody(session: s)),
+                    Expanded(child: _DriveBody(session: s, controller: c)),
                   ],
                 ),
     );
@@ -190,7 +194,8 @@ class _RecordBar extends StatelessWidget {
 
 class _DriveBody extends StatelessWidget {
   final DriveSession session;
-  const _DriveBody({required this.session});
+  final AppController controller;
+  const _DriveBody({required this.session, required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -271,10 +276,19 @@ class _DriveBody extends StatelessWidget {
             ),
           ),
         ),
+        if (controller.hasDriveExtras) ...[
+          const SizedBox(height: 8),
+          _MotorCard(controller: controller),
+        ],
         const SizedBox(height: 8),
         Text(
-          'Polling pack current only, as fast as the adapter allows. Other '
-          'dashboard signals pause while drive mode is open.',
+          controller.hasDriveExtras
+              ? 'Pack current is polled as fast as the adapter allows. Motor '
+                  'values refresh every few seconds, and the power feed '
+                  'pauses while they are read. Other dashboard signals pause '
+                  'while drive mode is open.'
+              : 'Polling pack current only, as fast as the adapter allows. '
+                  'Other dashboard signals pause while drive mode is open.',
           style: Theme.of(context).textTheme.bodySmall,
           textAlign: TextAlign.center,
         ),
@@ -300,6 +314,221 @@ class _DriveBody extends StatelessWidget {
     final s = d.inSeconds % 60;
     return '${m}m ${s.toString().padLeft(2, '0')}s';
   }
+}
+
+/// Motor temperature, speed and torque as dial gauges, for vehicles whose
+/// signal set has them. Values a signal set marks unverified (unit ending in
+/// `?`) are shown as read, with a note.
+class _MotorCard extends StatelessWidget {
+  final AppController controller;
+  const _MotorCard({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final readings = controller.driveExtraReadings;
+    final unverified = readings.any((r) => r.unit.endsWith('?'));
+    final now = DateTime.now();
+    // Older than this and a gauge is dimmed: the value is no longer live.
+    final stale = controller.driveExtrasSpacing * 4;
+
+    Widget body;
+    if (readings.isEmpty) {
+      body = Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Text(
+          controller.driveExtrasResponding
+              ? 'Waiting for motor data…'
+              : 'This vehicle did not answer the motor requests.',
+          style: text.bodyMedium,
+          textAlign: TextAlign.center,
+        ),
+      );
+    } else {
+      body = LayoutBuilder(builder: (context, constraints) {
+        // Three dials to a row on a phone, two when that would be cramped.
+        const gap = 8.0;
+        final perRow = constraints.maxWidth >= 3 * 96 + 2 * gap ? 3 : 2;
+        final size = math.min(
+            150.0, (constraints.maxWidth - gap * (perRow - 1)) / perRow);
+        return Wrap(
+          alignment: WrapAlignment.center,
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            for (final r in readings)
+              Opacity(
+                opacity: now.difference(r.timestamp) > stale ? 0.4 : 1,
+                child: _DialGauge(
+                    reading: r, units: controller.units, size: size),
+              ),
+          ],
+        );
+      });
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Motor', style: text.titleMedium),
+            const SizedBox(height: 8),
+            body,
+            if (readings.isNotEmpty && !controller.driveExtrasResponding) ...[
+              const SizedBox(height: 8),
+              Text('Motor requests stopped answering; values are not live.',
+                  style: text.bodySmall, textAlign: TextAlign.center),
+            ],
+            if (unverified) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Values marked ? use a decoding that has not been confirmed '
+                'on this vehicle yet.',
+                style: text.bodySmall,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One reading on a 270° dial. The arc spans the signal's expected range
+/// (`min`..`max` in the signal set). A range symmetric about zero (torque)
+/// fills from the centre outwards, orange above zero and green below, like
+/// the power bar; any other range fills from its low end. Without a range
+/// the dial shows the number only.
+class _DialGauge extends StatelessWidget {
+  final Reading reading;
+  final DisplayUnits units;
+  final double size;
+  const _DialGauge(
+      {required this.reading, required this.units, required this.size});
+
+  /// The signal name without its trailing "(...)" qualifier.
+  static String _label(String name) =>
+      name.replaceFirst(RegExp(r'\s*\([^)]*\)\s*$'), '');
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    final unit = reading.unit;
+    final min = reading.signal.fmt.min?.toDouble();
+    final max = reading.signal.fmt.max?.toDouble();
+    final hasRange = min != null && max != null && max > min;
+    final centred = hasRange && min == -max;
+    final value = units.convert(unit, reading.value);
+    // Wide-range dials (rpm, torque) read better without decimals.
+    final decimals = hasRange && max - min >= 500 ? 0 : 1;
+
+    return SizedBox(
+      width: size,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: size,
+            height: size,
+            child: CustomPaint(
+              painter: _DialPainter(
+                value: reading.value,
+                min: hasRange ? min : null,
+                max: hasRange ? max : null,
+                track: cs.surfaceContainerHighest,
+                centred: centred,
+                fill: !centred
+                    ? cs.primary
+                    : reading.value < 0
+                        ? Colors.green
+                        : Colors.deepOrange,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        value.toStringAsFixed(decimals),
+                        style: text.headlineMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    Text(units.symbolFor(unit), style: text.bodyMedium),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _label(reading.signal.name),
+            style: text.bodySmall,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DialPainter extends CustomPainter {
+  final double value;
+  final double? min;
+  final double? max;
+  final bool centred;
+  final Color track;
+  final Color fill;
+
+  _DialPainter({
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.centred,
+    required this.track,
+    required this.fill,
+  });
+
+  static const _start = math.pi * 0.75; // lower left
+  static const _sweep = math.pi * 1.5; // 270°, gap at the bottom
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const stroke = 8.0;
+    final rect = Rect.fromCircle(
+      center: size.center(Offset.zero),
+      radius: size.shortestSide / 2 - stroke,
+    );
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(rect, _start, _sweep, false, paint..color = track);
+
+    final lo = min, hi = max;
+    if (lo == null || hi == null) return;
+    double frac(double v) => ((v - lo) / (hi - lo)).clamp(0.0, 1.0);
+    final from = frac(centred ? 0 : lo);
+    final to = frac(value);
+    if ((to - from).abs() < 1e-6) return;
+    canvas.drawArc(rect, _start + _sweep * math.min(from, to),
+        _sweep * (to - from).abs(), false, paint..color = fill);
+  }
+
+  @override
+  bool shouldRepaint(_DialPainter old) =>
+      old.value != value ||
+      old.min != min ||
+      old.max != max ||
+      old.centred != centred ||
+      old.track != track ||
+      old.fill != fill;
 }
 
 /// Horizontal centered-zero bar: regen extends left (green), draw extends

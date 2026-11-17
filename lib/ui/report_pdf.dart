@@ -66,7 +66,10 @@ Future<Uint8List> buildReportPdf(HealthReport report,
         pw.TableHelper.fromTextArray(
           headers: const ['Metric', 'Value'],
           data: report.metrics.entries
-              .map((e) => [e.key, e.value?.toStringAsFixed(3) ?? '—'])
+              .map((e) => [
+                    report.metricLabel(e.key),
+                    report.metricText(e.key)
+                  ])
               .toList(),
         ),
         pw.SizedBox(height: 16),

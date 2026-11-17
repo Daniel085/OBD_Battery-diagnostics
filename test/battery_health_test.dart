@@ -135,6 +135,125 @@ void main() {
       expect(f.metrics['temp_spread_celsius'], 15);
     });
 
+    test('ageing and lifetime signals are reported, marked, not graded', () {
+      final report = analyzer.analyze(
+        vehicle: 'BMW-330e-2018',
+        readings: {
+          'HVBAT_SOH': _r('HVBAT_SOH', 'SOH', 94, 'percent'),
+          'HVBAT_SOH_RESISTANCE':
+              _r('HVBAT_SOH_RESISTANCE', 'r', 62.8, 'percent?', 'health'),
+          'HVBAT_ISOLATION':
+              _r('HVBAT_ISOLATION', 'iso', 2000, 'kiloohms?', 'health'),
+          // A confirmed one (plain unit) is not marked.
+          'HVBAT_HV_ON_HOURS':
+              _r('HVBAT_HV_ON_HOURS', 'h', 10594, 'hours', 'health'),
+        },
+        now: at,
+      );
+      expect(report.metrics['resistance_soh_percent'], 62.8);
+      expect(report.metrics['isolation_resistance_kohm'], 2000);
+      expect(report.metrics['hv_on_hours'], 10594);
+      expect(report.metrics.containsKey('contactor_cycles'), isFalse);
+      expect(report.unconfirmedMetrics,
+          {'resistance_soh_percent', 'isolation_resistance_kohm'});
+      expect(report.metricLabel('resistance_soh_percent'),
+          'resistance_soh_percent (unconfirmed)');
+      expect(report.metricLabel('hv_on_hours'), 'hv_on_hours');
+      // A 62.8 % resistance figure does not change the verdict.
+      expect(report.overallSeverity, Severity.ok);
+      final json = jsonDecode(report.toJsonString()) as Map<String, dynamic>;
+      expect(json['unconfirmedMetrics'],
+          ['resistance_soh_percent', 'isolation_resistance_kohm']);
+    });
+
+    test('equivalent full cycles from lifetime charge and rated capacity', () {
+      Reading ah(String id, double v, String unit) =>
+          _r(id, id, v, unit, 'health');
+      HealthReport run(Map<String, Reading> r, {double? rated = 26}) =>
+          analyzer.analyze(
+              vehicle: 'BMW-330e-2018', readings: r, now: at, ratedAh: rated);
+
+      // Charge side confirmed, discharge side not: the confirmed one counts.
+      final mixed = run({
+        'HVBAT_AH_CHARGED': ah('HVBAT_AH_CHARGED', 34048.86, 'amp_hours'),
+        'HVBAT_AH_DISCHARGED':
+            ah('HVBAT_AH_DISCHARGED', 33173.13, 'amp_hours?'),
+      });
+      expect(mixed.metrics['equivalent_full_cycles'], closeTo(1309.6, 0.1));
+      expect(mixed.unconfirmedMetrics, {'lifetime_charge_out_ah'});
+      expect(mixed.metricText('equivalent_full_cycles'), '1310');
+
+      // Both confirmed: discharge, the conventional side.
+      final both = run({
+        'HVBAT_AH_CHARGED': ah('HVBAT_AH_CHARGED', 34048.86, 'amp_hours'),
+        'HVBAT_AH_DISCHARGED': ah('HVBAT_AH_DISCHARGED', 33173.13, 'amp_hours'),
+      });
+      expect(both.metrics['equivalent_full_cycles'], closeTo(1275.9, 0.1));
+
+      // Only an unconfirmed counter: computed, and marked.
+      final unsure = run({
+        'HVBAT_AH_DISCHARGED':
+            ah('HVBAT_AH_DISCHARGED', 33173.13, 'amp_hours?'),
+      });
+      expect(unsure.unconfirmedMetrics, contains('equivalent_full_cycles'));
+
+      // No rated capacity in the signal set: no cycle count.
+      final none = run({
+        'HVBAT_AH_CHARGED': ah('HVBAT_AH_CHARGED', 34048.86, 'amp_hours'),
+      }, rated: null);
+      expect(none.metrics.containsKey('equivalent_full_cycles'), isFalse);
+    });
+
+    test('hour metrics also read as days or years', () {
+      final report = analyzer.analyze(
+        vehicle: 'BMW-330e-2018',
+        readings: {
+          'HVBAT_AGE_HOURS': _r('HVBAT_AGE_HOURS', 'age', 78200, 'hours'),
+          'HVBAT_HV_ON_HOURS': _r('HVBAT_HV_ON_HOURS', 'on', 10600, 'hours'),
+        },
+        now: at,
+      );
+      expect(report.metricText('battery_age_hours'), '8.9 years (78200 h)');
+      expect(report.metricText('hv_on_hours'), '1.2 years (10600 h)');
+      expect(report.metrics['battery_age_hours'], 78200); // data stays in hours
+    });
+
+    test('module defect codes: counted, a non-zero one is called out', () {
+      Map<String, Reading> modules(List<int> codes, String unit) => {
+            'HVBAT_SOH': _r('HVBAT_SOH', 'SOH', 94, 'percent'),
+            for (var i = 0; i < codes.length; i++)
+              'HVBAT_MODULE_${i + 1}_DEFECT': _r('HVBAT_MODULE_${i + 1}_DEFECT',
+                  'Module ${i + 1}', codes[i].toDouble(), unit, 'modules'),
+          };
+      final clean = analyzer.analyze(
+          vehicle: 'BMW-330e-2018',
+          readings: modules([0, 0, 0, 0, 0], 'code?'),
+          now: at);
+      expect(clean.metrics['modules_reporting_defect'], 0);
+      expect(clean.unconfirmedMetrics, {'modules_reporting_defect'});
+      expect(clean.warnings.single.code, 'OK');
+
+      // Unconfirmed decoding: mentioned, but not a warning.
+      final unsure = analyzer.analyze(
+          vehicle: 'BMW-330e-2018',
+          readings: modules([0, 0, 7, 0, 0], 'code?'),
+          now: at);
+      expect(unsure.metrics['modules_reporting_defect'], 1);
+      expect(unsure.overallSeverity, Severity.info);
+      expect(unsure.warnings.single.code, 'MODULE_DEFECT');
+      expect(unsure.warnings.single.message, contains('module 3'));
+      expect(unsure.warnings.single.message, contains('code 7'));
+      expect(unsure.warnings.single.message, contains('not confirmed'));
+
+      // Confirmed decoding: a warning for each module.
+      final sure = analyzer.analyze(
+          vehicle: 'X', readings: modules([1, 0, 0, 0, 2], 'code'), now: at);
+      expect(sure.metrics['modules_reporting_defect'], 2);
+      expect(sure.unconfirmedMetrics, isEmpty);
+      expect(sure.overallSeverity, Severity.warning);
+      expect(sure.warnings, hasLength(2));
+    });
+
     test('serialises to JSON and CSV', () {
       final report = analyzer.analyze(
         vehicle: 'BMW-330e-2018',

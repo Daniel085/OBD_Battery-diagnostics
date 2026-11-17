@@ -47,6 +47,45 @@ void main() {
     });
   });
 
+  group('SignalFormat little-endian fields', () {
+    test('whole bytes are read last-first', () {
+      // BMW 330e SME DD73 on 2026-11-15: 08 5C 4E 07 = 0x074E5C08 A*s.
+      const f = SignalFormat(len: 32, le: true, div: 3600);
+      expect(f.extractRaw([0x08, 0x5C, 0x4E, 0x07]), 0x074E5C08);
+      expect(f.decode([0x08, 0x5C, 0x4E, 0x07]), closeTo(34048.86, 0.01));
+    });
+
+    test('offset, sign and JSON', () {
+      final f = SignalFormat.fromJson(
+          {'bix': 8, 'len': 16, 'le': true, 'sign': true});
+      expect(f.extractRaw([0xAA, 0xFE, 0xFF, 0xBB]), -2);
+      expect(SignalFormat.fromJson({'len': 16}).le, isFalse);
+    });
+
+    test('a field that is not whole bytes is refused', () {
+      expect(
+          () => SignalFormat.fromJson({'bix': 4, 'len': 12, 'le': true})
+              .extractRaw([0, 0]),
+          throwsA(anything));
+    });
+  });
+
+  group('SignalFormat value names (OBDb map)', () {
+    test('plain strings and OBDb objects', () {
+      final f = SignalFormat.fromJson({
+        'len': 8,
+        'map': {
+          '0': {'value': 'OK', 'description': 'no defect'},
+          '1': 'Fault',
+        },
+      });
+      expect(f.labelFor(0), 'OK');
+      expect(f.labelFor(1), 'Fault');
+      expect(f.labelFor(2), isNull);
+      expect(const SignalFormat(len: 8).labelFor(0), isNull);
+    });
+  });
+
   group('SignalFormat.decode (scaling)', () {
     test('applies div', () {
       // SOC: raw/10 -> percent. 0x0320 = 800 -> 80.0

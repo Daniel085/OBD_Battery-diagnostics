@@ -77,11 +77,11 @@ when idle/not balancing). Read via `ATSH 7E7` (or 29-bit equivalent) when active
 | --- | --- | --- | --- |
 | Module/section voltage ×3 | `416C` `416D` `416E` | `u16 / 100` V (~51 V) | ⚠ ours — froze at 51.08 V for 3 h of charging (2026-09-27); re-test in Ready under load |
 | Temperatures (live) | `40E5` `40E6` | `u16 / 32` °C (~16–27 °C) | ✓ ours (moved through the 2026-09-27 charge) |
-| Temperatures (not live) | `4127` `4124` | `u16 / 32` °C | ✗ `4127` constant 32.75 °C on this car since August (another 2025 in OBDb #24 read 7.31 °C, so not a fixed setpoint); `4124` latched per session (0x01A2 for all of 09-24 and 09-27) |
-| Pack temperature | `434F` | `byte − 40` °C | ⚠ intermittent; raw 0 = no value (`nullmin` −40 in v02) |
+| Temperatures (not live) | `4127` `4124` | `u16 / 32` °C | ✗ `4127` constant 32.75 °C on this car since August (another 2025 in OBDb #24 read 7.31 °C, so not a fixed setpoint); `4124` constant 0x01A2 (09-24, 09-27 and 11-14) |
+| Pack temperature | `434F` | `byte − 40` °C | ⚠ intermittent; raw 0 = no value (`nullmin` −40 in v02). Parked/charging it reads 0x46 (30 °C) nearly every time it is valid (09-27 and 11-14) while `40E5`/`40E6` read 16–25 °C — doubtful as a live value |
 | EVSE pilot current? | `4149` | `u16 / 10` A | ⚠ 16.0 → 9.6 A on 09-27 vs a ~39 A pilot implied by 9.4 kW AC |
-| SOC candidate (rejected) | `44C0` | `4 × u8` | ✗ 57 flat for 9 h while 203.5 Ah went in; equals `441F` byte 0 |
-| SOC candidate | `406E` | `byte` (=47 @ 49%) | ⚠ ours (unmoved) — prefer DACB SOC |
+| SOC candidate (rejected) | `44C0` | `4 × u8` | ✗ 57 flat for 9 h while 203.5 Ah went in; equals `441F` byte 0. 66/66/60/59 flat on 11-14: changes between sessions, not within one |
+| SOC candidate (rejected) | `406E` | `byte` | ✗ jumped 35 → 44 parked (2026-08); read 30 → 32 while the pack charged ~59 → 75% (2026-11-14) |
 | Energy counters (SOH?) | `415B` `415C` | `u32` | ⚠ ours |
 | Per-cell/module blocks | `418D`–`4191`, `424A`–`424C` | multiframe arrays | ⚠ ours (needs ISO-TP) |
 

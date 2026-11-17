@@ -1,0 +1,522 @@
+{
+  "$schema": "../signalset.schema.json",
+  "vehicle": "Ford-F-150-Hybrid-2021",
+  "description": "Ford F-150 PowerBoost full hybrid, 2021 on. OBDb's F-150 data has NO hybrid-battery signals, so this set is two things: (1) the 12 V battery monitor and vehicle basics from OBDb's F-150 set, and (2) the HV battery signals Ford's hybrid battery controller (BECM 7E4) uses on the Maverick hybrid, Mustang Mach-E and F-150 Lightning, taken from OBDb's Maverick set and marked UNCONFIRMED: nobody has reported them from a PowerBoost. 11-bit CAN, UDS 0x22 reads only. NOT read on a vehicle by this project.",
+  "provenance": {
+    "derivedFrom": "OBDb/Ford-F-150 @ 7b0146e384 (2026-11-15), signalsets/v3/default.json; OBDb/Ford-Maverick @ 0417358dee (2026-11-15), signalsets/v3/default.json (CC BY-SA 4.0)",
+    "confidence": "Imported from OBDb by tools/obdb-import (map: tools/obdb-import/ford-f150-hybrid.map.json). Group (1) is OBDb's F-150 data for 2021+ trucks, unchanged except that the 12 V battery age (days) is shown in hours. Group (2), every HVBAT_* signal, is a guess that the PowerBoost's battery controller answers the same identifiers as its siblings; OBDb has no F-150 capture from 7E4/7EC to confirm or refute it. A read that fails is skipped by the app, so a wrong guess costs a little time per poll and shows nothing. First thing to do with a truck: see which of the 7E4 reads answer, then check the sign of HVBAT_CURRENT (positive must be discharge).",
+    "license": "CC BY-SA 4.0"
+  },
+  "protocol": {
+    "canFormat": "11bit",
+    "obdProtocol": 6,
+    "note": "ISO 15765-4 CAN 11-bit/500k. Engine computer 7E0 -> 7E8, body 726 -> 72E, cluster 720 -> 728; hybrid battery controller assumed at 7E4 -> 7EC as on Ford's other hybrids."
+  },
+  "commands": [
+    {
+      "_source": "OBDb/Ford-Maverick: MAVERICK_HVBAT_SOC",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "fcm1": true,
+      "cmd": {
+        "22": "4801"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_SOC",
+          "name": "HV battery charge (unconfirmed)",
+          "group": "summary",
+          "fmt": {
+            "len": 16,
+            "max": 100,
+            "div": 500,
+            "unit": "percent?"
+          }
+        }
+      ],
+      "_unconfirmed": "Not confirmed on this vehicle. Definition taken from OBDb/Ford-Maverick (a sibling Ford with the same battery controller identifiers)."
+    },
+    {
+      "_source": "OBDb/Ford-Maverick: MAVERICK_HVBAT_SOH",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "fcm1": true,
+      "freq": 3600,
+      "cmd": {
+        "22": "490C"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_SOH",
+          "name": "HV battery state of health (unconfirmed)",
+          "group": "summary",
+          "fmt": {
+            "len": 8,
+            "max": 100,
+            "div": 2,
+            "unit": "percent?"
+          }
+        }
+      ],
+      "_unconfirmed": "Not confirmed on this vehicle. Definition taken from OBDb/Ford-Maverick (a sibling Ford with the same battery controller identifiers)."
+    },
+    {
+      "_source": "OBDb/Ford-Maverick: MAVERICK_HVBAT_V",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "fcm1": true,
+      "cmd": {
+        "22": "480D"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_VOLTAGE",
+          "name": "HV battery voltage (unconfirmed)",
+          "group": "summary",
+          "fmt": {
+            "len": 16,
+            "max": 655.35,
+            "div": 100,
+            "unit": "volts?"
+          }
+        }
+      ],
+      "_unconfirmed": "Not confirmed on this vehicle. Definition taken from OBDb/Ford-Maverick (a sibling Ford with the same battery controller identifiers)."
+    },
+    {
+      "_source": "OBDb/Ford-Maverick: MAVERICK_HVBAT_CURRENT",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "cmd": {
+        "22": "480B"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_CURRENT",
+          "name": "HV battery current (unconfirmed)",
+          "group": "summary",
+          "fmt": {
+            "len": 16,
+            "max": 655,
+            "min": -655,
+            "div": 50,
+            "sign": true,
+            "unit": "amps?"
+          }
+        }
+      ],
+      "_unconfirmed": "Not confirmed on this vehicle. Definition taken from OBDb/Ford-Maverick (a sibling Ford with the same battery controller identifiers)."
+    },
+    {
+      "_source": "OBDb/Ford-Maverick: MAVERICK_T_RANGE_MIN, MAVERICK_T_RANGE_MAX, MAVERICK_T_RANGE_AVG",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "freq": 5,
+      "cmd": {
+        "22": "4808"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_CELLTEMP_MIN",
+          "name": "HV battery temperature (min) (unconfirmed)",
+          "group": "temperature",
+          "fmt": {
+            "bix": 8,
+            "len": 8,
+            "max": 205,
+            "min": -50,
+            "add": -50,
+            "nullmax": 205,
+            "unit": "celsius?"
+          }
+        },
+        {
+          "id": "HVBAT_CELLTEMP_MAX",
+          "name": "HV battery temperature (max) (unconfirmed)",
+          "group": "temperature",
+          "fmt": {
+            "len": 8,
+            "max": 205,
+            "min": -50,
+            "add": -50,
+            "nullmax": 205,
+            "unit": "celsius?"
+          }
+        },
+        {
+          "id": "HVBAT_CELLTEMP_AVG",
+          "name": "HV battery temperature (avg) (unconfirmed)",
+          "group": "temperature",
+          "fmt": {
+            "bix": 24,
+            "len": 8,
+            "max": 205,
+            "min": -50,
+            "add": -50,
+            "nullmax": 205,
+            "unit": "celsius?"
+          }
+        }
+      ],
+      "_unconfirmed": "Not confirmed on this vehicle. Definition taken from OBDb/Ford-Maverick (a sibling Ford with the same battery controller identifiers)."
+    },
+    {
+      "_source": "OBDb/Ford-Maverick: MAVERICK_HVBAT_T",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "fcm1": true,
+      "freq": 10,
+      "cmd": {
+        "22": "4800"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_TEMP",
+          "name": "HV battery temperature (unconfirmed)",
+          "group": "temperature",
+          "fmt": {
+            "len": 8,
+            "max": 205,
+            "min": -50,
+            "add": -50,
+            "nullmax": 205,
+            "unit": "celsius?"
+          }
+        }
+      ],
+      "_unconfirmed": "Not confirmed on this vehicle. Definition taken from OBDb/Ford-Maverick (a sibling Ford with the same battery controller identifiers)."
+    },
+    {
+      "_source": "OBDb/Ford-Maverick: MAVERICK_MIN_MODULE_V",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "freq": 5,
+      "cmd": {
+        "22": "4840"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_MODULE_VOLT_MIN",
+          "name": "Minimum battery module voltage (unconfirmed)",
+          "group": "cells",
+          "fmt": {
+            "len": 16,
+            "max": 65.53,
+            "div": 1000,
+            "unit": "volts?"
+          }
+        }
+      ],
+      "_unconfirmed": "Not confirmed on this vehicle. Definition taken from OBDb/Ford-Maverick (a sibling Ford with the same battery controller identifiers)."
+    },
+    {
+      "_source": "OBDb/Ford-Maverick: MAVERICK_AVG_MODULE_V",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "freq": 5,
+      "cmd": {
+        "22": "4841"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_MODULE_VOLT_AVG",
+          "name": "Average battery module voltage (unconfirmed)",
+          "group": "cells",
+          "fmt": {
+            "len": 16,
+            "max": 65.53,
+            "div": 1000,
+            "unit": "volts?"
+          }
+        }
+      ],
+      "_unconfirmed": "Not confirmed on this vehicle. Definition taken from OBDb/Ford-Maverick (a sibling Ford with the same battery controller identifiers)."
+    },
+    {
+      "_source": "OBDb/Ford-Maverick: MAVERICK_V_VARIATION_BAT",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "cmd": {
+        "22": "483F"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_MODULE_VOLT_SPREAD",
+          "name": "Voltage variation battery modules (unconfirmed)",
+          "group": "cells",
+          "fmt": {
+            "len": 16,
+            "max": 65.53,
+            "div": 1000,
+            "unit": "volts?"
+          }
+        }
+      ],
+      "_unconfirmed": "Not confirmed on this vehicle. Definition taken from OBDb/Ford-Maverick (a sibling Ford with the same battery controller identifiers)."
+    },
+    {
+      "_source": "OBDb/Ford-Maverick: MAVERICK_SOC_VARIATION_BAT",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "cmd": {
+        "22": "483E"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_SOC_SPREAD",
+          "name": "SOC variation battery modules (unconfirmed)",
+          "group": "cells",
+          "fmt": {
+            "len": 16,
+            "max": 65.53,
+            "div": 1000,
+            "unit": "percent?"
+          }
+        }
+      ],
+      "_unconfirmed": "Not confirmed on this vehicle. Definition taken from OBDb/Ford-Maverick (a sibling Ford with the same battery controller identifiers)."
+    },
+    {
+      "_source": "OBDb/Ford-Maverick: MAVERICK_HVBAT_AGE",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "fcm1": true,
+      "freq": 5,
+      "cmd": {
+        "22": "4810"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_AGE_HOURS",
+          "name": "Battery age (unconfirmed)",
+          "group": "health",
+          "fmt": {
+            "len": 16,
+            "max": 235926,
+            "mul": 720,
+            "div": 200,
+            "unit": "hours?"
+          }
+        }
+      ],
+      "_unconfirmed": "Not confirmed on this vehicle. Definition taken from OBDb/Ford-Maverick (a sibling Ford with the same battery controller identifiers)."
+    },
+    {
+      "_source": "OBDb/Ford-Maverick: MAVERICK_BAT_PACK_LIFETIME",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "cmd": {
+        "22": "485D"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_AH_DISCHARGED",
+          "name": "Lifetime charge out (unconfirmed)",
+          "group": "health",
+          "fmt": {
+            "len": 16,
+            "max": 655350,
+            "mul": 10,
+            "unit": "amp_hours?"
+          }
+        }
+      ],
+      "_unconfirmed": "Not confirmed on this vehicle. Definition taken from OBDb/Ford-Maverick (a sibling Ford with the same battery controller identifiers)."
+    },
+    {
+      "_source": "OBDb/Ford-Maverick: MAVERICK_LEAKAGE_RES_BUS",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "cmd": {
+        "22": "4813"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_ISOLATION",
+          "name": "Isolation resistance (unconfirmed)",
+          "group": "health",
+          "fmt": {
+            "len": 16,
+            "max": 65535,
+            "unit": "kiloohms?"
+          }
+        }
+      ],
+      "_unconfirmed": "Not confirmed on this vehicle. Definition taken from OBDb/Ford-Maverick (a sibling Ford with the same battery controller identifiers)."
+    },
+    {
+      "_source": "OBDb/Ford-F-150: F150_BATT_SOC",
+      "hdr": "726",
+      "rax": "72E",
+      "freq": 10,
+      "cmd": {
+        "22": "4028"
+      },
+      "signals": [
+        {
+          "id": "LVBAT_SOC",
+          "name": "12 V battery charge",
+          "group": "12v",
+          "fmt": {
+            "len": 8,
+            "max": 100,
+            "unit": "percent"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150: F150_BATT_AGE",
+      "hdr": "726",
+      "rax": "72E",
+      "freq": 3600,
+      "cmd": {
+        "22": "4027"
+      },
+      "signals": [
+        {
+          "id": "LVBAT_AGE_HOURS",
+          "name": "12 V battery age",
+          "group": "12v",
+          "fmt": {
+            "len": 16,
+            "max": 43800,
+            "mul": 24,
+            "unit": "hours"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150: F150_ODO",
+      "hdr": "720",
+      "rax": "728",
+      "freq": 30,
+      "cmd": {
+        "22": "404C"
+      },
+      "signals": [
+        {
+          "id": "ODOMETER",
+          "name": "Odometer",
+          "group": "vehicle",
+          "fmt": {
+            "len": 24,
+            "max": 1677721,
+            "div": 10,
+            "unit": "km"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150: F150_VSS",
+      "hdr": "7E0",
+      "rax": "7E8",
+      "cmd": {
+        "22": "F40D"
+      },
+      "signals": [
+        {
+          "id": "VEHICLE_SPEED",
+          "name": "Vehicle speed",
+          "group": "vehicle",
+          "fmt": {
+            "len": 8,
+            "max": 255,
+            "unit": "km/h"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150: F150_FLI",
+      "hdr": "7E0",
+      "rax": "7E8",
+      "cmd": {
+        "22": "F42F"
+      },
+      "signals": [
+        {
+          "id": "FUEL_LEVEL",
+          "name": "Fuel level",
+          "group": "vehicle",
+          "fmt": {
+            "len": 8,
+            "max": 100,
+            "mul": 100,
+            "div": 255,
+            "unit": "percent"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150: F150_DTE_DISP",
+      "hdr": "7E0",
+      "rax": "7E8",
+      "freq": 5,
+      "cmd": {
+        "22": "4195"
+      },
+      "signals": [
+        {
+          "id": "FUEL_RANGE",
+          "name": "Distance to empty",
+          "group": "vehicle",
+          "fmt": {
+            "len": 16,
+            "max": 6553.5,
+            "div": 10,
+            "unit": "km"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150: F150_ECT",
+      "hdr": "7E0",
+      "rax": "7E8",
+      "freq": 2,
+      "cmd": {
+        "22": "038F"
+      },
+      "signals": [
+        {
+          "id": "ENGINE_COOLANT_TEMP",
+          "name": "Engine coolant temperature",
+          "group": "temperature",
+          "fmt": {
+            "len": 16,
+            "max": 511,
+            "min": -512,
+            "div": 64,
+            "sign": true,
+            "unit": "celsius"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150: F150_RPM",
+      "hdr": "7E0",
+      "rax": "7E8",
+      "cmd": {
+        "22": "F40C"
+      },
+      "signals": [
+        {
+          "id": "ENGINE_RPM",
+          "name": "Engine speed",
+          "group": "vehicle",
+          "fmt": {
+            "len": 16,
+            "max": 16383.75,
+            "div": 4,
+            "unit": "rpm"
+          }
+        }
+      ]
+    }
+  ]
+}

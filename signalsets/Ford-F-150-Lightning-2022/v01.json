@@ -1,0 +1,1525 @@
+{
+  "$schema": "../signalset.schema.json",
+  "vehicle": "Ford-F-150-Lightning-2022",
+  "description": "Ford F-150 Lightning, 2022-2025. Community data from OBDb, selected for battery diagnostics: HV battery (BECM 7E4), charger (SOBDM 7E2), drive unit (7E6), DC/DC (746), 12 V battery monitor (726). 11-bit CAN, standard ISO-TP, UDS 0x22 reads only. NOT read on a vehicle by this project.",
+  "provenance": {
+    "derivedFrom": "OBDb/Ford-F-150-Lightning @ bb26b0f293 (2026-11-13), signalsets/v3/default.json (CC BY-SA 4.0)",
+    "confidence": "Imported from OBDb by tools/obdb-import (map: tools/obdb-import/ford-f150-lightning.map.json). The bit layouts and scaling are OBDb's, unchanged; test/obdb_import_test.dart replays OBDb's captured replies from 2022-2025 trucks and gets OBDb's expected values. This project has not read a Lightning. Open before relying on it: the sign of HVBAT_CURRENT (the app expects positive = discharge; check against a known charge and a known load), what 485C 'battery capacity' means (rated or present), and whether a cheap ELM327 clone handles the commands OBDb marks fcm1.",
+    "license": "CC BY-SA 4.0"
+  },
+  "protocol": {
+    "canFormat": "11bit",
+    "obdProtocol": 6,
+    "note": "ISO 15765-4 CAN 11-bit/500k. Each module has its own request id and answers on id+8 (BECM 7E4 -> 7EC). OBDb marks some commands fcm1 (flow-control mode 1); the field is kept but this app does not act on it yet."
+  },
+  "commands": [
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVBAT_SOC_DISP",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "fcm1": true,
+      "cmd": {
+        "22": "4845"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_SOC",
+          "name": "HV battery charge (displayed)",
+          "group": "summary",
+          "fmt": {
+            "len": 8,
+            "max": 100,
+            "div": 2,
+            "unit": "percent"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVBAT_SOC",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "fcm1": true,
+      "cmd": {
+        "22": "4801"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_SOC_BMS",
+          "name": "HV battery charge (BMS)",
+          "group": "summary",
+          "fmt": {
+            "len": 16,
+            "max": 100,
+            "div": 500,
+            "unit": "percent"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVBAT_SOH",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "fcm1": true,
+      "freq": 3600,
+      "cmd": {
+        "22": "490C"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_SOH",
+          "name": "HV battery state of health",
+          "group": "summary",
+          "fmt": {
+            "len": 8,
+            "max": 100,
+            "div": 2,
+            "unit": "percent"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVBAT_V",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "fcm1": true,
+      "cmd": {
+        "22": "480D"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_VOLTAGE",
+          "name": "HV battery voltage",
+          "group": "summary",
+          "fmt": {
+            "len": 16,
+            "max": 655.35,
+            "div": 100,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVBAT_A",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "cmd": {
+        "22": "48F9"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_CURRENT",
+          "name": "HV battery current",
+          "group": "summary",
+          "fmt": {
+            "len": 16,
+            "max": 600,
+            "min": -600,
+            "div": 10,
+            "sign": true,
+            "unit": "amps"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVBAT_KWH",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "fcm1": true,
+      "freq": 5,
+      "cmd": {
+        "22": "4848"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_ENERGY",
+          "name": "HV battery energy",
+          "group": "summary",
+          "fmt": {
+            "len": 16,
+            "max": 131.07,
+            "div": 500,
+            "unit": "kWh"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_TARGET_SOC",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "freq": 60,
+      "cmd": {
+        "22": "05A1"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_SOC_TARGET",
+          "name": "Charge target",
+          "group": "summary",
+          "fmt": {
+            "len": 8,
+            "max": 100,
+            "unit": "percent"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_T_RANGE_MIN, LIGHTNING_T_RANGE_MAX, LIGHTNING_T_RANGE_AVG",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "freq": 15,
+      "cmd": {
+        "22": "4808"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_CELLTEMP_MIN",
+          "name": "HV battery temperature (min)",
+          "group": "temperature",
+          "fmt": {
+            "bix": 8,
+            "len": 8,
+            "max": 205,
+            "min": -50,
+            "add": -50,
+            "unit": "celsius"
+          }
+        },
+        {
+          "id": "HVBAT_CELLTEMP_MAX",
+          "name": "HV battery temperature (max)",
+          "group": "temperature",
+          "fmt": {
+            "len": 8,
+            "max": 205,
+            "min": -50,
+            "add": -50,
+            "unit": "celsius"
+          }
+        },
+        {
+          "id": "HVBAT_CELLTEMP_AVG",
+          "name": "HV battery temperature (avg)",
+          "group": "temperature",
+          "fmt": {
+            "bix": 24,
+            "len": 8,
+            "max": 205,
+            "min": -50,
+            "add": -50,
+            "unit": "celsius"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVBAT_T",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "fcm1": true,
+      "freq": 10,
+      "cmd": {
+        "22": "4800"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_TEMP",
+          "name": "HV battery temperature",
+          "group": "temperature",
+          "fmt": {
+            "len": 8,
+            "max": 205,
+            "min": -50,
+            "add": -50,
+            "nullmax": 205,
+            "unit": "celsius"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVBAT_COOLANT_INLET_T",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "freq": 5,
+      "cmd": {
+        "22": "4846"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_COOLANT_INLET_TEMP",
+          "name": "HV battery coolant inlet temperature",
+          "group": "temperature",
+          "fmt": {
+            "len": 8,
+            "max": 205,
+            "min": -50,
+            "add": -50,
+            "unit": "celsius"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_AAT",
+      "hdr": "7E2",
+      "rax": "7EA",
+      "fcm1": true,
+      "freq": 5,
+      "cmd": {
+        "22": "DD05"
+      },
+      "signals": [
+        {
+          "id": "AMBIENT_TEMP",
+          "name": "Outside temperature",
+          "group": "temperature",
+          "fmt": {
+            "len": 8,
+            "max": 215,
+            "min": -40,
+            "add": -40,
+            "nullmax": 215,
+            "unit": "celsius"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVBAT_MIN_MOD_V",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "freq": 5,
+      "cmd": {
+        "22": "4840"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_MODULE_VOLT_MIN",
+          "name": "HV battery minimum module voltage",
+          "group": "cells",
+          "fmt": {
+            "len": 16,
+            "max": 65.535,
+            "div": 1000,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVBAT_AVG_MOD_V",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "freq": 5,
+      "cmd": {
+        "22": "4841"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_MODULE_VOLT_AVG",
+          "name": "HV battery average module voltage",
+          "group": "cells",
+          "fmt": {
+            "len": 16,
+            "max": 50,
+            "div": 1000,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVBAT_MOD_V",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "freq": 5,
+      "cmd": {
+        "22": "483F"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_MODULE_VOLT",
+          "name": "HV battery modules voltage",
+          "group": "cells",
+          "fmt": {
+            "len": 16,
+            "max": 65.535,
+            "div": 1000,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVB_SOC_VARIATION",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "cmd": {
+        "22": "483E"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_SOC_SPREAD",
+          "name": "State of charge spread across battery modules",
+          "group": "cells",
+          "fmt": {
+            "len": 16,
+            "max": 65.53,
+            "div": 1000,
+            "unit": "percent"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVBAT_AGE",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "fcm1": true,
+      "freq": 5,
+      "cmd": {
+        "22": "4810"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_AGE_HOURS",
+          "name": "Battery age",
+          "group": "health",
+          "fmt": {
+            "len": 16,
+            "max": 235926,
+            "mul": 720,
+            "div": 200,
+            "unit": "hours"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_BAT_CAP",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "cmd": {
+        "22": "485C"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_CAPACITY_AH",
+          "name": "Battery capacity (as reported)",
+          "group": "health",
+          "fmt": {
+            "len": 16,
+            "max": 6553,
+            "div": 10,
+            "unit": "amp_hours"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_BAT_PACK_LIFETIME",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "cmd": {
+        "22": "485D"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_AH_DISCHARGED",
+          "name": "Lifetime charge out",
+          "group": "health",
+          "fmt": {
+            "len": 16,
+            "max": 655350,
+            "mul": 10,
+            "unit": "amp_hours"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HV_POS_LEAK_V",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "freq": 5,
+      "cmd": {
+        "22": "4803"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_LEAK_V_POS",
+          "name": "HV positive leakage voltage",
+          "group": "health",
+          "fmt": {
+            "len": 16,
+            "max": 65.535,
+            "div": 1000,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HV_NEG_LEAK_V",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "freq": 5,
+      "cmd": {
+        "22": "4804"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_LEAK_V_NEG",
+          "name": "HV negative leakage voltage",
+          "group": "health",
+          "fmt": {
+            "len": 16,
+            "max": 65.535,
+            "div": 1000,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_12V_SOC",
+      "hdr": "726",
+      "rax": "72E",
+      "cmd": {
+        "22": "4028"
+      },
+      "signals": [
+        {
+          "id": "LVBAT_SOC",
+          "name": "12 V battery charge",
+          "group": "12v",
+          "fmt": {
+            "len": 8,
+            "max": 100,
+            "unit": "percent"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_12V_V",
+      "hdr": "726",
+      "rax": "72E",
+      "cmd": {
+        "22": "402A"
+      },
+      "signals": [
+        {
+          "id": "LVBAT_VOLTAGE",
+          "name": "12 V battery voltage",
+          "group": "12v",
+          "fmt": {
+            "len": 8,
+            "max": 18.75,
+            "div": 20,
+            "add": 6,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_12V_A",
+      "hdr": "726",
+      "rax": "72E",
+      "freq": 5,
+      "cmd": {
+        "22": "402B"
+      },
+      "signals": [
+        {
+          "id": "LVBAT_CURRENT",
+          "name": "12 V battery current",
+          "group": "12v",
+          "fmt": {
+            "len": 8,
+            "max": 128,
+            "min": -127,
+            "add": -127,
+            "unit": "amps"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_12V_AGE",
+      "hdr": "726",
+      "rax": "72E",
+      "freq": 3600,
+      "cmd": {
+        "22": "4027"
+      },
+      "signals": [
+        {
+          "id": "LVBAT_AGE_HOURS",
+          "name": "12 V battery age",
+          "group": "12v",
+          "fmt": {
+            "len": 16,
+            "max": 1572840,
+            "mul": 24,
+            "unit": "hours"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_BAT_QUIESCENT",
+      "hdr": "726",
+      "rax": "72E",
+      "cmd": {
+        "22": "4025"
+      },
+      "signals": [
+        {
+          "id": "LVBAT_QUIESCENT_CURRENT",
+          "name": "12 V standby current",
+          "group": "12v",
+          "fmt": {
+            "len": 16,
+            "max": 31767.5,
+            "min": -1000,
+            "div": 2,
+            "add": -1000,
+            "unit": "mA"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_DCDC_ENABLED",
+      "hdr": "746",
+      "rax": "74E",
+      "freq": 10,
+      "cmd": {
+        "22": "483D"
+      },
+      "signals": [
+        {
+          "id": "DCDC_ENABLED",
+          "name": "DC-DC converter",
+          "group": "12v",
+          "fmt": {
+            "len": 8,
+            "max": 1,
+            "map": {
+              "0": {
+                "value": "Off"
+              },
+              "1": {
+                "value": "On"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_DCDC_LV_A",
+      "hdr": "746",
+      "rax": "74E",
+      "freq": 5,
+      "cmd": {
+        "22": "4836"
+      },
+      "signals": [
+        {
+          "id": "DCDC_LV_CURRENT",
+          "name": "DC-DC output current (12 V side)",
+          "group": "12v",
+          "fmt": {
+            "len": 8,
+            "max": 255,
+            "unit": "amps"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_DCDC_HV_A",
+      "hdr": "746",
+      "rax": "74E",
+      "freq": 5,
+      "cmd": {
+        "22": "483A"
+      },
+      "signals": [
+        {
+          "id": "DCDC_HV_CURRENT",
+          "name": "DC-DC input current (HV side)",
+          "group": "12v",
+          "fmt": {
+            "len": 8,
+            "max": 25,
+            "div": 10,
+            "unit": "amps"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_CHRG_STATE",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "fcm1": true,
+      "freq": 5,
+      "cmd": {
+        "22": "484F"
+      },
+      "signals": [
+        {
+          "id": "CHARGING_STATE",
+          "name": "Charging state",
+          "group": "charging",
+          "fmt": {
+            "len": 8,
+            "map": {
+              "0": {
+                "value": "Not ready"
+              },
+              "1": {
+                "value": "Ready"
+              },
+              "2": {
+                "value": "Fault"
+              },
+              "3": {
+                "value": "Wait Check"
+              },
+              "4": {
+                "value": "Pre-condition"
+              },
+              "5": {
+                "value": "Charging"
+              },
+              "6": {
+                "value": "Done"
+              },
+              "7": {
+                "value": "External Charger"
+              },
+              "8": {
+                "value": "Initializing"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_EVSE_TYPE",
+      "hdr": "7E2",
+      "rax": "7EA",
+      "freq": 5,
+      "cmd": {
+        "22": "4851"
+      },
+      "signals": [
+        {
+          "id": "EVSE_TYPE",
+          "name": "Charger type",
+          "group": "charging",
+          "fmt": {
+            "len": 8,
+            "map": {
+              "0": {
+                "value": "None"
+              },
+              "1": {
+                "value": "Level 1"
+              },
+              "2": {
+                "value": "Level 2"
+              },
+              "3": {
+                "value": "DC"
+              },
+              "4": {
+                "value": "Basic"
+              },
+              "5": {
+                "value": "High Level"
+              },
+              "6": {
+                "value": "Basic AC"
+              },
+              "7": {
+                "value": "High Level AC"
+              },
+              "8": {
+                "value": "High Level DC"
+              },
+              "10": {
+                "value": "No communication"
+              },
+              "11": {
+                "value": "Fault"
+              },
+              "12": {
+                "value": "Handshake end"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_AC_CHG_IN_V",
+      "hdr": "7E2",
+      "rax": "7EA",
+      "cmd": {
+        "22": "485E"
+      },
+      "signals": [
+        {
+          "id": "CHARGER_AC_VOLTAGE",
+          "name": "AC input voltage",
+          "group": "charging",
+          "fmt": {
+            "len": 16,
+            "max": 300,
+            "div": 100,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_AC_CHG_IN_A",
+      "hdr": "7E2",
+      "rax": "7EA",
+      "cmd": {
+        "22": "485F"
+      },
+      "signals": [
+        {
+          "id": "CHARGER_AC_CURRENT",
+          "name": "AC input current",
+          "group": "charging",
+          "fmt": {
+            "len": 8,
+            "max": 100,
+            "unit": "amps"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_CHG_OUT_A",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "cmd": {
+        "22": "4850"
+      },
+      "signals": [
+        {
+          "id": "CHARGER_DC_CURRENT",
+          "name": "Charger output current",
+          "group": "charging",
+          "fmt": {
+            "len": 16,
+            "max": 600,
+            "div": 100,
+            "unit": "amps"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVBAT_CHG_PWR_LIM",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "cmd": {
+        "22": "48FB"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_CHARGE_POWER_LIMIT",
+          "name": "HV battery charge power limit",
+          "group": "charging",
+          "fmt": {
+            "len": 16,
+            "max": 300,
+            "div": 10,
+            "unit": "kW"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_CHG_PWR_AVAIL",
+      "hdr": "7E2",
+      "rax": "7EA",
+      "cmd": {
+        "22": "484E"
+      },
+      "signals": [
+        {
+          "id": "CHARGER_POWER_AVAILABLE",
+          "name": "HV charger input power available",
+          "group": "charger",
+          "fmt": {
+            "len": 16,
+            "max": 327.675,
+            "div": 200,
+            "unit": "kW"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_CHG_MAX_PWR",
+      "hdr": "7E2",
+      "rax": "7EA",
+      "cmd": {
+        "22": "48C4"
+      },
+      "signals": [
+        {
+          "id": "CHARGER_MAX_POWER",
+          "name": "HV charger maximum power",
+          "group": "charger",
+          "fmt": {
+            "len": 16,
+            "max": 3276.75,
+            "div": 20,
+            "nullmax": 3276.75,
+            "unit": "kW"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVBAT_MAX_CHG_A",
+      "hdr": "7E2",
+      "rax": "7EA",
+      "cmd": {
+        "22": "48BC"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_MAX_CHARGE_CURRENT",
+          "name": "HV battery maximum charge current",
+          "group": "charger",
+          "fmt": {
+            "len": 16,
+            "max": 3276.75,
+            "div": 20,
+            "unit": "amps"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVBAT_CCR",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "cmd": {
+        "22": "4842"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_CHARGE_CURRENT_REQUESTED",
+          "name": "HV battery charge current requested",
+          "group": "charger",
+          "fmt": {
+            "len": 16,
+            "max": 600,
+            "div": 100,
+            "unit": "amps"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVBAT_CVR",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "cmd": {
+        "22": "4844"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_CHARGE_VOLTAGE_REQUESTED",
+          "name": "HV battery charge voltage requested",
+          "group": "charger",
+          "fmt": {
+            "len": 8,
+            "max": 500,
+            "mul": 2,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVBAT_CHG_STATUS",
+      "hdr": "7E4",
+      "rax": "7EC",
+      "freq": 5,
+      "cmd": {
+        "22": "484D"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_CHARGE_STATUS",
+          "name": "HV battery charging status",
+          "group": "charger",
+          "fmt": {
+            "len": 8,
+            "map": {
+              "0": {
+                "value": "Not ready"
+              },
+              "1": {
+                "value": "Wait"
+              },
+              "2": {
+                "value": "Ready"
+              },
+              "3": {
+                "value": "Charging"
+              },
+              "4": {
+                "value": "Done"
+              },
+              "5": {
+                "value": "Fault"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_CHG_PILOT_DUTY",
+      "hdr": "7E2",
+      "rax": "7EA",
+      "cmd": {
+        "22": "4861"
+      },
+      "signals": [
+        {
+          "id": "EVSE_PILOT_DUTY",
+          "name": "HV charger pilot duty cycle",
+          "group": "charger",
+          "fmt": {
+            "len": 8,
+            "max": 100,
+            "div": 2,
+            "unit": "percent"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_CHG_PILOT_V",
+      "hdr": "7E2",
+      "rax": "7EA",
+      "cmd": {
+        "22": "48B6"
+      },
+      "signals": [
+        {
+          "id": "EVSE_PILOT_VOLTAGE",
+          "name": "HV charger pilot voltage",
+          "group": "charger",
+          "fmt": {
+            "len": 8,
+            "max": 15,
+            "div": 10,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_CHG_PROX_STATUS",
+      "hdr": "7E2",
+      "rax": "7EA",
+      "freq": 5,
+      "cmd": {
+        "22": "4862"
+      },
+      "signals": [
+        {
+          "id": "EVSE_PROXIMITY",
+          "name": "HV charger proximity status",
+          "group": "charger",
+          "fmt": {
+            "len": 8,
+            "map": {
+              "0": {
+                "value": "Off"
+              },
+              "1": {
+                "value": "On S3"
+              },
+              "2": {
+                "value": "On"
+              },
+              "3": {
+                "value": "10 A"
+              },
+              "4": {
+                "value": "13 A"
+              },
+              "5": {
+                "value": "16 A"
+              },
+              "6": {
+                "value": "20 A"
+              },
+              "7": {
+                "value": "Fault"
+              },
+              "8": {
+                "value": "32 A"
+              },
+              "9": {
+                "value": "63 A"
+              },
+              "16": {
+                "value": "DC"
+              },
+              "17": {
+                "value": "Open"
+              },
+              "18": {
+                "value": "Short"
+              },
+              "19": {
+                "value": "Short to power"
+              },
+              "20": {
+                "value": "Out of range"
+              },
+              "21": {
+                "value": "Open circuit"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_AC_CHG_IN_FREQ",
+      "hdr": "7E2",
+      "rax": "7EA",
+      "cmd": {
+        "22": "4860"
+      },
+      "signals": [
+        {
+          "id": "CHARGER_AC_FREQUENCY",
+          "name": "HV AC charger input frequency",
+          "group": "charger",
+          "fmt": {
+            "len": 8,
+            "max": 90,
+            "div": 2,
+            "nullmin": 0,
+            "unit": "Hz"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_AC_CHG_COUPLER_T",
+      "hdr": "7E2",
+      "rax": "7EA",
+      "freq": 5,
+      "cmd": {
+        "22": "4888"
+      },
+      "signals": [
+        {
+          "id": "CHARGER_AC_COUPLER_TEMP",
+          "name": "HV AC charger coupler temperature",
+          "group": "charger",
+          "fmt": {
+            "len": 8,
+            "max": 215,
+            "min": -40,
+            "add": -40,
+            "unit": "celsius"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_DC_CHG_COUPLER_T1",
+      "hdr": "7E2",
+      "rax": "7EA",
+      "freq": 5,
+      "cmd": {
+        "22": "4897"
+      },
+      "signals": [
+        {
+          "id": "CHARGER_DC_COUPLER_TEMP_A",
+          "name": "HV DC charger coupler temperature A",
+          "group": "charger",
+          "fmt": {
+            "len": 8,
+            "max": 215,
+            "min": -40,
+            "add": -40,
+            "unit": "celsius"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_DC_CHG_COUPLER_T3",
+      "hdr": "7E2",
+      "rax": "7EA",
+      "freq": 5,
+      "cmd": {
+        "22": "48A4"
+      },
+      "signals": [
+        {
+          "id": "CHARGER_DC_COUPLER_TEMP_B",
+          "name": "HV DC charger coupler temperature B",
+          "group": "charger",
+          "fmt": {
+            "len": 8,
+            "max": 215,
+            "min": -40,
+            "add": -40,
+            "unit": "celsius"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_DC_CHG_STATUS",
+      "hdr": "7E2",
+      "rax": "7EA",
+      "freq": 5,
+      "cmd": {
+        "22": "489E"
+      },
+      "signals": [
+        {
+          "id": "CHARGER_DC_STATUS",
+          "name": "HV DC charger status",
+          "group": "charger",
+          "fmt": {
+            "len": 8,
+            "map": {
+              "0": {
+                "value": "Not ready"
+              },
+              "1": {
+                "value": "Initialize"
+              },
+              "2": {
+                "value": "Ready"
+              },
+              "3": {
+                "value": "Wait check"
+              },
+              "4": {
+                "value": "Pre-condition"
+              },
+              "5": {
+                "value": "Charging"
+              },
+              "6": {
+                "value": "Done"
+              },
+              "8": {
+                "value": "Wait"
+              },
+              "9": {
+                "value": "Not capable"
+              },
+              "10": {
+                "value": "Fault"
+              },
+              "11": {
+                "value": "Charger check"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVDC_CHG_MAX_C",
+      "hdr": "6F5",
+      "rax": "6FD",
+      "cmd": {
+        "22": "4899"
+      },
+      "signals": [
+        {
+          "id": "CHARGER_DC_MAX_CURRENT",
+          "name": "HV DC charger maximum current",
+          "group": "charger",
+          "fmt": {
+            "len": 16,
+            "max": 655.35,
+            "div": 100,
+            "nullmax": 655.35,
+            "unit": "amps"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVDC_CHG_MAX_V",
+      "hdr": "6F5",
+      "rax": "6FD",
+      "cmd": {
+        "22": "489D"
+      },
+      "signals": [
+        {
+          "id": "CHARGER_DC_MAX_VOLTAGE",
+          "name": "HV DC charger maximum voltage",
+          "group": "charger",
+          "fmt": {
+            "len": 16,
+            "max": 6553.5,
+            "div": 10,
+            "nullmax": 6553.5,
+            "unit": "volts"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_PRI_MOTOR_RPM",
+      "hdr": "7E6",
+      "rax": "7EE",
+      "cmd": {
+        "22": "1E2C"
+      },
+      "signals": [
+        {
+          "id": "MOTOR_RPM",
+          "name": "Motor speed",
+          "group": "motor",
+          "fmt": {
+            "len": 16,
+            "max": 12000,
+            "min": -6000,
+            "sign": true,
+            "unit": "rpm"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_PRI_MOTOR_TQ",
+      "hdr": "7E6",
+      "rax": "7EE",
+      "cmd": {
+        "22": "481C"
+      },
+      "signals": [
+        {
+          "id": "MOTOR_TORQUE",
+          "name": "Motor torque",
+          "group": "motor",
+          "fmt": {
+            "len": 16,
+            "max": 200,
+            "min": -200,
+            "div": 10,
+            "sign": true,
+            "unit": "Nm"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_PRI_MOTOR_COIL_T",
+      "hdr": "7E6",
+      "rax": "7EE",
+      "freq": 5,
+      "cmd": {
+        "22": "481F"
+      },
+      "signals": [
+        {
+          "id": "MOTOR_COIL_TEMP",
+          "name": "Motor coil temperature",
+          "group": "motor",
+          "fmt": {
+            "len": 16,
+            "max": 300,
+            "min": -40,
+            "sign": true,
+            "unit": "celsius"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_PRI_MOTOR_INV_T",
+      "hdr": "7E6",
+      "rax": "7EE",
+      "freq": 5,
+      "cmd": {
+        "22": "4824"
+      },
+      "signals": [
+        {
+          "id": "MOTOR_INVERTER_TEMP",
+          "name": "Motor inverter temperature",
+          "group": "motor",
+          "fmt": {
+            "len": 16,
+            "max": 300,
+            "min": -40,
+            "sign": true,
+            "unit": "celsius"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_HVBAT_THERMAL_OP_MODE",
+      "hdr": "7E6",
+      "rax": "7EE",
+      "freq": 10,
+      "cmd": {
+        "22": "48E0"
+      },
+      "signals": [
+        {
+          "id": "HVBAT_THERMAL_MODE",
+          "name": "HV battery thermal operation mode",
+          "group": "thermal",
+          "fmt": {
+            "len": 8,
+            "map": {
+              "0": {
+                "value": "Off"
+              },
+              "1": {
+                "value": "Equalize"
+              },
+              "2": {
+                "value": "Coolant flow"
+              },
+              "3": {
+                "value": "Coolant fan"
+              },
+              "4": {
+                "value": "Coolant moderate"
+              },
+              "5": {
+                "value": "Coolant maximum"
+              },
+              "15": {
+                "value": "Heat"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_COOLANT_HTR_PWR",
+      "hdr": "7E6",
+      "rax": "7EE",
+      "freq": 5,
+      "cmd": {
+        "22": "48DE"
+      },
+      "signals": [
+        {
+          "id": "COOLANT_HEATER_POWER",
+          "name": "Coolant heater power",
+          "group": "thermal",
+          "fmt": {
+            "len": 16,
+            "max": 65.535,
+            "div": 1000,
+            "unit": "kW"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_ODO_HIGH_RES",
+      "hdr": "720",
+      "rax": "728",
+      "freq": 5,
+      "cmd": {
+        "22": "404C"
+      },
+      "signals": [
+        {
+          "id": "ODOMETER",
+          "name": "Odometer",
+          "group": "vehicle",
+          "fmt": {
+            "len": 24,
+            "max": 1677721,
+            "div": 10,
+            "unit": "km"
+          }
+        }
+      ]
+    },
+    {
+      "_source": "OBDb/Ford-F-150-Lightning: LIGHTNING_GEAR_CMD",
+      "hdr": "7E6",
+      "rax": "7EE",
+      "cmd": {
+        "22": "1E12"
+      },
+      "signals": [
+        {
+          "id": "GEAR",
+          "name": "Gear",
+          "group": "vehicle",
+          "fmt": {
+            "len": 8,
+            "map": {
+              "0": {
+                "value": "Unknown"
+              },
+              "20": {
+                "value": "Low"
+              },
+              "40": {
+                "value": "Drive"
+              },
+              "50": {
+                "value": "Neutral"
+              },
+              "60": {
+                "value": "Reverse"
+              },
+              "70": {
+                "value": "Park"
+              },
+              "255": {
+                "value": "Fault"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

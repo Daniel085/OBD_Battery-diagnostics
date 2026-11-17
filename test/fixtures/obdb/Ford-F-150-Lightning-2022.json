@@ -1,0 +1,1765 @@
+{
+ "vehicle": "Ford-F-150-Lightning-2022",
+ "signalSet": "signalsets/Ford-F-150-Lightning-2022/v01.json",
+ "source": "OBDb/Ford-F-150-Lightning @ bb26b0f293, tests/test_cases (replies captured by OBDb contributors; CC BY-SA 4.0)",
+ "cases": [
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224845",
+   "response": "7EC0462484528",
+   "expected": {
+    "HVBAT_SOC": 20
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224845",
+   "response": "7EC04624845C8",
+   "expected": {
+    "HVBAT_SOC": 100
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224845",
+   "response": "7EC0462484500",
+   "expected": {
+    "HVBAT_SOC": 0
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224801",
+   "response": "7EC0562480129D7",
+   "expected": {
+    "HVBAT_SOC_BMS": 21.422
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224801",
+   "response": "7EC056248015D00",
+   "expected": {
+    "HVBAT_SOC_BMS": 47.616
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224801",
+   "response": "7EC056248016BFF",
+   "expected": {
+    "HVBAT_SOC_BMS": 55.294
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224801",
+   "response": "7EC05624801BA57",
+   "expected": {
+    "HVBAT_SOC_BMS": 95.406
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22490C",
+   "response": "7EC0462490CB8",
+   "expected": {
+    "HVBAT_SOH": 92
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22490C",
+   "response": "7EC0462490CBD",
+   "expected": {
+    "HVBAT_SOH": 94.5
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22490C",
+   "response": "7EC0462490CC2",
+   "expected": {
+    "HVBAT_SOH": 97
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22490C",
+   "response": "7EC0462490CC3",
+   "expected": {
+    "HVBAT_SOH": 97.5
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22480D",
+   "response": "7EC0562480D819F",
+   "expected": {
+    "HVBAT_VOLTAGE": 331.83
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22480D",
+   "response": "7EC0562480D91FF",
+   "expected": {
+    "HVBAT_VOLTAGE": 373.75
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22480D",
+   "response": "7EC0562480D9300",
+   "expected": {
+    "HVBAT_VOLTAGE": 376.32
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22480D",
+   "response": "7EC0562480D9904",
+   "expected": {
+    "HVBAT_VOLTAGE": 391.72
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "2248F9",
+   "response": "7EC056248F90000",
+   "expected": {
+    "HVBAT_CURRENT": 0
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "2248F9",
+   "response": "7EC056248F9F8F8",
+   "expected": {
+    "HVBAT_CURRENT": -180
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "2248F9",
+   "response": "7EC056248F9FF22",
+   "expected": {
+    "HVBAT_CURRENT": -22.2
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "2248F9",
+   "response": "7EC056248F900FF",
+   "expected": {
+    "HVBAT_CURRENT": 25.5
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224848",
+   "response": "7EC056248483283",
+   "expected": {
+    "HVBAT_ENERGY": 25.862
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224848",
+   "response": "7EC056248483D00",
+   "expected": {
+    "HVBAT_ENERGY": 31.232
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224848",
+   "response": "7EC0562484851FF",
+   "expected": {
+    "HVBAT_ENERGY": 41.982
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224848",
+   "response": "7EC05624848FFFF",
+   "expected": {
+    "HVBAT_ENERGY": 131.07
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "2205A1",
+   "response": "7EC046205A164",
+   "expected": {
+    "HVBAT_SOC_TARGET": 100
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "2205A1",
+   "response": "7EC046205A15F",
+   "expected": {
+    "HVBAT_SOC_TARGET": 95
+   }
+  },
+  {
+   "year": 2024,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "2205A1",
+   "response": "7EC046205A15A",
+   "expected": {
+    "HVBAT_SOC_TARGET": 90
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224808",
+   "response": "7EC0762480843433243",
+   "expected": {
+    "HVBAT_CELLTEMP_AVG": 17,
+    "HVBAT_CELLTEMP_MAX": 17,
+    "HVBAT_CELLTEMP_MIN": 17
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224808",
+   "response": "7EC0762480845453245",
+   "expected": {
+    "HVBAT_CELLTEMP_AVG": 19,
+    "HVBAT_CELLTEMP_MAX": 19,
+    "HVBAT_CELLTEMP_MIN": 19
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224808",
+   "response": "7EC0762480848473247",
+   "expected": {
+    "HVBAT_CELLTEMP_AVG": 21,
+    "HVBAT_CELLTEMP_MAX": 22,
+    "HVBAT_CELLTEMP_MIN": 21
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224808",
+   "response": "7EC0762480848473248",
+   "expected": {
+    "HVBAT_CELLTEMP_AVG": 22,
+    "HVBAT_CELLTEMP_MAX": 22,
+    "HVBAT_CELLTEMP_MIN": 21
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224800",
+   "response": "7EC046248002E",
+   "expected": {
+    "HVBAT_TEMP": -4
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224800",
+   "response": "7EC0462480058",
+   "expected": {
+    "HVBAT_TEMP": 38
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224800",
+   "response": "7EC0462480025",
+   "expected": {
+    "HVBAT_TEMP": -13
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224800",
+   "response": "7EC046248005A",
+   "expected": {
+    "HVBAT_TEMP": 40
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224846",
+   "response": "7EC0462484643",
+   "expected": {
+    "HVBAT_COOLANT_INLET_TEMP": 17
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224846",
+   "response": "7EC0462484649",
+   "expected": {
+    "HVBAT_COOLANT_INLET_TEMP": 23
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224846",
+   "response": "7EC046248464A",
+   "expected": {
+    "HVBAT_COOLANT_INLET_TEMP": 24
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224846",
+   "response": "7EC046248464D",
+   "expected": {
+    "HVBAT_COOLANT_INLET_TEMP": 27
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "22DD05",
+   "response": "7EA0462DD0521",
+   "expected": {
+    "AMBIENT_TEMP": -7
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "22DD05",
+   "response": "7EA0462DD054D",
+   "expected": {
+    "AMBIENT_TEMP": 37
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "22DD05",
+   "response": "7EA0462DD05FF",
+   "expected": {
+    "AMBIENT_TEMP": null
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "22DD05",
+   "response": "7EA0462DD0518",
+   "expected": {
+    "AMBIENT_TEMP": -16
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224840",
+   "response": "7EC056248400F39",
+   "expected": {
+    "HVBAT_MODULE_VOLT_MIN": 3.897
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224840",
+   "response": "7EC056248400FAE",
+   "expected": {
+    "HVBAT_MODULE_VOLT_MIN": 4.014
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224840",
+   "response": "7EC056248400E63",
+   "expected": {
+    "HVBAT_MODULE_VOLT_MIN": 3.683
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224840",
+   "response": "7EC056248400EEA",
+   "expected": {
+    "HVBAT_MODULE_VOLT_MIN": 3.818
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224841",
+   "response": "7EC056248410F3E",
+   "expected": {
+    "HVBAT_MODULE_VOLT_AVG": 3.902
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224841",
+   "response": "7EC056248410FB8",
+   "expected": {
+    "HVBAT_MODULE_VOLT_AVG": 4.024
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224841",
+   "response": "7EC056248410E6F",
+   "expected": {
+    "HVBAT_MODULE_VOLT_AVG": 3.695
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224841",
+   "response": "7EC056248410EEF",
+   "expected": {
+    "HVBAT_MODULE_VOLT_AVG": 3.823
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22483F",
+   "response": "7EC0562483F0002",
+   "expected": {
+    "HVBAT_MODULE_VOLT": 0.002
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22483F",
+   "response": "7EC0562483F0013",
+   "expected": {
+    "HVBAT_MODULE_VOLT": 0.019
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22483F",
+   "response": "7EC0562483F0006",
+   "expected": {
+    "HVBAT_MODULE_VOLT": 0.006
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22483F",
+   "response": "7EC0562483F001C",
+   "expected": {
+    "HVBAT_MODULE_VOLT": 0.028
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22483E",
+   "response": "7EC0562483E00F9",
+   "expected": {
+    "HVBAT_SOC_SPREAD": 0.249
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22483E",
+   "response": "7EC0562483E01E3",
+   "expected": {
+    "HVBAT_SOC_SPREAD": 0.483
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22483E",
+   "response": "7EC0562483E018D",
+   "expected": {
+    "HVBAT_SOC_SPREAD": 0.397
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22483E",
+   "response": "7EC0562483E018E",
+   "expected": {
+    "HVBAT_SOC_SPREAD": 0.398
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224810",
+   "response": "7EC05624810055D",
+   "expected": {
+    "HVBAT_AGE_HOURS": 4942.8
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224810",
+   "response": "7EC056248101EFB",
+   "expected": {
+    "HVBAT_AGE_HOURS": 28551.6
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224810",
+   "response": "7EC056248101F01",
+   "expected": {
+    "HVBAT_AGE_HOURS": 28573.2
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224810",
+   "response": "7EC056248102859",
+   "expected": {
+    "HVBAT_AGE_HOURS": 37184.4
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22485C",
+   "response": "7EC0562485C0E45",
+   "expected": {
+    "HVBAT_CAPACITY_AH": 365.3
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22485C",
+   "response": "7EC0562485C0E9B",
+   "expected": {
+    "HVBAT_CAPACITY_AH": 373.9
+   }
+  },
+  {
+   "year": 2024,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22485C",
+   "response": "7EC0562485C0FB3",
+   "expected": {
+    "HVBAT_CAPACITY_AH": 401.9
+   }
+  },
+  {
+   "year": 2025,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22485C",
+   "response": "7EC0562485C0F72",
+   "expected": {
+    "HVBAT_CAPACITY_AH": 395.4
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22485D",
+   "response": "7EC0562485D0211",
+   "expected": {
+    "HVBAT_AH_DISCHARGED": 5290
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22485D",
+   "response": "7EC0562485D0214",
+   "expected": {
+    "HVBAT_AH_DISCHARGED": 5320
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22485D",
+   "response": "7EC0562485D178D",
+   "expected": {
+    "HVBAT_AH_DISCHARGED": 60290
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22485D",
+   "response": "7EC0562485D178E",
+   "expected": {
+    "HVBAT_AH_DISCHARGED": 60300
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224803",
+   "response": "7EC0562480309C3",
+   "expected": {
+    "HVBAT_LEAK_V_POS": 2.499
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224803",
+   "response": "7EC0562480309C4",
+   "expected": {
+    "HVBAT_LEAK_V_POS": 2.5
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224803",
+   "response": "7EC056248030B46",
+   "expected": {
+    "HVBAT_LEAK_V_POS": 2.886
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224803",
+   "response": "7EC056248030B59",
+   "expected": {
+    "HVBAT_LEAK_V_POS": 2.905
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224804",
+   "response": "7EC0562480406D8",
+   "expected": {
+    "HVBAT_LEAK_V_NEG": 1.752
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224804",
+   "response": "7EC0562480406EE",
+   "expected": {
+    "HVBAT_LEAK_V_NEG": 1.774
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224804",
+   "response": "7EC056248040802",
+   "expected": {
+    "HVBAT_LEAK_V_NEG": 2.05
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224804",
+   "response": "7EC0562480409C3",
+   "expected": {
+    "HVBAT_LEAK_V_NEG": 2.499
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224028",
+   "response": "72E046240284E",
+   "expected": {
+    "LVBAT_SOC": 78
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224028",
+   "response": "72E046240284F",
+   "expected": {
+    "LVBAT_SOC": 79
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224028",
+   "response": "72E0462402850",
+   "expected": {
+    "LVBAT_SOC": 80
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224028",
+   "response": "72E0462402834",
+   "expected": {
+    "LVBAT_SOC": 52
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "22402A",
+   "response": "72E0462402AA8",
+   "expected": {
+    "LVBAT_VOLTAGE": 14.4
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "22402A",
+   "response": "72E0462402AA9",
+   "expected": {
+    "LVBAT_VOLTAGE": 14.45
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "22402A",
+   "response": "72E0462402AAA",
+   "expected": {
+    "LVBAT_VOLTAGE": 14.5
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "22402A",
+   "response": "72E0462402AAC",
+   "expected": {
+    "LVBAT_VOLTAGE": 14.6
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "22402B",
+   "response": "72E0462402B83",
+   "expected": {
+    "LVBAT_CURRENT": 4
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "22402B",
+   "response": "72E0462402B84",
+   "expected": {
+    "LVBAT_CURRENT": 5
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "22402B",
+   "response": "72E0462402B85",
+   "expected": {
+    "LVBAT_CURRENT": 6
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "22402B",
+   "response": "72E0462402B86",
+   "expected": {
+    "LVBAT_CURRENT": 7
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224027",
+   "response": "72E0562402700B7",
+   "expected": {
+    "LVBAT_AGE_HOURS": 4392
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224027",
+   "response": "72E0562402702B0",
+   "expected": {
+    "LVBAT_AGE_HOURS": 16512
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224027",
+   "response": "72E0562402702C6",
+   "expected": {
+    "LVBAT_AGE_HOURS": 17040
+   }
+  },
+  {
+   "year": 2024,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224027",
+   "response": "72E0562402703D4",
+   "expected": {
+    "LVBAT_AGE_HOURS": 23520
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224025",
+   "response": "72E056240250810",
+   "expected": {
+    "LVBAT_QUIESCENT_CURRENT": 32
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224025",
+   "response": "72E056240250816",
+   "expected": {
+    "LVBAT_QUIESCENT_CURRENT": 35
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224025",
+   "response": "72E056240250858",
+   "expected": {
+    "LVBAT_QUIESCENT_CURRENT": 68
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224025",
+   "response": "72E05624025085A",
+   "expected": {
+    "LVBAT_QUIESCENT_CURRENT": 69
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "746",
+   "rax": "74E",
+   "request": "22483D",
+   "response": "74E0562483D0193",
+   "expected": {
+    "DCDC_ENABLED": "On"
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "746",
+   "rax": "74E",
+   "request": "22483D",
+   "response": "74E0562483D0194",
+   "expected": {
+    "DCDC_ENABLED": "On"
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "746",
+   "rax": "74E",
+   "request": "22483D",
+   "response": "74E0562483D0195",
+   "expected": {
+    "DCDC_ENABLED": "On"
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "746",
+   "rax": "74E",
+   "request": "22483D",
+   "response": "74E0562483D0086",
+   "expected": {
+    "DCDC_ENABLED": "Off"
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "746",
+   "rax": "74E",
+   "request": "224836",
+   "response": "74E0462483624",
+   "expected": {
+    "DCDC_LV_CURRENT": 36
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "746",
+   "rax": "74E",
+   "request": "224836",
+   "response": "74E046248363C",
+   "expected": {
+    "DCDC_LV_CURRENT": 60
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "746",
+   "rax": "74E",
+   "request": "224836",
+   "response": "74E0462483600",
+   "expected": {
+    "DCDC_LV_CURRENT": 0
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "746",
+   "rax": "74E",
+   "request": "224836",
+   "response": "74E0462483663",
+   "expected": {
+    "DCDC_LV_CURRENT": 99
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "746",
+   "rax": "74E",
+   "request": "22483A",
+   "response": "74E0462483A0E",
+   "expected": {
+    "DCDC_HV_CURRENT": 1.4
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "746",
+   "rax": "74E",
+   "request": "22483A",
+   "response": "74E0462483A19",
+   "expected": {
+    "DCDC_HV_CURRENT": 2.5
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "746",
+   "rax": "74E",
+   "request": "22483A",
+   "response": "74E0462483A00",
+   "expected": {
+    "DCDC_HV_CURRENT": 0
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "746",
+   "rax": "74E",
+   "request": "22483A",
+   "response": "74E0462483A2A",
+   "expected": {
+    "DCDC_HV_CURRENT": 4.2
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22484F",
+   "response": "7EC0462484F00",
+   "expected": {
+    "CHARGING_STATE": "Not ready"
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22484F",
+   "response": "7EC0462484F01",
+   "expected": {
+    "CHARGING_STATE": "Ready"
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22484F",
+   "response": "7EC0462484F05",
+   "expected": {
+    "CHARGING_STATE": "Charging"
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "224851",
+   "response": "7EA0462485100",
+   "expected": {
+    "EVSE_TYPE": "None"
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "22485E",
+   "response": "7EA0562485E0000",
+   "expected": {
+    "CHARGER_AC_VOLTAGE": 0
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "22485F",
+   "response": "7EA0462485F00",
+   "expected": {
+    "CHARGER_AC_CURRENT": 0
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224850",
+   "response": "7EC056248500000",
+   "expected": {
+    "CHARGER_DC_CURRENT": 0
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "2248FB",
+   "response": "7EC056248FB0806",
+   "expected": {
+    "HVBAT_CHARGE_POWER_LIMIT": 205.4
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "2248FB",
+   "response": "7EC056248FB0807",
+   "expected": {
+    "HVBAT_CHARGE_POWER_LIMIT": 205.5
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "2248FB",
+   "response": "7EC056248FB0811",
+   "expected": {
+    "HVBAT_CHARGE_POWER_LIMIT": 206.5
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "2248FB",
+   "response": "7EC056248FB081D",
+   "expected": {
+    "HVBAT_CHARGE_POWER_LIMIT": 207.7
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "22484E",
+   "response": "7EA0562484E0000",
+   "expected": {
+    "CHARGER_POWER_AVAILABLE": 0
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "2248C4",
+   "response": "7EA056248C4FFFF",
+   "expected": {
+    "CHARGER_MAX_POWER": null
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "2248BC",
+   "response": "7EA056248BC2710",
+   "expected": {
+    "HVBAT_MAX_CHARGE_CURRENT": 500
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224842",
+   "response": "7EC056248420000",
+   "expected": {
+    "HVBAT_CHARGE_CURRENT_REQUESTED": 0
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "224844",
+   "response": "7EC0462484400",
+   "expected": {
+    "HVBAT_CHARGE_VOLTAGE_REQUESTED": 0
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E4",
+   "rax": "7EC",
+   "request": "22484D",
+   "response": "7EC0462484D00",
+   "expected": {
+    "HVBAT_CHARGE_STATUS": "Not ready"
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "224861",
+   "response": "7EA0462486100",
+   "expected": {
+    "EVSE_PILOT_DUTY": 0
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "2248B6",
+   "response": "7EA046248B600",
+   "expected": {
+    "EVSE_PILOT_VOLTAGE": 0
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "224862",
+   "response": "7EA0462486200",
+   "expected": {
+    "EVSE_PROXIMITY": "Off"
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "224860",
+   "response": "7EA0462486000",
+   "expected": {
+    "CHARGER_AC_FREQUENCY": null
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "224888",
+   "response": "7EA046248883B",
+   "expected": {
+    "CHARGER_AC_COUPLER_TEMP": 19
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "224888",
+   "response": "7EA0462488840",
+   "expected": {
+    "CHARGER_AC_COUPLER_TEMP": 24
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "224888",
+   "response": "7EA0462488841",
+   "expected": {
+    "CHARGER_AC_COUPLER_TEMP": 25
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "224888",
+   "response": "7EA0462488842",
+   "expected": {
+    "CHARGER_AC_COUPLER_TEMP": 26
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "224897",
+   "response": "7EA046248973A",
+   "expected": {
+    "CHARGER_DC_COUPLER_TEMP_A": 18
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "224897",
+   "response": "7EA0462489740",
+   "expected": {
+    "CHARGER_DC_COUPLER_TEMP_A": 24
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "224897",
+   "response": "7EA0462489741",
+   "expected": {
+    "CHARGER_DC_COUPLER_TEMP_A": 25
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "224897",
+   "response": "7EA0462489742",
+   "expected": {
+    "CHARGER_DC_COUPLER_TEMP_A": 26
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "2248A4",
+   "response": "7EA046248A43A",
+   "expected": {
+    "CHARGER_DC_COUPLER_TEMP_B": 18
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "2248A4",
+   "response": "7EA046248A43B",
+   "expected": {
+    "CHARGER_DC_COUPLER_TEMP_B": 19
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "2248A4",
+   "response": "7EA046248A440",
+   "expected": {
+    "CHARGER_DC_COUPLER_TEMP_B": 24
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "2248A4",
+   "response": "7EA046248A441",
+   "expected": {
+    "CHARGER_DC_COUPLER_TEMP_B": 25
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E2",
+   "rax": "7EA",
+   "request": "22489E",
+   "response": "7EA0462489E00",
+   "expected": {
+    "CHARGER_DC_STATUS": "Not ready"
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "6F5",
+   "rax": "6FD",
+   "request": "224899",
+   "response": "6FD05624899FFFF",
+   "expected": {
+    "CHARGER_DC_MAX_CURRENT": null
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "6F5",
+   "rax": "6FD",
+   "request": "22489D",
+   "response": "6FD0562489DFFFF",
+   "expected": {
+    "CHARGER_DC_MAX_VOLTAGE": null
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "221E2C",
+   "response": "7EE05621E2C0000",
+   "expected": {
+    "MOTOR_RPM": 0
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "221E2C",
+   "response": "7EE05621E2C0EF2",
+   "expected": {
+    "MOTOR_RPM": 3826
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "221E2C",
+   "response": "7EE05621E2CFF24",
+   "expected": {
+    "MOTOR_RPM": -220
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "221E2C",
+   "response": "7EE05621E2C09FD",
+   "expected": {
+    "MOTOR_RPM": 2557
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "22481C",
+   "response": "7EE0562481C0000",
+   "expected": {
+    "MOTOR_TORQUE": 0
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "22481C",
+   "response": "7EE0562481CFF44",
+   "expected": {
+    "MOTOR_TORQUE": -18.8
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "22481C",
+   "response": "7EE0562481CFFFF",
+   "expected": {
+    "MOTOR_TORQUE": -0.1
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "22481C",
+   "response": "7EE0562481CFEFF",
+   "expected": {
+    "MOTOR_TORQUE": -25.7
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "22481F",
+   "response": "7EE0562481F0014",
+   "expected": {
+    "MOTOR_COIL_TEMP": 20
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "22481F",
+   "response": "7EE0562481F0015",
+   "expected": {
+    "MOTOR_COIL_TEMP": 21
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "22481F",
+   "response": "7EE0562481F0016",
+   "expected": {
+    "MOTOR_COIL_TEMP": 22
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "22481F",
+   "response": "7EE0562481F0018",
+   "expected": {
+    "MOTOR_COIL_TEMP": 24
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "224824",
+   "response": "7EE05624824001D",
+   "expected": {
+    "MOTOR_INVERTER_TEMP": 29
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "224824",
+   "response": "7EE056248240031",
+   "expected": {
+    "MOTOR_INVERTER_TEMP": 49
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "224824",
+   "response": "7EE05624824001E",
+   "expected": {
+    "MOTOR_INVERTER_TEMP": 30
+   }
+  },
+  {
+   "year": 2023,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "224824",
+   "response": "7EE056248240037",
+   "expected": {
+    "MOTOR_INVERTER_TEMP": 55
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "2248E0",
+   "response": "7EE046248E000",
+   "expected": {
+    "HVBAT_THERMAL_MODE": "Off"
+   }
+  },
+  {
+   "year": 2024,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "2248E0",
+   "response": "7EE046248E001",
+   "expected": {
+    "HVBAT_THERMAL_MODE": "Equalize"
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "2248DE",
+   "response": "7EE056248DE0000",
+   "expected": {
+    "COOLANT_HEATER_POWER": 0
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "2248DE",
+   "response": "7EE056248DE05F0",
+   "expected": {
+    "COOLANT_HEATER_POWER": 1.52
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "2248DE",
+   "response": "7EE056248DE0A27",
+   "expected": {
+    "COOLANT_HEATER_POWER": 2.599
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "720",
+   "rax": "728",
+   "request": "22404C",
+   "response": "7280662404C01D994",
+   "expected": {
+    "ODOMETER": 12123.6
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "720",
+   "rax": "728",
+   "request": "22404C",
+   "response": "7280662404C01DAFF",
+   "expected": {
+    "ODOMETER": 12159.9
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "720",
+   "rax": "728",
+   "request": "22404C",
+   "response": "7280662404C01DB00",
+   "expected": {
+    "ODOMETER": 12160
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "720",
+   "rax": "728",
+   "request": "22404C",
+   "response": "7280662404C020466",
+   "expected": {
+    "ODOMETER": 13219.8
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "221E12",
+   "response": "7EE04621E1228",
+   "expected": {
+    "GEAR": "Drive"
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "221E12",
+   "response": "7EE04621E123C",
+   "expected": {
+    "GEAR": "Reverse"
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "221E12",
+   "response": "7EE04621E1246",
+   "expected": {
+    "GEAR": "Park"
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E6",
+   "rax": "7EE",
+   "request": "221E12",
+   "response": "7EE 04 62 1E 12 28 ",
+   "expected": {
+    "GEAR": "Drive"
+   }
+  }
+ ]
+}

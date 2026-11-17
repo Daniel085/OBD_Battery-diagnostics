@@ -34,7 +34,11 @@ MAX_H = float(os.environ.get("OBD_MAX_H", "6"))
 
 FAST = ["DD69", "DD66", "DDBC", "DDC0", "DFA0"]
 SLOW = ["DFAC", "DF67", "DF62", "DF60", "DD8E", "DF76", "DFAA", "DFAD",
-        "DFE2", "DDC9"]
+        "DFE2", "DDC9",
+        # 2026-11-15: Ah in / Ah out candidates (little-endian As?), contactor
+        # count, resistance health. One charge should move DD73 by the
+        # coulomb count and DF60's first word by the hours spent charging.
+        "DD73", "DD74", "DD63", "DDB6"]
 
 LOG = open(LOGFILE, "a")
 

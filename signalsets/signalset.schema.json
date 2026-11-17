@@ -60,10 +60,40 @@
             "minProperties": 1,
             "maxProperties": 1
           },
+          "fcm1": {
+            "type": "boolean",
+            "description": "OBDb: the command needs flow-control mode 1. Carried over from imported sets; not acted on by this app yet."
+          },
+          "freq": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Optional minimum seconds between reads of this command in a full poll (OBDb 'freq'). Omit to read on every poll. Use for values that barely move (lifetime counters, ageing figures)."
+          },
           "signals": {
             "type": "array",
             "items": { "$ref": "#/definitions/signal" }
           }
+        }
+      }
+    },
+    "pack": {
+      "type": "object",
+      "description": "Facts about the HV pack that are not read from the car.",
+      "properties": {
+        "ratedAh": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Rated (as-new, nameplate) capacity in Ah. Lifetime charge throughput divided by this is the equivalent-full-cycle count."
+        },
+        "ratedKwh": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Rated pack energy in kWh on the scale the vehicle's SOC uses (usable energy when the SOC is the usable-window one). The capacity test grades against it."
+        },
+        "nominalVoltage": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Nominal pack voltage, for the capacity test's Ah to kWh conversion."
         }
       }
     }
@@ -87,6 +117,7 @@
             "bix": { "type": "integer", "default": 0, "description": "Start bit offset into the payload (big-endian). Defaults to 0." },
             "len": { "type": "integer", "description": "Field length in bits." },
             "sign": { "type": "boolean", "default": false, "description": "Interpret the raw field as two's-complement signed." },
+            "le": { "type": "boolean", "default": false, "description": "Little-endian byte order (local extension to OBDb v3). The field must cover whole bytes: bix and len multiples of 8." },
             "mul": { "type": "number", "default": 1, "description": "Multiplier." },
             "div": { "type": "number", "default": 1, "description": "Divisor." },
             "add": { "type": "number", "default": 0, "description": "Offset added after scaling." },
@@ -94,7 +125,17 @@
             "max": { "type": "number", "description": "Documentation only: expected physical maximum." },
             "nullmin": { "type": "number", "description": "Physical values at or below this are 'no value' and are not reported (OBDb v3 semantics)." },
             "nullmax": { "type": "number", "description": "Physical values at or above this are 'no value' and are not reported (OBDb v3 semantics)." },
-            "unit": { "type": "string", "description": "Physical unit, e.g. 'percent', 'volts', 'amps', 'celsius'." }
+            "unit": { "type": "string", "description": "Physical unit, e.g. 'percent', 'volts', 'amps', 'celsius'." },
+            "map": {
+              "type": "object",
+              "description": "Names for particular decoded values (OBDb v3 'map'), keyed by the value as a string: either a plain string or an object with 'value' (the name shown) and an optional 'description'. A value with a name is displayed as that name.",
+              "additionalProperties": {
+                "oneOf": [
+                  { "type": "string" },
+                  { "type": "object", "required": ["value"], "properties": { "value": { "type": "string" }, "description": { "type": "string" } } }
+                ]
+              }
+            }
           }
         }
       }
