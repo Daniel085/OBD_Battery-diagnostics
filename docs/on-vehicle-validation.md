@@ -43,3 +43,18 @@ If the app connects but no notifications arrive, the adapter likely uses a
 different GATT layout. Try the Nordic-UART config
 (`ElmBleConfig.nordicUart()`) vs the default FFE0/FFE1 clone layout in
 `lib/transport/elm_ble_source.dart`.
+
+## Ford F-150 Lightning and PowerBoost hybrid (imported from OBDb)
+
+Not yet read on a vehicle by this project. First-session checklist and what
+is confirmed by whom: `docs/obdb-imports.md`.
+
+- [ ] Lightning: connects, full poll completes, time per poll noted
+- [ ] Lightning: `HVBAT_CURRENT` negative on charge, positive on load
+- [ ] Lightning: displayed SOC and odometer match the dash
+- [ ] Lightning: requests OBDb marks `fcm1` answer on our adapter
+- [ ] Hybrid: signal check run in Ready, report saved under `captures/`
+- [ ] Hybrid: which `7E4` battery requests answer at all
+- [ ] Hybrid: DID sweep `7E4` `4800`–`49FF` saved
+- [ ] Hybrid: charge level vs dash, current sign, then drop the `?` marks
+

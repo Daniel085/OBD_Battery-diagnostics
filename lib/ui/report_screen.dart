@@ -93,8 +93,8 @@ class _ReportScreenState extends State<ReportScreen> {
           Text('Metrics', style: Theme.of(context).textTheme.titleMedium),
           ...report.metrics.entries.map((e) => ListTile(
                 dense: true,
-                title: Text(e.key),
-                trailing: Text(e.value?.toStringAsFixed(3) ?? '—'),
+                title: Text(report.metricLabel(e.key)),
+                trailing: Text(report.metricText(e.key)),
               )),
           const SizedBox(height: 12),
           Text('Warnings', style: Theme.of(context).textTheme.titleMedium),

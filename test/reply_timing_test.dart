@@ -71,11 +71,76 @@ class _Recorder implements DataSource {
   }
 }
 
+/// Wraps a source and makes one ECU (by ATCEA target) silent.
+class _SilentEcu implements DataSource {
+  final DataSource inner;
+  final String target;
+  String _cea = '';
+  final sent = <String>[];
+  _SilentEcu(this.inner, this.target);
+
+  List<String> get waits =>
+      sent.where((c) => c.startsWith('ATST')).toList();
+
+  @override
+  String get name => inner.name;
+  @override
+  bool get isConnected => inner.isConnected;
+  @override
+  Future<void> connect() => inner.connect();
+  @override
+  Future<void> disconnect() => inner.disconnect();
+  @override
+  Future<String> send(String command, {Duration? timeout}) async {
+    sent.add(command);
+    if (command.startsWith('ATCEA')) _cea = command.substring(5);
+    if (!command.startsWith('AT') && _cea == target) return 'NO DATA\r>';
+    return inner.send(command, timeout: timeout);
+  }
+}
+
 void main() {
   final bmw = SignalSet.parse(
       File('signalsets/BMW-330e-2018/v02.json').readAsStringSync());
   final currentCmd = bmw.commands
       .firstWhere((c) => c.signals.any((s) => s.id == 'HVBAT_CURRENT'));
+  final motorCmd = bmw.commands
+      .firstWhere((c) => c.signals.any((s) => s.id == 'MOTOR_RPM'));
+
+  test('each ECU has its own fallback: a silent one does not slow the rest',
+      () async {
+    final src = _SilentEcu(SimulatedBmwSource(), '3A');
+    await src.connect();
+    final client = DiagnosticsClient(src, bmw)..fastTiming = true;
+    await client.initialize();
+    expect((await client.read(currentCmd)).single.value, closeTo(1.48, 0.5));
+    // The motor ECU never answers: its own wait steps 40 -> 80 -> FF.
+    for (var i = 0; i < 3; i++) {
+      await expectLater(client.read(motorCmd), throwsA(isA<CommandFailure>()));
+    }
+    // Back on the SME, which is still read at the shortest wait.
+    src.sent.clear();
+    expect((await client.read(currentCmd)).single.value, closeTo(1.48, 0.5));
+    expect(src.waits, ['ATSTFF', 'ATST40']); // mode commands, then fast
+  });
+
+  test('a negative reply is not a timing failure', () async {
+    // DD68 does not exist on the F30 SME: it answers 7F 22 31 at once.
+    final withBadDid = SignalSet.parse(
+        File('signalsets/BMW-330e-2018/v02.json')
+            .readAsStringSync()
+            .replaceAll('"DD66"', '"DD68"'));
+    final bad = withBadDid.commands.firstWhere((c) => c.payload == 'DD68');
+    final current = withBadDid.commands
+        .firstWhere((c) => c.signals.any((s) => s.id == 'HVBAT_CURRENT'));
+    final src = _Recorder(SimulatedBmwSource());
+    await src.connect();
+    final client = DiagnosticsClient(src, withBadDid)..fastTiming = true;
+    await client.initialize();
+    await expectLater(client.read(bad), throwsA(isA<CommandFailure>()));
+    await client.read(current);
+    expect(src.sent.where((c) => c.startsWith('ATST')), ['ATSTFF', 'ATST40']);
+  });
 
   Future<double> amps(DiagnosticsClient client) async =>
       (await client.read(currentCmd)).single.value;

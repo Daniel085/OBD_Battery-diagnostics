@@ -60,18 +60,26 @@ class DiagnosticsClient {
   ///
   /// Self-correcting: a read that fails while a shorter wait is in use drops
   /// to the next longer one for the rest of the connection, ending at the
-  /// default. The worst case is one or two lost samples.
+  /// default. The worst case is one or two lost samples. Each ECU has its own
+  /// ladder, so a slow or silent ECU does not slow the others down.
   bool fastTiming = false;
 
   /// Reply waits to try, safe default first (ELM `ATST` units of ~4 ms:
   /// FF ~1.04 s, 80 ~0.52 s, 40 ~0.26 s).
   static const _replyWaits = ['FF', '80', '40'];
 
-  /// The shortest entry of [_replyWaits] that has not failed yet.
-  int _fastestWait = _replyWaits.length - 1;
+  /// Per extended-addressing mode ("hdr/eax"): the shortest entry of
+  /// [_replyWaits] that has not failed yet for that ECU.
+  final Map<String, int> _fastestWait = {};
+
+  int _fastestWaitFor(String mode) =>
+      _fastestWait[mode] ?? _replyWaits.length - 1;
 
   /// The wait the adapter currently has (meaningful in extended mode only).
   String _appliedWait = _replyWaits.first;
+
+  /// Which slow-changing commands (those with a `freq`) are due in [readAll].
+  final PollSchedule _schedule = PollSchedule();
 
   DiagnosticsClient(this.source, this.signalSet);
 
@@ -87,7 +95,22 @@ class DiagnosticsClient {
     _lastRax = null;
     _lastExtMode = null;
     _appliedWait = _replyWaits.first;
+    _schedule.reset();
   }
+
+  /// Something else used the adapter (terminal, DID scanner, signal check):
+  /// its header, receive filter and addressing mode are no longer what this
+  /// client last set, so the next read sets all of them again.
+  void forgetAdapterState() {
+    _lastHdr = null;
+    _lastRax = null;
+    _lastExtMode = _unknownMode;
+    _appliedWait = _replyWaits.first;
+  }
+
+  /// [_lastExtMode] when the adapter's addressing mode is not known. Matches
+  /// neither normal addressing (null) nor any "hdr/eax".
+  static const _unknownMode = '?';
 
   /// Run one command and return its decoded readings.
   Future<List<Reading>> read(Command command, {DateTime? now}) async {
@@ -133,6 +156,9 @@ class DiagnosticsClient {
     } on CommandFailure {
       _noteFailure(command);
       rethrow;
+    } on UdsNegativeResponse catch (e) {
+      // The ECU answered in time and said no: not a timing problem.
+      throw CommandFailure(command, e);
     } catch (e) {
       _noteFailure(command);
       throw CommandFailure(command, e);
@@ -142,9 +168,14 @@ class DiagnosticsClient {
   /// A failed read under a shortened reply wait: assume the wait was too
   /// short and stop using it.
   void _noteFailure(Command command) {
-    if (command.eax != null && _appliedWait != _replyWaits.first) {
+    final mode = _lastExtMode;
+    if (command.eax != null &&
+        mode != null &&
+        _appliedWait != _replyWaits.first) {
       final failed = _replyWaits.indexOf(_appliedWait);
-      if (failed > 0 && _fastestWait >= failed) _fastestWait = failed - 1;
+      if (failed > 0 && _fastestWaitFor(mode) >= failed) {
+        _fastestWait[mode] = failed - 1;
+      }
     }
   }
 
@@ -162,16 +193,22 @@ class DiagnosticsClient {
 
   /// Read every command in the signal set, skipping ones that fail (so one
   /// unsupported DID doesn't abort the whole poll). Returns readings by id.
+  ///
+  /// A command with a `freq` is left out until that many seconds have passed
+  /// since its last successful read, so the result can hold fewer signals
+  /// than the previous poll's; callers merge it into what they already have.
   Future<Map<String, Reading>> readAll({
     void Function(CommandFailure failure)? onFailure,
     DateTime? now,
   }) async {
     final out = <String, Reading>{};
     for (final cmd in signalSet.commands) {
+      if (!_schedule.isDue(cmd, now ?? DateTime.now())) continue;
       try {
         for (final r in await read(cmd, now: now)) {
           out[r.signal.id] = r;
         }
+        _schedule.markRead(cmd, now ?? DateTime.now());
       } on CommandFailure catch (f) {
         onFailure?.call(f);
       }
@@ -201,7 +238,8 @@ class DiagnosticsClient {
       _lastExtMode = mode;
     }
     if (command.eax != null) {
-      final want = fastTiming ? _replyWaits[_fastestWait] : _replyWaits.first;
+      final want =
+          fastTiming ? _replyWaits[_fastestWaitFor(mode!)] : _replyWaits.first;
       if (want != _appliedWait) {
         await source.send('ATST$want');
         _appliedWait = want;

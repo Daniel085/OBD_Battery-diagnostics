@@ -9,6 +9,7 @@ import '../app/app_controller.dart';
 import '../app/signal_set_repository.dart';
 import '../transport/data_source.dart';
 import '../transport/simulated_source.dart';
+import 'captures_screen.dart';
 import 'dashboard_screen.dart';
 import 'onboarding_screen.dart';
 import 'settings_screen.dart';
@@ -60,6 +61,14 @@ class HomeScreen extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => const TerminalScreen()),
               ),
             ),
+          if (c.captureStore != null)
+            IconButton(
+              tooltip: 'Captures',
+              icon: const Icon(Icons.folder_open),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CapturesScreen()),
+              ),
+            ),
           IconButton(
             tooltip: 'Settings',
             icon: const Icon(Icons.settings),
@@ -88,11 +97,7 @@ class HomeScreen extends StatelessWidget {
                         value: v.id,
                         title: Text(v.displayName),
                         subtitle: Text(
-                          v.id.startsWith('Cadillac')
-                              ? 'Pack current, temps, module voltages + '
-                                  'capacity test — confirmed on-vehicle'
-                              : 'Battery manager (SOC, SOH, cell V/temps) '
-                                  '— confirmed on-vehicle',
+                          v.note,
                           style: const TextStyle(fontStyle: FontStyle.italic),
                         ),
                       ))

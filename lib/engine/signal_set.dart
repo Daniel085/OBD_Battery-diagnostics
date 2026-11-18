@@ -78,6 +78,11 @@ class Command {
 
   final List<Signal> signals;
 
+  /// Minimum seconds between reads of this command in a full poll (OBDb
+  /// `freq`). Null = read on every poll. For values that barely move
+  /// (lifetime counters, ageing figures) on a bus where each read is slow.
+  final double? freq;
+
   const Command({
     this.hdr,
     this.rax,
@@ -85,6 +90,7 @@ class Command {
     required this.service,
     required this.payload,
     required this.signals,
+    this.freq,
   });
 
   factory Command.fromJson(Map<String, dynamic> j) {
@@ -102,6 +108,7 @@ class Command {
       signals: (j['signals'] as List<dynamic>? ?? const [])
           .map((s) => Signal.fromJson(s as Map<String, dynamic>))
           .toList(growable: false),
+      freq: (j['freq'] as num?)?.toDouble(),
     );
   }
 
@@ -117,17 +124,49 @@ class Command {
   List<int> echoedIdentifierBytes() => _hexToBytes(payload);
 }
 
+/// Remembers when each command was last read so a full poll can skip the
+/// ones whose [Command.freq] has not elapsed yet. A failed read is not
+/// recorded, so it is retried on the next poll.
+class PollSchedule {
+  final Map<Command, DateTime> _lastRead = {};
+
+  bool isDue(Command command, DateTime now) {
+    final freq = command.freq;
+    final last = _lastRead[command];
+    if (freq == null || last == null) return true;
+    return now.difference(last).inMilliseconds >= freq * 1000;
+  }
+
+  void markRead(Command command, DateTime now) => _lastRead[command] = now;
+
+  void reset() => _lastRead.clear();
+}
+
 class SignalSet {
   final String vehicle;
   final String? description;
   final Protocol protocol;
   final List<Command> commands;
 
+  /// The pack's rated (as-new, nameplate) capacity in Ah (`pack.ratedAh`),
+  /// when the signal set gives one. Used to turn lifetime charge throughput
+  /// into equivalent full cycles.
+  final double? ratedAh;
+
+  /// Rated pack energy in kWh on the scale the vehicle's SOC uses
+  /// (`pack.ratedKwh`) and nominal pack voltage (`pack.nominalVoltage`).
+  /// The capacity test grades against them; without both it is not offered.
+  final double? ratedKwh;
+  final double? nominalVoltage;
+
   const SignalSet({
     required this.vehicle,
     this.description,
     required this.protocol,
     required this.commands,
+    this.ratedAh,
+    this.ratedKwh,
+    this.nominalVoltage,
   });
 
   factory SignalSet.fromJson(Map<String, dynamic> j) => SignalSet(
@@ -137,7 +176,13 @@ class SignalSet {
         commands: (j['commands'] as List<dynamic>)
             .map((c) => Command.fromJson(c as Map<String, dynamic>))
             .toList(growable: false),
+        ratedAh: _packNumber(j, 'ratedAh'),
+        ratedKwh: _packNumber(j, 'ratedKwh'),
+        nominalVoltage: _packNumber(j, 'nominalVoltage'),
       );
+
+  static double? _packNumber(Map<String, dynamic> j, String key) =>
+      ((j['pack'] as Map<String, dynamic>?)?[key] as num?)?.toDouble();
 
   factory SignalSet.parse(String jsonSource) =>
       SignalSet.fromJson(jsonDecode(jsonSource) as Map<String, dynamic>);

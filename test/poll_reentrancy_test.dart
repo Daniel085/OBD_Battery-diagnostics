@@ -24,8 +24,11 @@ class _SlowSource implements DataSource {
   @override
   Future<void> disconnect() async => _connected = false;
 
+  final sent = <String>[];
+
   @override
   Future<String> send(String command, {Duration? timeout}) async {
+    sent.add(command);
     if (_busy) concurrentViolations++;
     _busy = true;
     await Future<void>.delayed(const Duration(milliseconds: 15));
@@ -70,6 +73,46 @@ void main() {
     expect(source.concurrentViolations, 0,
         reason: 'overlapping polls issued concurrent commands');
     expect(controller.latest.containsKey('HVBAT_SOC'), isTrue);
+    controller.dispose();
+  });
+
+  test('a tool that holds the adapter has it alone, then the poll resumes',
+      () async {
+    final set = SignalSet.parse(
+        File('signalsets/BMW-330e-2018/v02.json').readAsStringSync());
+    final source = _SlowSource();
+    final controller = AppController(repository: _InMemoryRepo(set));
+    controller.pollInterval = const Duration(milliseconds: 5);
+    final bmw = SignalSetRepository.catalogue
+        .firstWhere((v) => v.id == 'BMW-330e-2018');
+    await controller.connectWithSource(source, bmw);
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    // What a terminal or scanner does: its own header, then requests, while
+    // the poll timer keeps firing every 5 ms.
+    late int from, to;
+    await controller.withAdapter((adapter) async {
+      expect(controller.adapterHeld, isTrue);
+      from = source.sent.length;
+      await adapter.send('ATSH7E4');
+      for (var i = 0; i < 10; i++) {
+        await adapter.send('224801');
+      }
+      to = source.sent.length;
+    });
+    expect(source.sent.sublist(from, to),
+        ['ATSH7E4', ...List.filled(10, '224801')],
+        reason: 'the poll sent commands while the tool had the adapter');
+    expect(controller.adapterHeld, isFalse);
+
+    // The poll comes back and does not trust the header the tool left: it
+    // sets addressing and header again before its next request.
+    await Future<void>.delayed(const Duration(milliseconds: 1200));
+    await controller.disconnect();
+    final after = source.sent.sublist(to);
+    expect(after, contains('22DDBC'));
+    expect(after.indexOf('ATSH6F1'), inInclusiveRange(0, after.indexOf('22DDBC')));
+    expect(source.concurrentViolations, 0);
     controller.dispose();
   });
 }

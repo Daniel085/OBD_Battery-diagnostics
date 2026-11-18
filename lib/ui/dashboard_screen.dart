@@ -8,9 +8,11 @@ import '../engine/display_units.dart';
 import '../engine/soh_history.dart';
 import 'battery_visuals.dart';
 import 'capacity_screen.dart';
+import 'captures_screen.dart';
 import 'drive_screen.dart';
 import 'report_screen.dart';
 import 'scanner_screen.dart';
+import 'signal_check_screen.dart';
 import 'settings_screen.dart';
 import 'terminal_screen.dart';
 
@@ -62,6 +64,12 @@ class DashboardScreen extends StatelessWidget {
                 case 'scanner':
                   Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const ScannerScreen()));
+                case 'captures':
+                  Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const CapturesScreen()));
+                case 'check':
+                  Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const SignalCheckScreen()));
                 case 'settings':
                   Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => const SettingsScreen()));
@@ -80,11 +88,27 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ),
               PopupMenuItem(
+                value: 'check',
+                child: ListTile(
+                  leading: Icon(Icons.fact_check),
+                  title: Text('Signal check'),
+                  subtitle: Text('Which requests this vehicle answers'),
+                ),
+              ),
+              PopupMenuItem(
                 value: 'scanner',
                 child: ListTile(
                   leading: Icon(Icons.travel_explore),
                   title: Text('DID scanner'),
                   subtitle: Text('Advanced'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'captures',
+                child: ListTile(
+                  leading: Icon(Icons.folder_open),
+                  title: Text('Captures'),
+                  subtitle: Text('Recordings saved on this phone'),
                 ),
               ),
               PopupMenuItem(
@@ -228,6 +252,8 @@ class _DashboardBody extends StatelessWidget {
       if (consumed.contains(x.signal.id)) continue;
       byGroup.putIfAbsent(x.signal.group ?? 'other', () => []).add(x);
     }
+    // A figure worked out by the app, shown under the counter it comes from.
+    final cycles = controller.equivalentFullCycles;
     const cardGroups = ['cells', 'charging'];
     const compactOrder = ['temperature', 'summary', 'vehicle', 'dynamics'];
     final compactGroups = [
@@ -256,9 +282,22 @@ class _DashboardBody extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Column(
-                children: byGroup[g]!
-                    .map((x) => _CompactRow(reading: x, units: units))
-                    .toList(),
+                children: [
+                  ...byGroup[g]!
+                      .map((x) => _CompactRow(reading: x, units: units)),
+                  if (cycles != null && byGroup[g]!.contains(cycles.basis))
+                    _ComputedRow(
+                      label: 'Equivalent full cycles',
+                      value: '${cycles.cycles.round()}'
+                          '${cycles.confirmed ? '' : ' ?'}',
+                      note: 'Computed by the app, not read from the car: '
+                          '${_label(cycles.basis.signal.name).toLowerCase()} '
+                          '÷ ${cycles.capacityReported ? 'the capacity the car reports, ' : 'rated '}'
+                          '${_valueText(cycles.capacityAh, 1)} Ah. '
+                          'Includes regen, so it is wear, not plug-in '
+                          'charges.',
+                    ),
+                ],
               ),
             ),
           ),
@@ -721,12 +760,13 @@ class _ReadingCard extends StatelessWidget {
                       fit: BoxFit.scaleDown,
                       child: Text(
                           _valueText(
-                              units.convert(reading.unit, reading.value), 2),
+                              units.display(reading.unit, reading.value).value,
+                              2),
                           style: Theme.of(context).textTheme.headlineSmall),
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Text(units.symbolFor(reading.unit),
+                  Text(units.display(reading.unit, reading.value).unit,
                       style: Theme.of(context).textTheme.bodySmall),
                 ],
               ),
@@ -768,6 +808,48 @@ class _CompactRow extends StatelessWidget {
   }
 }
 
+/// The signal name without its trailing "(...)" qualifier.
+String _label(String name) =>
+    name.replaceFirst(RegExp(r'\s*\([^)]*\)\s*$'), '');
+
+/// A row for a value the app worked out, with a line saying how.
+class _ComputedRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final String note;
+  const _ComputedRow(
+      {required this.label, required this.value, required this.note});
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(label,
+                    style: text.bodyMedium, overflow: TextOverflow.ellipsis),
+              ),
+              Text(value,
+                  style:
+                      text.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(note,
+              style: text.bodySmall
+                  ?.copyWith(color: Theme.of(context).colorScheme.outline)),
+        ],
+      ),
+    );
+  }
+}
+
 class _WaitingState extends StatelessWidget {
   final List<CommandFailure> failures;
   const _WaitingState({required this.failures});
@@ -803,7 +885,10 @@ class _WaitingState extends StatelessWidget {
 String _valueText(double v, int decimals) =>
     v.abs() >= 1000 ? v.round().toString() : v.toStringAsFixed(decimals);
 
-String _withUnit(Reading r, DisplayUnits units) =>
-    '${_valueText(units.convert(r.unit, r.value), 1)} '
-            '${units.symbolFor(r.unit)}'
-        .trim();
+String _withUnit(Reading r, DisplayUnits units) {
+  // A value the signal set names (0 -> "OK") is shown as that name.
+  final label = r.signal.fmt.labelFor(r.value);
+  if (label != null) return label;
+  final d = units.display(r.unit, r.value);
+  return '${_valueText(d.value, 1)} ${d.unit}'.trim();
+}

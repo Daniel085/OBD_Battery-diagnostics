@@ -122,6 +122,14 @@ List<List<int>> responseDataFields(List<ElmFrame> frames,
 
 String _hex2(int b) => b.toRadixString(16).padLeft(2, '0').toUpperCase();
 
+/// An adapter reply as one line of text: its lines joined by " | ", the
+/// prompt dropped. The form captures and reports are written in.
+String replyOnOneLine(String raw) => raw
+    .split(RegExp(r'[\r\n]+'))
+    .map((l) => l.replaceAll(elmPrompt, '').trim())
+    .where((l) => l.isNotEmpty)
+    .join(' | ');
+
 /// Errors/adapter states surfaced as text rather than hex.
 const Set<String> elmErrorTokens = {
   'NO DATA',

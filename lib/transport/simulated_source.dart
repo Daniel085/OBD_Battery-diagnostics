@@ -69,6 +69,26 @@ class SimulatedBmwSource implements DataSource {
       return 'NO DATA\r>';
     }
 
+    // EME (electric machine electronics, address 3A, replies on 63A).
+    if (_cea == '3A') {
+      if (cmd.length == 6 && cmd.startsWith('22')) {
+        return _responseForEmeDid(cmd.substring(2, 6)) ??
+            '63A F1 03 7F 22 31 FF FF FF\r>';
+      }
+      return 'NO DATA\r>';
+    }
+
+    // DME (engine electronics, address 12, replies on 612): 12 V records.
+    if (_cea == '12') {
+      if (cmd == '22409D') {
+        return _single([0x62, 0x40, 0x9D, ..._dme12vHistory],
+            id: '612', target: '12');
+      }
+      return cmd.startsWith('22')
+          ? '612 F1 03 7F 22 31 FF FF FF\r>'
+          : 'NO DATA\r>';
+    }
+
     // Standard J1979 mode-01 PIDs (what the real 330e answers on 7Ex).
     if (cmd.startsWith('01') && cmd.length >= 4) {
       final resp = _responseForPid(cmd.substring(2, 4));
@@ -135,6 +155,59 @@ class SimulatedBmwSource implements DataSource {
           0x41, 0xE9, 0x3E, 0x32, 0xDF, 0xD5, 0x39, 0xAF, 0x61, 0x0A,
           0x00, 0x14, 0x03, 0x20, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
           0x00, 0x00, 0x00, 0x01, 0x2F, 0x82]);
+      // Ageing and lifetime figures, as the car returned them (not drifted).
+      case 'DDB6': // resistance health u16 /10
+        return _single([0x62, 0xDD, 0xB6, ...u16(628)]);
+      case 'DD6A': // isolation kOhm: after-run, in operation, internal + flags
+        return _single([0x62, 0xDD, 0x6A, ...u16(2000), ...u16(2000),
+          ...u16(0), 0x01, 0x01, 0x00]);
+      case 'DF60': // hours with HV on, hours total (u32 each)
+        return _single([0x62, 0xDF, 0x60, ...u16(0), ...u16(10594),
+          ...u16(1), ...u16(0x30D2)]);
+      case 'DD63': // contactor switchings without load, under load (u32 each)
+        return _single([0x62, 0xDD, 0x63, ...u16(0), ...u16(15403),
+          ...u16(0), ...u16(0)]);
+      case 'DFA6': // defect code per module slot (11 slots, 0 = none)
+        return _single([0x62, 0xDF, 0xA6, ...List.filled(11, 0)]);
+      // Lifetime charge in / out, A*s, little-endian (2026-11-15 12:27).
+      case 'DD73':
+        return _single([0x62, 0xDD, 0x73, 0x08, 0x5C, 0x4E, 0x07]);
+      case 'DD74':
+        return _single([0x62, 0xDD, 0x74, 0x2A, 0x41, 0x1E, 0x07]);
+      default:
+        return null;
+    }
+  }
+
+  /// EME motor data in the BMW i3 layout the signal set assumes (NOT yet read
+  /// on the real 330e): a warm motor in a parked car, as BimmerLink showed on
+  /// 2026-11-08 (39.7 / 41.7 degC, 0 rpm, 0 Nm).
+  /// The 12 V recharge history (DME `409D`) exactly as the car returned it
+  /// on 2026-11-08 (captures/bmw_dme_2026-11-08.txt): last park, then the
+  /// last four top-ups of the 12 V battery from the HV pack.
+  static const _dme12vHistory = [
+    0x10, 0xBD, 0x33, 0xD4, 0x01, 0x2F, 0x82, 0xC7, //
+    0x10, 0xA1, 0xA3, 0x0E, 0x01, 0x2F, 0x38, 0x9E, 0x10, 0xA9, 0xEC, 0x62,
+    0x84, 0x8D, 0x90, 0x0E, 0x13, 0x93, 0x87, 0x05, //
+    0x10, 0x22, 0xA3, 0xE2, 0x01, 0x2C, 0x5D, 0x8C, 0x10, 0x23, 0xF2, 0x74,
+    0x85, 0x38, 0x98, 0x0E, 0x12, 0x89, 0x35, 0x05, //
+    0x10, 0x1E, 0x46, 0x56, 0x01, 0x2C, 0x47, 0x85, 0x10, 0x20, 0x8D, 0x2C,
+    0x76, 0x5C, 0xA5, 0x0E, 0x13, 0x88, 0x6D, 0x05, //
+    0x10, 0x0D, 0xC2, 0x9B, 0x01, 0x2C, 0x20, 0x80, 0x10, 0x0F, 0x48, 0x30,
+    0x82, 0x8D, 0x93, 0x0E, 0x12, 0x88, 0x75, 0x05,
+  ];
+
+  String? _responseForEmeDid(String did) {
+    List<int> u16(int v) => [(v >> 8) & 0xFF, v & 0xFF];
+    switch (did) {
+      case 'DEA6': // motor temp 1, 2: s16 /64
+        final t = _drift(2541, 6);
+        return _single([0x62, 0xDE, 0xA6, ...u16(t), ...u16(t + 128)],
+            id: '63A', target: '3A');
+      case 'DEA7': // speed u16/2-5000, actual + target torque s16/2, mode
+        return _single(
+            [0x62, 0xDE, 0xA7, ...u16(10000), ...u16(0), ...u16(0), 0x00],
+            id: '63A', target: '3A');
       default:
         return null;
     }
@@ -142,32 +215,32 @@ class SimulatedBmwSource implements DataSource {
 
   int _drift(int base, int amp) => base + (_rng.nextInt(2 * amp + 1) - amp);
 
-  /// Single frame on 607 with BMW extended addressing:
+  /// Single frame on [id] with BMW extended addressing:
   /// "607 F1 <len> <bytes...> <pad>".
-  String _single(List<int> message) {
+  String _single(List<int> message, {String id = '607', String target = '07'}) {
     // The address byte costs one data byte: single frames carry at most 6.
-    if (message.length > 6) return _multi(message);
+    if (message.length > 6) return _multi(message, id: id, target: target);
     final bytes = _pad([0xF1, message.length, ...message]);
-    return '607 ${_hex(bytes)}\r>';
+    return '$id ${_hex(bytes)}\r>';
   }
 
-  /// Multi-frame on 607 with BMW extended addressing: First Frame
+  /// Multi-frame on [id] with BMW extended addressing: First Frame
   /// `F1 1L LL <5 bytes>` then Consecutive Frames `F1 2N <6 bytes>`. Like a
   /// real ECU, it stops after the First Frame unless the adapter is set to
-  /// send flow control carrying the SME address (`07 30 ..`).
-  String _multi(List<int> message) {
+  /// send flow control carrying the ECU's address (`07 30 ..` for the SME).
+  String _multi(List<int> message, {String id = '607', String target = '07'}) {
     final len = message.length;
     final first = [0xF1, 0x10 | ((len >> 8) & 0x0F), len & 0xFF,
       ...message.take(5)];
-    final lines = <String>['607 ${_hex(first)}'];
-    if (!_customFc || _fcData != '07300000') {
+    final lines = <String>['$id ${_hex(first)}'];
+    if (!_customFc || _fcData != '${target}300000') {
       return '${lines.join('\r')}\r>';
     }
     final rest = message.skip(5).toList();
     var seq = 1;
     for (var i = 0; i < rest.length; i += 6) {
       final chunk = rest.skip(i).take(6).toList();
-      lines.add('607 ${_hex(_pad([0xF1, 0x20 | (seq & 0x0F), ...chunk]))}');
+      lines.add('$id ${_hex(_pad([0xF1, 0x20 | (seq & 0x0F), ...chunk]))}');
       seq++;
     }
     return '${lines.join('\r')}\r>';

@@ -5,7 +5,9 @@ import 'package:provider/provider.dart';
 
 import 'app/app_controller.dart';
 import 'app/capacity_test_store.dart';
+import 'app/capture_store.dart';
 import 'app/drive_record_store.dart';
+import 'app/keep_awake.dart';
 import 'app/onboarding_store.dart';
 import 'app/settings_store.dart';
 import 'app/soh_history_store.dart';
@@ -28,6 +30,8 @@ class ObdBatteryApp extends StatelessWidget {
         onboardingStore: OnboardingStore.documents(),
         sohStore: SohHistoryStore.documents(),
         settingsStore: SettingsStore.documents(),
+        captureStore: CaptureStore.documents(),
+        keepAwake: setKeepAwake,
         // First-run units follow the phone's region; a saved choice wins.
         defaultUnits: DisplayUnits.forRegion(
             PlatformDispatcher.instance.locale.countryCode),

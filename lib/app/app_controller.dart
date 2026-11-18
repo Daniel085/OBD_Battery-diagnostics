@@ -19,7 +19,9 @@ import '../engine/signal_set.dart';
 import '../engine/soh_history.dart';
 import '../transport/data_source.dart';
 import '../transport/elm_ble_source.dart';
+import '../transport/recording_source.dart';
 import 'capacity_test_store.dart';
+import 'capture_store.dart';
 import 'drive_record_store.dart';
 import 'onboarding_store.dart';
 import 'settings_store.dart';
@@ -46,9 +48,80 @@ class AppController extends ChangeNotifier {
     this.onboardingStore,
     this.sohStore,
     this.settingsStore,
+    this.captureStore,
+    this.keepAwake,
     this.defaultUnits = const DisplayUnits(),
   })  : _bleInstance = ble,
         repo = repository ?? SignalSetRepository();
+
+  // ---- Captures -------------------------------------------------------------
+
+  /// Where session recordings, signal-check reports and sweeps are kept on
+  /// the phone (null in tests → nothing is written).
+  final CaptureStore? captureStore;
+
+  /// Stops the phone from auto-locking while connected: a locked phone
+  /// suspends the app and the capture with it. Null in tests.
+  final void Function(bool on)? keepAwake;
+
+  CaptureWriter? _recording;
+
+  /// File name of the session recording in progress, if any.
+  String? get recordingName => _recording?.name;
+
+  /// Wrap [source] so that everything sent to the adapter and every reply
+  /// goes into a capture file. Demo connections are not recorded. Recording
+  /// is best-effort: if the file cannot be opened the session goes ahead.
+  Future<DataSource> _recorded(DataSource source, SignalSet set) async {
+    final store = captureStore;
+    if (store == null || _demo) return source;
+    try {
+      final now = DateTime.now();
+      final writer = await store
+          .open(CaptureStore.fileName(now, set.vehicle, 'session'));
+      writer
+        ..line('# Session capture: everything sent to the adapter and what '
+            'came back')
+        ..line('# vehicle: ${set.vehicle}')
+        ..line('# adapter: ${source.name}')
+        ..line('# started: ${now.toIso8601String()}')
+        ..line(Recording.formatNote);
+      _recording = writer;
+      return RecordingSource(source, writer.line);
+    } on Object {
+      return source;
+    }
+  }
+
+  /// Add a note line to the session recording (what the user started when).
+  void captureNote(String text) => _recording?.line(
+      '# ${Recording.clock(DateTime.now())} ${text.replaceAll('\n', ' ')}');
+
+  /// Write the recording's buffered lines to disk (before sharing the file).
+  Future<void> flushRecording() async => _recording?.flush();
+
+  /// Keep a finished report or sweep on the phone. Returns the file name, or
+  /// null when nothing was saved (no store, demo connection, disk error).
+  Future<String?> saveCapture(String kind, String text) async {
+    final store = captureStore;
+    if (store == null || _demo) return null;
+    try {
+      final name = CaptureStore.fileName(DateTime.now(),
+          _signalSet?.vehicle ?? selectedVehicle?.id ?? 'vehicle', kind);
+      await store.save(name, text);
+      captureNote('saved $name');
+      return name;
+    } on Object {
+      return null;
+    }
+  }
+
+  /// Close the session recording; completes when its last line is on disk.
+  Future<void> _endRecording() async {
+    final writer = _recording;
+    _recording = null;
+    await writer?.close();
+  }
 
   // ---- Settings --------------------------------------------------------------
 
@@ -141,6 +214,7 @@ class AppController extends ChangeNotifier {
   /// earlier connection (possibly another vehicle) must not be shown, logged
   /// or recorded as this one's.
   void _beginConnection({required bool demo}) {
+    unawaited(_endRecording());
     _demo = demo;
     latest.clear();
     lastFailures.clear();
@@ -232,6 +306,11 @@ class AppController extends ChangeNotifier {
   VehicleEntry? selectedVehicle;
   SignalSet? _signalSet;
 
+  /// Equivalent full cycles computed from the latest readings and the signal
+  /// set's rated capacity, or null when this vehicle provides neither.
+  EquivalentCycles? get equivalentFullCycles =>
+      BatteryHealthAnalyzer.equivalentFullCycles(latest, _signalSet?.ratedAh);
+
   final Map<String, Reading> latest = {};
   final InMemorySampleSink sessionLog = InMemorySampleSink();
   final List<CommandFailure> lastFailures = [];
@@ -263,8 +342,23 @@ class AppController extends ChangeNotifier {
     }
   }
 
+  /// The capacity test's settings for the loaded vehicle, from its signal
+  /// set's `pack` data. Null when the set does not give them.
+  CapacityTestConfig? get capacityConfig {
+    final kwh = _signalSet?.ratedKwh, volts = _signalSet?.nominalVoltage;
+    return kwh == null || volts == null
+        ? null
+        : CapacityTestConfig(ratedKwh: kwh, nominalPackVoltage: volts);
+  }
+
+  /// False for a vehicle whose signal set lacks the pack data the capacity
+  /// test grades against (it would otherwise grade against another car's).
+  bool get capacityTestAvailable =>
+      _signalSet == null || capacityConfig != null;
+
   void startCapacityTest() {
-    capacityTest = CapacityTestSession();
+    if (!capacityTestAvailable) return;
+    capacityTest = CapacityTestSession(config: capacityConfig);
     _lastCapacitySample = null;
     unawaited(_saveCapacityTest());
     notifyListeners();
@@ -318,7 +412,41 @@ class AppController extends ChangeNotifier {
   /// Nominal fallback if no pack-voltage signal has been read yet.
   static const _fallbackPackVolts = 352.1;
 
-  /// Switch the poll loop to hammering the pack-current command alone —
+  /// Signals with this id prefix (motor temperature, speed, torque) are read
+  /// alongside pack current in drive mode, at a much lower rate.
+  static const driveExtraPrefix = 'MOTOR_';
+
+  /// Pack-current polling runs undisturbed for this long between two reads
+  /// of the extra signals. Each visit pauses the power feed for as long as
+  /// the reads take (on another ECU that includes re-addressing the adapter).
+  Duration driveExtrasSpacing = const Duration(seconds: 4);
+
+  /// An extra command that fails this many times in a row is dropped until
+  /// drive mode is next started, so a vehicle that does not answer it stops
+  /// paying for it.
+  static const _driveExtraMaxFailures = 3;
+
+  List<Command> _driveExtras = const [];
+  final Map<Command, int> _driveExtraFailures = {};
+  DateTime? _lastDriveExtras;
+
+  /// True when this vehicle's signal set has extra drive-mode signals.
+  bool get hasDriveExtras =>
+      _signalSet?.signalsById.keys.any((id) => id.startsWith(driveExtraPrefix)) ??
+      false;
+
+  /// False once every extra command has been dropped for not answering.
+  bool get driveExtrasResponding => _driveExtras.isNotEmpty;
+
+  /// The latest extra drive-mode readings, in signal-set order.
+  List<Reading> get driveExtraReadings => [
+        for (final cmd in _signalSet?.commands ?? const <Command>[])
+          for (final s in cmd.signals)
+            if (s.id.startsWith(driveExtraPrefix))
+              if (latest[s.id] case final r?) r,
+      ];
+
+  /// Switch the poll loop to hammering the pack-current command —
   /// the only way to get a usable live power feed over a serial adapter.
   /// Returns false if this vehicle has no pack-current signal.
   bool startDriveMode() {
@@ -335,7 +463,18 @@ class AppController extends ChangeNotifier {
     }
     if (currentCmd == null) return false;
 
+    _driveExtras = [
+      for (final cmd in set.commands)
+        if (!identical(cmd, currentCmd) &&
+            cmd.signals.any((s) => s.id.startsWith(driveExtraPrefix)))
+          cmd,
+    ];
+    _driveExtraFailures.clear();
+    // The first visit waits a full spacing so the power feed starts at once.
+    _lastDriveExtras = DateTime.now();
+
     _driveMode = true;
+    captureNote('drive mode on');
     // One signal polled in a loop: use the shortest reply wait that works.
     client.fastTiming = true;
     driveSession ??= DriveSession();
@@ -351,6 +490,7 @@ class AppController extends ChangeNotifier {
   void stopDriveMode() {
     if (!_driveMode) return;
     _driveMode = false;
+    captureNote('drive mode off');
     _client?.fastTiming = false; // the full poll goes back to the safe wait
     if (_client != null) _startPolling();
     notifyListeners();
@@ -447,8 +587,9 @@ class AppController extends ChangeNotifier {
   Future<void> _driveLoop(DiagnosticsClient client, Command currentCmd) async {
     while (_driveMode && identical(_client, client)) {
       final cycleStart = DateTime.now();
-      if (_pollInFlight) {
-        // A normal poll is still draining; wait rather than overlap commands.
+      if (_pollInFlight || adapterHeld) {
+        // A normal poll is still draining, or a tool has the adapter; wait
+        // rather than overlap commands.
         await Future<void>.delayed(const Duration(milliseconds: 10));
         continue;
       }
@@ -470,6 +611,7 @@ class AppController extends ChangeNotifier {
           // Drive-mode samples also serve an active capacity test.
           _feedCapacityTest({'HVBAT_CURRENT': current});
         }
+        await _readDriveExtras(client);
         notifyListeners();
       } on CommandFailure {
         // Transient (bus busy, adapter hiccup): back off briefly, keep going.
@@ -491,6 +633,33 @@ class AppController extends ChangeNotifier {
         await Future<void>.delayed(_drivePollFloor - elapsed);
       }
     }
+  }
+
+  /// Read the extra drive-mode commands if their turn has come. A command
+  /// that keeps failing is dropped; an adapter-level error propagates.
+  Future<void> _readDriveExtras(DiagnosticsClient client) async {
+    final last = _lastDriveExtras;
+    if (_driveExtras.isEmpty ||
+        (last != null &&
+            DateTime.now().difference(last) < driveExtrasSpacing)) {
+      return;
+    }
+    for (final cmd in List.of(_driveExtras)) {
+      if (!_driveMode || !identical(_client, client)) break;
+      try {
+        for (final r in await client.read(cmd)) {
+          latest[r.signal.id] = r;
+        }
+        _driveExtraFailures.remove(cmd);
+      } on CommandFailure {
+        final n = (_driveExtraFailures[cmd] ?? 0) + 1;
+        _driveExtraFailures[cmd] = n;
+        if (n >= _driveExtraMaxFailures) _driveExtras.remove(cmd);
+      }
+    }
+    // Measured from the end of the visit: the power feed always gets a full
+    // spacing to itself, however long the extra reads took.
+    _lastDriveExtras = DateTime.now();
   }
 
   /// Feed the pack-current reading from one poll into the active test,
@@ -517,8 +686,53 @@ class AppController extends ChangeNotifier {
 
   bool get isConnected => _source?.isConnected ?? false;
 
-  /// The live transport (BLE or simulated), exposed for the RE scanner UI.
+  /// The live transport (BLE or simulated, wrapped by the session recorder
+  /// when one is running), exposed for the RE scanner UI.
   DataSource? get activeSource => _source;
+
+  /// The BLE adapter behind [activeSource], for its own diagnostics.
+  ElmBleSource? get bleSource => _bleSource;
+  ElmBleSource? _bleSource;
+
+  /// The connected vehicle's signal set (null before the first connection).
+  SignalSet? get signalSet => _signalSet;
+
+  // ---- Tools that talk to the adapter themselves ----------------------------
+
+  int _adapterHolds = 0;
+
+  /// True while a tool (terminal, DID scanner, signal check) has the adapter
+  /// and the dashboard's own reads are paused.
+  bool get adapterHeld => _adapterHolds > 0;
+
+  /// Pause the app's own reads and wait for the one in flight to finish, so
+  /// a tool can use the adapter alone: it takes one command at a time, and
+  /// the tools change its header and filter. Pair with [releaseAdapter].
+  Future<void> holdAdapter() async {
+    _adapterHolds++;
+    while (_pollInFlight) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+  }
+
+  /// Give the adapter back. The next poll sets header, filter and addressing
+  /// again instead of trusting what it set before the tool ran.
+  void releaseAdapter() {
+    if (_adapterHolds == 0) return;
+    if (--_adapterHolds == 0) _client?.forgetAdapterState();
+  }
+
+  /// Run [body] with the adapter held; see [holdAdapter].
+  Future<T> withAdapter<T>(Future<T> Function(DataSource source) body) async {
+    final source = _source;
+    if (source == null) throw StateError('Not connected');
+    await holdAdapter();
+    try {
+      return await body(source);
+    } finally {
+      releaseAdapter();
+    }
+  }
 
   /// Devices worth showing: named ones only (OBD adapters always advertise a
   /// name), in **stable first-seen order** so rows never reorder under the
@@ -633,15 +847,18 @@ class AppController extends ChangeNotifier {
         config: bleConfig,
       );
       await source.connect();
+      _bleSource = source;
       _source = source;
 
       _signalSet = await repo.load(selectedVehicle!);
-      _client = DiagnosticsClient(source, _signalSet!);
+      _source = await _recorded(source, _signalSet!);
+      _client = DiagnosticsClient(_source!, _signalSet!);
 
       _setPhase(ConnectionPhase.initializing);
       await _client!.initialize();
 
       _setPhase(ConnectionPhase.polling);
+      keepAwake?.call(true);
       _startPolling();
     } catch (e) {
       // Human-readable summary up front; the exception and the adapter's GATT
@@ -670,10 +887,12 @@ class AppController extends ChangeNotifier {
       await source.connect();
       _source = source;
       _signalSet = await repo.load(vehicle);
-      _client = DiagnosticsClient(source, _signalSet!);
+      _source = await _recorded(source, _signalSet!);
+      _client = DiagnosticsClient(_source!, _signalSet!);
       _setPhase(ConnectionPhase.initializing);
       await _client!.initialize();
       _setPhase(ConnectionPhase.polling);
+      keepAwake?.call(true);
       _startPolling();
     } catch (e) {
       _fail('Connect failed.', details: '$e');
@@ -693,11 +912,14 @@ class AppController extends ChangeNotifier {
     // reads, each up to a 5 s adapter timeout), so a periodic tick may fire
     // while the previous poll is still in flight. Skip it rather than issue
     // overlapping commands on the single-command-at-a-time transport.
-    if (_pollInFlight) return;
+    if (_pollInFlight || adapterHeld) return;
     _pollInFlight = true;
     lastFailures.clear();
     try {
       final readings = await client.readAll(onFailure: lastFailures.add);
+      // Disconnected (or reconnected) while this poll was in flight: its
+      // results belong to a connection that is gone.
+      if (!identical(_client, client)) return;
       latest.addAll(readings);
       if (readings.isNotEmpty) {
         await sessionLog.add(LogSample.fromReadings(readings));
@@ -706,6 +928,7 @@ class AppController extends ChangeNotifier {
       }
       notifyListeners();
     } catch (e) {
+      if (!identical(_client, client)) return;
       _fail(
         'Lost contact with the adapter while reading — check it is still '
         'plugged in and reconnect.',
@@ -722,7 +945,10 @@ class AppController extends ChangeNotifier {
     _pollTimer = null;
     await _source?.disconnect();
     _source = null;
+    _bleSource = null;
     _client = null;
+    await _endRecording();
+    keepAwake?.call(false);
     _setPhase(ConnectionPhase.idle);
   }
 
@@ -744,6 +970,7 @@ class AppController extends ChangeNotifier {
       vin: vin,
       extraMetrics: extra,
       units: units,
+      ratedAh: _signalSet?.ratedAh,
     );
   }
 
@@ -762,6 +989,8 @@ class AppController extends ChangeNotifier {
     errorMessage = msg;
     errorDetails = details;
     phase = ConnectionPhase.error;
+    _recording?.line('# ${Recording.clock(DateTime.now())} app error: $msg');
+    keepAwake?.call(false);
     notifyListeners();
   }
 
@@ -771,6 +1000,7 @@ class AppController extends ChangeNotifier {
     _scanNotifyTimer?.cancel();
     _pollTimer?.cancel();
     _source?.disconnect();
+    unawaited(_endRecording());
     // Do not touch _ble here — the lazy getter would construct the real plugin.
     super.dispose();
   }

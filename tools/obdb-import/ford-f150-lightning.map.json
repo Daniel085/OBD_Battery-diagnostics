@@ -1,0 +1,362 @@
+{
+ "vehicle": "Ford-F-150-Lightning-2022",
+ "displayName": "Ford F-150 Lightning (2022-2025)",
+ "description": "Ford F-150 Lightning, 2022-2025. Community data from OBDb, selected for battery diagnostics: HV battery (BECM 7E4), charger (SOBDM 7E2), drive unit (7E6), DC/DC (746), 12 V battery monitor (726). 11-bit CAN, standard ISO-TP, UDS 0x22 reads only. NOT read on a vehicle by this project.",
+ "confidence": "Imported from OBDb by tools/obdb-import (map: tools/obdb-import/ford-f150-lightning.map.json). The bit layouts and scaling are OBDb's, unchanged; test/obdb_import_test.dart replays OBDb's captured replies from 2022-2025 trucks and gets OBDb's expected values. This project has not read a Lightning. Open before relying on it: the sign of HVBAT_CURRENT (the app expects positive = discharge; check against a known charge and a known load), what 485C 'battery capacity' means (rated or present), and whether a cheap ELM327 clone handles the commands OBDb marks fcm1.",
+ "defaultSource": "OBDb/Ford-F-150-Lightning",
+ "sources": {
+  "OBDb/Ford-F-150-Lightning": {
+   "commit": "bb26b0f293632f2548bb61bf4510bf1215bb96e4",
+   "date": "2026-11-13"
+  }
+ },
+ "modelYear": 2023,
+ "protocol": {
+  "canFormat": "11bit",
+  "obdProtocol": 6,
+  "note": "ISO 15765-4 CAN 11-bit/500k. Each module has its own request id and answers on id+8 (BECM 7E4 -> 7EC). OBDb marks some commands fcm1 (flow-control mode 1); the field is kept but this app does not act on it yet."
+ },
+ "output": "signalsets/Ford-F-150-Lightning-2022/v01.json",
+ "fixtures": "test/fixtures/obdb/Ford-F-150-Lightning-2022.json",
+ "fixtureYears": [
+  2022,
+  2023,
+  2024,
+  2025
+ ],
+ "signals": [
+  {
+   "obdb": "LIGHTNING_HVBAT_SOC_DISP",
+   "group": "summary",
+   "id": "HVBAT_SOC",
+   "name": "HV battery charge (displayed)"
+  },
+  {
+   "obdb": "LIGHTNING_HVBAT_SOC",
+   "group": "summary",
+   "id": "HVBAT_SOC_BMS",
+   "name": "HV battery charge (BMS)"
+  },
+  {
+   "obdb": "LIGHTNING_HVBAT_SOH",
+   "group": "summary",
+   "id": "HVBAT_SOH",
+   "name": "HV battery state of health"
+  },
+  {
+   "obdb": "LIGHTNING_HVBAT_V",
+   "group": "summary",
+   "id": "HVBAT_VOLTAGE",
+   "name": "HV battery voltage"
+  },
+  {
+   "obdb": "LIGHTNING_HVBAT_A",
+   "group": "summary",
+   "id": "HVBAT_CURRENT",
+   "name": "HV battery current"
+  },
+  {
+   "obdb": "LIGHTNING_HVBAT_KWH",
+   "group": "summary",
+   "id": "HVBAT_ENERGY",
+   "name": "HV battery energy"
+  },
+  {
+   "obdb": "LIGHTNING_TARGET_SOC",
+   "group": "summary",
+   "id": "HVBAT_SOC_TARGET",
+   "name": "Charge target"
+  },
+  {
+   "obdb": "LIGHTNING_T_RANGE_MIN",
+   "group": "temperature",
+   "id": "HVBAT_CELLTEMP_MIN",
+   "name": "HV battery temperature (min)"
+  },
+  {
+   "obdb": "LIGHTNING_T_RANGE_MAX",
+   "group": "temperature",
+   "id": "HVBAT_CELLTEMP_MAX",
+   "name": "HV battery temperature (max)"
+  },
+  {
+   "obdb": "LIGHTNING_T_RANGE_AVG",
+   "group": "temperature",
+   "id": "HVBAT_CELLTEMP_AVG",
+   "name": "HV battery temperature (avg)"
+  },
+  {
+   "obdb": "LIGHTNING_HVBAT_T",
+   "group": "temperature",
+   "id": "HVBAT_TEMP",
+   "name": "HV battery temperature"
+  },
+  {
+   "obdb": "LIGHTNING_HVBAT_COOLANT_INLET_T",
+   "group": "temperature",
+   "id": "HVBAT_COOLANT_INLET_TEMP"
+  },
+  {
+   "obdb": "LIGHTNING_AAT",
+   "group": "temperature",
+   "id": "AMBIENT_TEMP",
+   "name": "Outside temperature"
+  },
+  {
+   "obdb": "LIGHTNING_HVBAT_MIN_MOD_V",
+   "group": "cells",
+   "id": "HVBAT_MODULE_VOLT_MIN"
+  },
+  {
+   "obdb": "LIGHTNING_HVBAT_AVG_MOD_V",
+   "group": "cells",
+   "id": "HVBAT_MODULE_VOLT_AVG"
+  },
+  {
+   "obdb": "LIGHTNING_HVBAT_MOD_V",
+   "group": "cells",
+   "id": "HVBAT_MODULE_VOLT"
+  },
+  {
+   "obdb": "LIGHTNING_HVB_SOC_VARIATION",
+   "group": "cells",
+   "id": "HVBAT_SOC_SPREAD"
+  },
+  {
+   "obdb": "LIGHTNING_HVBAT_AGE",
+   "group": "health",
+   "id": "HVBAT_AGE_HOURS",
+   "name": "Battery age"
+  },
+  {
+   "obdb": "LIGHTNING_BAT_CAP",
+   "group": "health",
+   "id": "HVBAT_CAPACITY_AH",
+   "name": "Battery capacity (as reported)"
+  },
+  {
+   "obdb": "LIGHTNING_BAT_PACK_LIFETIME",
+   "group": "health",
+   "id": "HVBAT_AH_DISCHARGED",
+   "name": "Lifetime charge out"
+  },
+  {
+   "obdb": "LIGHTNING_HV_POS_LEAK_V",
+   "group": "health",
+   "id": "HVBAT_LEAK_V_POS"
+  },
+  {
+   "obdb": "LIGHTNING_HV_NEG_LEAK_V",
+   "group": "health",
+   "id": "HVBAT_LEAK_V_NEG"
+  },
+  {
+   "obdb": "LIGHTNING_12V_SOC",
+   "group": "12v",
+   "id": "LVBAT_SOC",
+   "name": "12 V battery charge"
+  },
+  {
+   "obdb": "LIGHTNING_12V_V",
+   "group": "12v",
+   "id": "LVBAT_VOLTAGE",
+   "name": "12 V battery voltage"
+  },
+  {
+   "obdb": "LIGHTNING_12V_A",
+   "group": "12v",
+   "id": "LVBAT_CURRENT",
+   "name": "12 V battery current"
+  },
+  {
+   "obdb": "LIGHTNING_12V_AGE",
+   "group": "12v",
+   "id": "LVBAT_AGE_HOURS",
+   "name": "12 V battery age"
+  },
+  {
+   "obdb": "LIGHTNING_BAT_QUIESCENT",
+   "group": "12v",
+   "id": "LVBAT_QUIESCENT_CURRENT",
+   "name": "12 V standby current"
+  },
+  {
+   "obdb": "LIGHTNING_DCDC_ENABLED",
+   "group": "12v",
+   "id": "DCDC_ENABLED"
+  },
+  {
+   "obdb": "LIGHTNING_DCDC_LV_A",
+   "group": "12v",
+   "id": "DCDC_LV_CURRENT",
+   "name": "DC-DC output current (12 V side)"
+  },
+  {
+   "obdb": "LIGHTNING_DCDC_HV_A",
+   "group": "12v",
+   "id": "DCDC_HV_CURRENT",
+   "name": "DC-DC input current (HV side)"
+  },
+  {
+   "obdb": "LIGHTNING_CHRG_STATE",
+   "group": "charging",
+   "id": "CHARGING_STATE"
+  },
+  {
+   "obdb": "LIGHTNING_EVSE_TYPE",
+   "group": "charging",
+   "id": "EVSE_TYPE"
+  },
+  {
+   "obdb": "LIGHTNING_AC_CHG_IN_V",
+   "group": "charging",
+   "id": "CHARGER_AC_VOLTAGE",
+   "name": "AC input voltage"
+  },
+  {
+   "obdb": "LIGHTNING_AC_CHG_IN_A",
+   "group": "charging",
+   "id": "CHARGER_AC_CURRENT",
+   "name": "AC input current"
+  },
+  {
+   "obdb": "LIGHTNING_CHG_OUT_A",
+   "group": "charging",
+   "id": "CHARGER_DC_CURRENT",
+   "name": "Charger output current"
+  },
+  {
+   "obdb": "LIGHTNING_HVBAT_CHG_PWR_LIM",
+   "group": "charging",
+   "id": "HVBAT_CHARGE_POWER_LIMIT"
+  },
+  {
+   "obdb": "LIGHTNING_CHG_PWR_AVAIL",
+   "group": "charger",
+   "id": "CHARGER_POWER_AVAILABLE"
+  },
+  {
+   "obdb": "LIGHTNING_CHG_MAX_PWR",
+   "group": "charger",
+   "id": "CHARGER_MAX_POWER"
+  },
+  {
+   "obdb": "LIGHTNING_HVBAT_MAX_CHG_A",
+   "group": "charger",
+   "id": "HVBAT_MAX_CHARGE_CURRENT"
+  },
+  {
+   "obdb": "LIGHTNING_HVBAT_CCR",
+   "group": "charger",
+   "id": "HVBAT_CHARGE_CURRENT_REQUESTED"
+  },
+  {
+   "obdb": "LIGHTNING_HVBAT_CVR",
+   "group": "charger",
+   "id": "HVBAT_CHARGE_VOLTAGE_REQUESTED"
+  },
+  {
+   "obdb": "LIGHTNING_HVBAT_CHG_STATUS",
+   "group": "charger",
+   "id": "HVBAT_CHARGE_STATUS"
+  },
+  {
+   "obdb": "LIGHTNING_CHG_PILOT_DUTY",
+   "group": "charger",
+   "id": "EVSE_PILOT_DUTY"
+  },
+  {
+   "obdb": "LIGHTNING_CHG_PILOT_V",
+   "group": "charger",
+   "id": "EVSE_PILOT_VOLTAGE"
+  },
+  {
+   "obdb": "LIGHTNING_CHG_PROX_STATUS",
+   "group": "charger",
+   "id": "EVSE_PROXIMITY"
+  },
+  {
+   "obdb": "LIGHTNING_AC_CHG_IN_FREQ",
+   "group": "charger",
+   "id": "CHARGER_AC_FREQUENCY"
+  },
+  {
+   "obdb": "LIGHTNING_AC_CHG_COUPLER_T",
+   "group": "charger",
+   "id": "CHARGER_AC_COUPLER_TEMP"
+  },
+  {
+   "obdb": "LIGHTNING_DC_CHG_COUPLER_T1",
+   "group": "charger",
+   "id": "CHARGER_DC_COUPLER_TEMP_A",
+   "name": "HV DC charger coupler temperature A"
+  },
+  {
+   "obdb": "LIGHTNING_DC_CHG_COUPLER_T3",
+   "group": "charger",
+   "id": "CHARGER_DC_COUPLER_TEMP_B",
+   "name": "HV DC charger coupler temperature B"
+  },
+  {
+   "obdb": "LIGHTNING_DC_CHG_STATUS",
+   "group": "charger",
+   "id": "CHARGER_DC_STATUS"
+  },
+  {
+   "obdb": "LIGHTNING_HVDC_CHG_MAX_C",
+   "group": "charger",
+   "id": "CHARGER_DC_MAX_CURRENT"
+  },
+  {
+   "obdb": "LIGHTNING_HVDC_CHG_MAX_V",
+   "group": "charger",
+   "id": "CHARGER_DC_MAX_VOLTAGE"
+  },
+  {
+   "obdb": "LIGHTNING_PRI_MOTOR_RPM",
+   "group": "motor",
+   "id": "MOTOR_RPM",
+   "name": "Motor speed"
+  },
+  {
+   "obdb": "LIGHTNING_PRI_MOTOR_TQ",
+   "group": "motor",
+   "id": "MOTOR_TORQUE",
+   "name": "Motor torque"
+  },
+  {
+   "obdb": "LIGHTNING_PRI_MOTOR_COIL_T",
+   "group": "motor",
+   "id": "MOTOR_COIL_TEMP",
+   "name": "Motor coil temperature"
+  },
+  {
+   "obdb": "LIGHTNING_PRI_MOTOR_INV_T",
+   "group": "motor",
+   "id": "MOTOR_INVERTER_TEMP",
+   "name": "Motor inverter temperature"
+  },
+  {
+   "obdb": "LIGHTNING_HVBAT_THERMAL_OP_MODE",
+   "group": "thermal",
+   "id": "HVBAT_THERMAL_MODE"
+  },
+  {
+   "obdb": "LIGHTNING_COOLANT_HTR_PWR",
+   "group": "thermal",
+   "id": "COOLANT_HEATER_POWER"
+  },
+  {
+   "obdb": "LIGHTNING_ODO_HIGH_RES",
+   "group": "vehicle",
+   "id": "ODOMETER",
+   "name": "Odometer"
+  },
+  {
+   "obdb": "LIGHTNING_GEAR_CMD",
+   "group": "vehicle",
+   "id": "GEAR",
+   "name": "Gear"
+  }
+ ]
+}

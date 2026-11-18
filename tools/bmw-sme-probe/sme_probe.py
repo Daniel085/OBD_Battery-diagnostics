@@ -20,6 +20,7 @@ Run ON THE PI, car fully RUNNING (READY):
     python3 sme_probe.py --sweep DD00 DDFF     # also sweep an SME DID range
     python3 sme_probe.py --target 12 --sweep 4000 40FF   # sweep another ECU
     python3 sme_probe.py --read DFAC DF67 DF62           # raw-read chosen DIDs
+    python3 sme_probe.py --target 3A --read DEA6 DEA7    # EME motor temps/rpm/torque
     python3 sme_probe.py --no-gate             # charging: J1979 silent, try SME
 Output: printed and written to bmw_sme_<timestamp>.txt
 
@@ -137,6 +138,14 @@ def decode(did, d):
                 f"{u16(d, 32) / 1e4:.4f}/{u16(d, 34) / 1e4:.4f}  cell SoC "
                 f"{u16(d, 24) / 100:.2f}/{u16(d, 26) / 100:.2f}/"
                 f"{u16(d, 28) / 100:.2f} %  (min/max/avg)")
+    # EME (target 3A) motor data, BMW i3 layout: unconfirmed on the 330e.
+    if did == "DEA6" and len(d) >= 4:
+        return (f"motor temp 1/2 {s16(d, 0) / 64:.1f} / {s16(d, 2) / 64:.1f} C"
+                f"  (i3 layout, unconfirmed)")
+    if did == "DEA7" and len(d) >= 6:
+        return (f"motor {u16(d, 0) / 2 - 5000:.0f} rpm  torque actual/target "
+                f"{s16(d, 2) / 2:.1f} / {s16(d, 4) / 2:.1f} Nm"
+                f"  (i3 layout, unconfirmed)")
     return ""
 
 

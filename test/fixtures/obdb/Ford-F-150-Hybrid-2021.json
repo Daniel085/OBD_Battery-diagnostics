@@ -1,0 +1,327 @@
+{
+ "vehicle": "Ford-F-150-Hybrid-2021",
+ "signalSet": "signalsets/Ford-F-150-Hybrid-2021/v01.json",
+ "source": "OBDb/Ford-F-150 @ 7b0146e384, tests/test_cases (replies captured by OBDb contributors; CC BY-SA 4.0)",
+ "cases": [
+  {
+   "year": 2021,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224028",
+   "response": "72E0462402835",
+   "expected": {
+    "LVBAT_SOC": 53
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224028",
+   "response": "72E0462402863",
+   "expected": {
+    "LVBAT_SOC": 99
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224028",
+   "response": "72E0462402800",
+   "expected": {
+    "LVBAT_SOC": 0
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224028",
+   "response": "72E0462402864",
+   "expected": {
+    "LVBAT_SOC": 100
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224027",
+   "response": "72E056240270055",
+   "expected": {
+    "LVBAT_AGE_HOURS": 2040.0
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224027",
+   "response": "72E0562402700FC",
+   "expected": {
+    "LVBAT_AGE_HOURS": 6048.0
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224027",
+   "response": "72E056240270101",
+   "expected": {
+    "LVBAT_AGE_HOURS": 6168.0
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "726",
+   "rax": "72E",
+   "request": "224027",
+   "response": "72E0562402706E4",
+   "expected": {
+    "LVBAT_AGE_HOURS": 42336.0
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "720",
+   "rax": "728",
+   "request": "22404C",
+   "response": "7280662404C0480B9",
+   "expected": {
+    "ODOMETER": 29509.7
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "720",
+   "rax": "728",
+   "request": "22404C",
+   "response": "7280662404C0BE000",
+   "expected": {
+    "ODOMETER": 77824
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "720",
+   "rax": "728",
+   "request": "22404C",
+   "response": "7280662404C0BF9FF",
+   "expected": {
+    "ODOMETER": 78489.5
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "720",
+   "rax": "728",
+   "request": "22404C",
+   "response": "7280662404C0CFF25",
+   "expected": {
+    "ODOMETER": 85174.9
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "22F40D",
+   "response": "7E80462F40D00",
+   "expected": {
+    "VEHICLE_SPEED": 0
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "22F40D",
+   "response": "7E80462F40D6F",
+   "expected": {
+    "VEHICLE_SPEED": 111
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "22F40D",
+   "response": "7E80462F40DBD",
+   "expected": {
+    "VEHICLE_SPEED": 189
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "22F40D",
+   "response": "7E80462F40D6A",
+   "expected": {
+    "VEHICLE_SPEED": 106
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "22F42F",
+   "response": "7E80462F42F00",
+   "expected": {
+    "FUEL_LEVEL": 0
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "22F42F",
+   "response": "7E80462F42F14",
+   "expected": {
+    "FUEL_LEVEL": 7.84314
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "22F42F",
+   "response": "7E80462F42FFF",
+   "expected": {
+    "FUEL_LEVEL": 100
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "22F42F",
+   "response": "7E80462F42F31",
+   "expected": {
+    "FUEL_LEVEL": 19.21569
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "224195",
+   "response": "7E8056241950133",
+   "expected": {
+    "FUEL_RANGE": 30.7
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "224195",
+   "response": "7E80562419501FF",
+   "expected": {
+    "FUEL_RANGE": 51.1
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "224195",
+   "response": "7E8056241950200",
+   "expected": {
+    "FUEL_RANGE": 51.2
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "224195",
+   "response": "7E8056241952C88",
+   "expected": {
+    "FUEL_RANGE": 1140
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "22038F",
+   "response": "7E80562038F0208",
+   "expected": {
+    "ENGINE_COOLANT_TEMP": 8.125
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "22038F",
+   "response": "7E80562038F0800",
+   "expected": {
+    "ENGINE_COOLANT_TEMP": 32
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "22038F",
+   "response": "7E80562038F0BFF",
+   "expected": {
+    "ENGINE_COOLANT_TEMP": 47.98438
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "22038F",
+   "response": "7E80562038F1C14",
+   "expected": {
+    "ENGINE_COOLANT_TEMP": 112.3125
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "22F40C",
+   "response": "7E80562F40C0000",
+   "expected": {
+    "ENGINE_RPM": 0
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "22F40C",
+   "response": "7E80562F40C16FF",
+   "expected": {
+    "ENGINE_RPM": 1471.75
+   }
+  },
+  {
+   "year": 2021,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "22F40C",
+   "response": "7E80562F40C2C38",
+   "expected": {
+    "ENGINE_RPM": 2830
+   }
+  },
+  {
+   "year": 2022,
+   "hdr": "7E0",
+   "rax": "7E8",
+   "request": "22F40C",
+   "response": "7E80562F40C17FF",
+   "expected": {
+    "ENGINE_RPM": 1535.75
+   }
+  }
+ ]
+}

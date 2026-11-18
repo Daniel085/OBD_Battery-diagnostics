@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../app/app_controller.dart';
-import '../transport/elm_ble_source.dart';
 
 /// Raw ELM327 terminal: send arbitrary AT/OBD commands and see exactly what the
 /// adapter returns. This is the first thing to reach for when the dashboard is
@@ -29,6 +28,18 @@ class _TerminalScreenState extends State<TerminalScreen> {
   final List<_Entry> _log = [];
   bool _busy = false;
 
+  /// The dashboard's own reads stay paused while the terminal is open: the
+  /// adapter takes one command at a time, and a poll between two typed
+  /// commands would change the header the first one set.
+  late final AppController _controller = context.read<AppController>();
+  late final Future<void> _adapterHeld = _controller.holdAdapter();
+
+  @override
+  void initState() {
+    super.initState();
+    _adapterHeld.ignore();
+  }
+
   /// Ordered probe that answers "can we talk to this car at all?".
   /// ATZ/ATE0/ATI prove the adapter responds; ATDPN reports the negotiated
   /// protocol; 0100 is the standard "which PIDs do you support" request — if
@@ -47,6 +58,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
     }
     setState(() => _busy = true);
     try {
+      await _adapterHeld;
       final resp = await source.send(cmd, timeout: const Duration(seconds: 6));
       setState(() => _log.add(_Entry(cmd, resp.trim())));
     } catch (e) {
@@ -79,13 +91,13 @@ class _TerminalScreenState extends State<TerminalScreen> {
       appBar: AppBar(
         title: const Text('Adapter terminal'),
         actions: [
-          if (c.activeSource is ElmBleSource)
+          if (c.bleSource case final ble?)
             IconButton(
               tooltip: 'BLE diagnostics',
               icon: const Icon(Icons.bluetooth_searching),
               onPressed: () => setState(() => _log.add(_Entry(
                     'BLE diagnostics',
-                    (c.activeSource as ElmBleSource).diagnosticsDump(),
+                    ble.diagnosticsDump(),
                   ))),
             ),
           if (_log.isNotEmpty) ...[
@@ -113,7 +125,8 @@ class _TerminalScreenState extends State<TerminalScreen> {
                   child: Text(
                     c.activeSource == null
                         ? 'Not connected — connect an adapter first.'
-                        : 'Connected: ${c.activeSource!.name}',
+                        : 'Connected: ${c.activeSource!.name}. Dashboard '
+                            'readings pause while this screen is open.',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
@@ -222,6 +235,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
 
   @override
   void dispose() {
+    _controller.releaseAdapter();
     _input.dispose();
     _scroll.dispose();
     super.dispose();

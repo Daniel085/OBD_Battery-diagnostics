@@ -29,6 +29,30 @@ class HealthWarning {
       };
 }
 
+/// A cycle count worked out from lifetime charge throughput.
+class EquivalentCycles {
+  final double cycles;
+
+  /// The lifetime counter it was computed from.
+  final Reading basis;
+
+  /// The capacity it was divided by, and whether that came from the vehicle
+  /// (true) or from the signal set's rated figure (false).
+  final double capacityAh;
+  final bool capacityReported;
+
+  /// False while the counter's (or the reported capacity's) decoding is
+  /// unverified.
+  final bool confirmed;
+  const EquivalentCycles({
+    required this.cycles,
+    required this.basis,
+    required this.capacityAh,
+    required this.capacityReported,
+    required this.confirmed,
+  });
+}
+
 /// Tunable thresholds for health heuristics.
 class HealthThresholds {
   /// Cell imbalance (max-min) at rest above which we warn / flag critical (volts).
@@ -70,6 +94,10 @@ class HealthReport {
   final Map<String, double?> metrics;
   final List<HealthWarning> warnings;
 
+  /// Keys of [metrics] that come from a signal whose decoding has not been
+  /// confirmed on the vehicle (unit marked `?`). Shown, never graded.
+  final Set<String> unconfirmedMetrics;
+
   HealthReport({
     required this.vehicle,
     required this.generatedAt,
@@ -77,7 +105,25 @@ class HealthReport {
     required this.readings,
     required this.metrics,
     required this.warnings,
+    this.unconfirmedMetrics = const {},
   });
+
+  /// A metric's key as shown to a person: marked when it is unconfirmed.
+  String metricLabel(String key) =>
+      unconfirmedMetrics.contains(key) ? '$key (unconfirmed)' : key;
+
+  /// A metric's value as text. Metrics measured in hours also get the
+  /// duration in days or years: `8.9 years (78200 h)`.
+  String metricText(String key) {
+    final v = metrics[key];
+    if (v == null) return '—';
+    if (key.endsWith('_hours') && v.abs() >= 24) {
+      final d = DisplayUnits.readableHours(v);
+      return '${d.value.toStringAsFixed(1)} ${d.unit} (${v.round()} h)';
+    }
+    if (key.endsWith('_cycles')) return v.round().toString();
+    return v.toStringAsFixed(3);
+  }
 
   Severity get overallSeverity {
     var worst = Severity.ok;
@@ -102,6 +148,8 @@ class HealthReport {
             }
         },
         'metrics': metrics,
+        if (unconfirmedMetrics.isNotEmpty)
+          'unconfirmedMetrics': unconfirmedMetrics.toList(),
         'warnings': warnings.map((w) => w.toJson()).toList(),
       };
 
@@ -127,6 +175,55 @@ class HealthReport {
 }
 
 class BatteryHealthAnalyzer {
+  /// Ageing, lifetime and 12 V battery signals copied into the report's
+  /// metrics when a vehicle provides them (signal id -> metric key). Reported, not graded:
+  /// there are no agreed limits for them yet.
+  static const reportedSignals = {
+    'HVBAT_SOH_RESISTANCE': 'resistance_soh_percent',
+    'HVBAT_ISOLATION': 'isolation_resistance_kohm',
+    'HVBAT_HV_ON_HOURS': 'hv_on_hours',
+    'HVBAT_AGE_HOURS': 'battery_age_hours',
+    'HVBAT_CONTACTOR_CYCLES': 'contactor_cycles',
+    'HVBAT_CONTACTOR_CYCLES_LOAD': 'contactor_cycles_under_load',
+    'HVBAT_AH_CHARGED': 'lifetime_charge_in_ah',
+    'HVBAT_AH_DISCHARGED': 'lifetime_charge_out_ah',
+    'LVBAT_SOC_PARK': 'aux_12v_soc_at_park_percent',
+    'LVBAT_TOPUP_SOC_START': 'aux_12v_soc_before_topup_percent',
+    'LVBAT_TOPUP_SOC_END': 'aux_12v_soc_after_topup_percent',
+    'LVBAT_TOPUP_KM': 'aux_12v_last_topup_km',
+    'LVBAT_SOC': 'aux_12v_soc_percent',
+    'LVBAT_VOLTAGE': 'aux_12v_voltage',
+    'LVBAT_AGE_HOURS': 'aux_12v_age_hours',
+    'HVBAT_CAPACITY_AH': 'reported_capacity_ah',
+  };
+
+  /// Equivalent full cycles = lifetime charge throughput / capacity, or
+  /// null when the vehicle gives no lifetime counter or no capacity.
+  /// Capacity is the signal set's rated figure ([ratedAh]) or, failing
+  /// that, the capacity the vehicle itself reports (`HVBAT_CAPACITY_AH`).
+  static EquivalentCycles? equivalentFullCycles(
+      Map<String, Reading> readings, double? ratedAh) {
+    final reported = readings['HVBAT_CAPACITY_AH'];
+    final fromSet = ratedAh != null && ratedAh > 0;
+    final capacity = fromSet ? ratedAh : reported?.value;
+    if (capacity == null || capacity <= 0) return null;
+    final out = readings['HVBAT_AH_DISCHARGED'];
+    final into = readings['HVBAT_AH_CHARGED'];
+    bool sure(Reading? r) => r != null && !r.unit.endsWith('?');
+    final basis = sure(out) ? out : (sure(into) ? into : (out ?? into));
+    if (basis == null) return null;
+    return EquivalentCycles(
+      cycles: basis.value / capacity,
+      basis: basis,
+      capacityAh: capacity,
+      capacityReported: !fromSet,
+      confirmed: sure(basis) && (fromSet || sure(reported)),
+    );
+  }
+
+  /// Signal ids carrying one battery module's defect code (0 = none).
+  static final moduleDefectId = RegExp(r'^HVBAT_MODULE_(\d+)_DEFECT$');
+
   final HealthThresholds thresholds;
   const BatteryHealthAnalyzer({this.thresholds = const HealthThresholds()});
 
@@ -134,7 +231,8 @@ class BatteryHealthAnalyzer {
   ///
   /// Recognised signal ids (vehicle-agnostic where possible):
   ///   HVBAT_SOH, HVBAT_SOC, HVBAT_VOLTAGE, HVBAT_CURRENT,
-  ///   HVBAT_CELL_V_MIN/MAX/AVG, HVBAT_CELLTEMP_MIN/MAX.
+  ///   HVBAT_CELL_V_MIN/MAX/AVG, HVBAT_CELLTEMP_MIN/MAX,
+  ///   HVBAT_MODULE_<n>_DEFECT, and the report-only ids in [reportedSignals].
   HealthReport analyze({
     required String vehicle,
     required Map<String, Reading> readings,
@@ -146,6 +244,9 @@ class BatteryHealthAnalyzer {
     /// Units for the human-readable warning text only; metrics and
     /// thresholds stay in the signal set's units.
     DisplayUnits units = const DisplayUnits(),
+    /// The pack's rated capacity (signal set `pack.ratedAh`), for the
+    /// equivalent-full-cycle count.
+    double? ratedAh,
   }) {
     final metrics = <String, double?>{...extraMetrics};
     final warnings = <HealthWarning>[];
@@ -169,6 +270,50 @@ class BatteryHealthAnalyzer {
     if (tMin != null && tMax != null) {
       tempSpread = tMax - tMin;
       metrics['temp_spread_celsius'] = tempSpread;
+    }
+
+    final unconfirmed = <String>{};
+    for (final e in reportedSignals.entries) {
+      final r = readings[e.key];
+      if (r == null) continue;
+      metrics[e.value] = r.value;
+      if (r.unit.endsWith('?')) unconfirmed.add(e.value);
+    }
+
+    // Equivalent full cycles: lifetime charge throughput over the rated
+    // capacity. Discharge is the conventional side; the charge side is used
+    // when it is the one whose decoding is confirmed. Throughput includes
+    // regen, so this is wear, not a count of plug-in charges.
+    final cycles = equivalentFullCycles(readings, ratedAh);
+    if (cycles != null) {
+      const key = 'equivalent_full_cycles';
+      metrics[key] = cycles.cycles;
+      if (!cycles.confirmed) unconfirmed.add(key);
+    }
+
+    // Per-module defect codes (0 = none). A non-zero code is reported; it
+    // only counts as a warning once the vehicle's decoding is confirmed.
+    final moduleCodes = <int, Reading>{
+      for (final r in readings.values)
+        if (moduleDefectId.firstMatch(r.signal.id) case final m?)
+          int.parse(m.group(1)!): r,
+    };
+    if (moduleCodes.isNotEmpty) {
+      const key = 'modules_reporting_defect';
+      final bad = moduleCodes.keys.where((n) => moduleCodes[n]!.value != 0)
+          .toList()
+        ..sort();
+      metrics[key] = bad.length.toDouble();
+      final unsure = moduleCodes.values.any((r) => r.unit.endsWith('?'));
+      if (unsure) unconfirmed.add(key);
+      for (final n in bad) {
+        final code = moduleCodes[n]!.value.round();
+        warnings.add(HealthWarning(
+            unsure ? Severity.info : Severity.warning,
+            'MODULE_DEFECT',
+            'Battery module $n reports defect code $code.'
+                '${unsure ? ' This reading is not confirmed on this vehicle; check it with a second tool.' : ''}'));
+      }
     }
 
     // SOH grading.
@@ -230,6 +375,7 @@ class BatteryHealthAnalyzer {
       readings: readings,
       metrics: metrics,
       warnings: warnings,
+      unconfirmedMetrics: unconfirmed,
     );
   }
 }

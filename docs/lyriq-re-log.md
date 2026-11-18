@@ -677,3 +677,60 @@ is abrupt for a full-charge taper) and the wall meter reading.
 and treat `434F` raw 0 as missing.~~ Done in `Cadillac-Lyriq-2025/v02.json`
 (2026-11-08; `434F` uses OBDb's `nullmin`). Re-test module voltages with the car in
 Ready under load (drive) where they should move.
+
+## 2026-11-14 — charge to a 75% target (`captures/chg75_2026-11-14.txt`)
+
+Pi logger, same charge profile as 09-27, started 13:54:41 **with the charge
+already running** (so this is a partial session). Charging 13:55:11 →
+16:03:46, then 0 A; the car answered for another ~3.5 min and was asleep by
+16:08 (ECU 40 went quiet one sample before ECU 17). No data gaps (mean sample
+spacing 46 s, max 86 s). No Ready period was logged.
+
+**Charge logged: 48.56 Ah = 17.10 kWh DC at 352.1 V nominal** in 2.14 h. Mean
+22.7 A (range 21.6-23.7), ~8.0 kW DC, flat all session (09-27 drifted down
+from ~23.8 to ~21 A over 9 h). At the ~2.96 Ah/pt of the earlier sessions
+that is ~16.4 dash points, which puts the pack near 58.6% when logging began
+if the car stopped at a true 75%. **Capacity PENDING a dash % at a known
+time** (plug-in % and plug-in time would do: the current was flat, so the
+unlogged start can be extrapolated at 22.7 A).
+
+**How a target stop ends:** 22.75 → 22.75 → 21.85 → 0 A, no ramp at all. The
+09-27 charge to 100% ramped 20.65 → 19.15 → 17.95 → 17.05 → 0 over its last
+~2 min. So the short ramp is specific to the full charge; it is weak support
+(one session each) that 09-27 ended on a real top-of-charge condition and not
+on a plain cutoff.
+
+**Register findings:**
+- `4124` = 0x01A2 and `4127` = 0x0418 again, all session. `4124` has now read
+  the same value on 09-24, 09-27 and 11-14, so it is constant on this car, not
+  "latched per session".
+- `44C0` = 66, 66, 60, 59 all session (09-27: 57 ×4). Changes between
+  sessions, never within one, and the four bytes are not one value. The 60/59
+  is close to the ~58.6% estimated above, but 09-27's 57 fits neither that
+  session's estimated start (~31%) nor its end, so no SOC reading here.
+- `406E` = 30 → 32 while the pack went roughly 59 → 75%. 09-27: 33 → 47 over
+  9 h, then 92 in the first sample after the charge ended; today it stayed 32
+  after the stop. Not SOC (already demoted 2026-08; the DID map row still
+  said "candidate", fixed). Rises slowly during a charge; meaning unknown.
+- `434F` populated in 18 of 171 samples: the first ~5 min, single samples at
+  14:24:10 / 14:38:47 / 14:53:30 / 15:07:49 (a ~14.5 min period), three more
+  15:15-15:22, and the 3 samples after the charge stopped. **17 of the 18 read
+  0x46 (30 °C)**, one 0x24 (−4 °C). 09-27 was the same: 63 of 66 valid reads
+  were 0x46. The live sensors read 19-22 °C today and 16-25 °C then. A value
+  that says 30 °C at both is **doubtful as a live pack temperature when
+  parked/charging** (it did read 53-56 °C on the 09-24 drive). This is the
+  signal contributed upstream from the Bolt mapping with a 0x46 test case.
+- `4149` = 9.6 for the whole session at ~8.0 kW DC. Same value as the second
+  half of 09-27. Still not a pilot current.
+- `416C` = 0, `441F` all zero, `443C`/`4441`/`451D` = 0 throughout: sparse
+  mode for the entire session (09-27 populated `441F` 47 min in and `416C`
+  after 6 h; today nothing woke them).
+- `44C1` = 39, 39, 38, 39 and `44C5` = 0350 0050 014F 0350, both constant
+  (09-27: 39/39/39/38 and 0150 0250 0050 024F). `44C5` looks like 4 × (status
+  byte, ~0x50); only the status bytes differ between sessions.
+- `40E5` 20.9 → 21.7 °C, `40E6` 19.0 → 19.5 °C, dropping to 19.2 within
+  3 min of the stop. Still the only temperatures that behave like sensors.
+
+**Next:** dash % for this session and for 09-27. `434F`: compare against
+`40E5`/`40E6` on a drive log before deciding whether to mark it unverified in
+the signal set and upstream.

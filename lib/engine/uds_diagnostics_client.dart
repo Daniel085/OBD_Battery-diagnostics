@@ -18,6 +18,9 @@ class UdsDiagnosticsClient {
 
   UdsDiagnosticsClient(this.transport, this.signalSet);
 
+  /// Which slow-changing commands (those with a `freq`) are due in [readAll].
+  final PollSchedule _schedule = PollSchedule();
+
   /// The ECU target address for a command. Uses the response id (`rax`) — for
   /// DoIP the logical target we address is the ECU whose response we want
   /// (e.g. BMW SME 0x0607). Falls back to `hdr` if `rax` is absent.
@@ -60,10 +63,12 @@ class UdsDiagnosticsClient {
   }) async {
     final out = <String, Reading>{};
     for (final cmd in signalSet.commands) {
+      if (!_schedule.isDue(cmd, now ?? DateTime.now())) continue;
       try {
         for (final r in await read(cmd, now: now)) {
           out[r.signal.id] = r;
         }
+        _schedule.markRead(cmd, now ?? DateTime.now());
       } on CommandFailure catch (f) {
         onFailure?.call(f);
       }
