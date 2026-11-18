@@ -82,3 +82,22 @@ after demand signal.
   No purchase advice. Disclaimer screen on first report export.
 - Read-only invariant is a marketing asset: "physically cannot write to your
   car" — keep it prominent and true.
+
+## TestFlight (internal testing) — status 2026-11-18
+
+Code side done: unsigned `flutter build ios --release` builds (Flutter 3.50,
+Xcode 27.2, plugins via Swift Package Manager — no CocoaPods needed), build
+number set in `pubspec.yaml` (`0.1.0+1`; bump `+N` for every upload),
+`ITSAppUsesNonExemptEncryption = false` so uploads skip the export-compliance
+question, 1024 px icon has no alpha (still the Flutter default).
+
+Remaining, all account-side (Daniel):
+1. Xcode → Settings → Accounts: sign in with the Apple ID on team
+   `EB25CFP6UQ` (needs a paid Apple Developer Program membership).
+2. App Store Connect → Apps → New App: bundle id
+   `com.obddiag.obdBatteryDiagnostics`, display name of choice.
+3. `flutter build ipa --release`, then upload
+   `build/ios/ipa/*.ipa` with Xcode Organizer or Transporter.
+4. App Store Connect → TestFlight: add the tester (internal = already on the
+   team; external = email + a one-time Beta App Review, needs a privacy
+   policy URL and test notes, e.g. "use Demo mode, no car needed").
