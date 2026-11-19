@@ -41,9 +41,10 @@ after demand signal.
 
 ## Code gaps (next passes)
 - [ ] **Adapter compatibility UX**: detect clone quirks at connect (we already
-      auto-diagnose GATT layouts) and surface "this adapter may not reach the
-      battery bus — OBDLink CX recommended" proactively rather than silent
-      NO DATA.
+      auto-diagnose GATT layouts) and explain silent NO DATA with the likely
+      cause (car off, wrong vehicle, adapter held by another app). Do NOT
+      blame clones for missing battery data: the Viecar clone read both cars,
+      including Lyriq 29-bit multiframe (2026-11-19 copy review).
 - [ ] **Capacity-test UX polish**: charge-start reminder notification
       (connect at plug-in / at cutoff), result history (drift DB — dependency
       already present), share result as image/PDF.
