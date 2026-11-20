@@ -33,11 +33,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
     _Page(
       Icons.bluetooth,
-      'The adapter matters',
-      'A quality BLE adapter is strongly recommended — OBDLink CX or MX+.\n\n'
-          'Cheap ELM327 clones often cannot reach the battery bus on modern '
-          'EVs (29-bit CAN), and many have Bluetooth quirks. The app works '
-          'around the common ones, but a good adapter avoids the pain.\n\n'
+      'Any Bluetooth adapter',
+      'Any Bluetooth (BLE) ELM327 adapter works. We built and tested this '
+          'app with a ~\$20 clone on both of our cars.\n\n'
+          'A higher-end adapter (OBDLink CX or MX+) is faster and holds its '
+          'connection better, which helps drive mode and long sessions. '
+          'Unplug the adapter when you are not using it.\n\n'
           'No adapter yet? Demo mode simulates a Cadillac Lyriq mid-charge.',
     ),
     _Page(

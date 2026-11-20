@@ -242,10 +242,9 @@ class _AdapterHint extends StatelessWidget {
       child: const Padding(
         padding: EdgeInsets.all(12),
         child: Text(
-          'Tip: A generic ELM327 BLE clone works for the BMW 330e. For the '
-          'Cadillac Lyriq (29-bit CAN), a genuine STN adapter (OBDLink CX/MX+) '
-          'is strongly recommended — many clones cannot reach the Ultium '
-          'battery data.',
+          'Tip: Any Bluetooth (BLE) ELM327 adapter works, including cheap '
+          'clones. A higher-end one (OBDLink CX/MX+) is faster and holds its '
+          'connection better. Only one app can use the adapter at a time.',
           style: TextStyle(fontSize: 13),
         ),
       ),

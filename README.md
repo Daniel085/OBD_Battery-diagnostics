@@ -30,7 +30,7 @@ Per-vehicle JSON in [`signalsets/`](signalsets/), using the **[OBDb](https://git
 
 ## Hardware
 
-A generic ELM327 BLE clone works for the BMW SME PIDs. For the **Lyriq (29-bit CAN, multiframe ISO-TP)** a genuine STN-based adapter (**OBDLink CX/MX+**) is strongly recommended — most clones can't reliably reach the Ultium battery data. The app abstracts the adapter and surfaces an upgrade recommendation when it detects the clone can't complete 29-bit multiframe reads.
+Any BLE ELM327 adapter works. Every on-vehicle reading so far, on both the BMW 330e (SME over extended addressing) and the Lyriq (29-bit CAN, multiframe ISO-TP, replies up to 173 bytes), came from a ~$20 **Viecar ELM327 v2.2 clone**; the app works around the clone's GATT and flow-control quirks. A higher-end STN-based adapter (**OBDLink CX/MX+**) is faster and holds its connection better, which helps drive mode and long sessions, but it does not unlock more data: the Lyriq's Battery System Manager is blocked by the car's gateway, not the adapter (see [`docs/lyriq-did-map.md`](docs/lyriq-did-map.md)). Clone caveats seen on the car: one Bluetooth connection at a time, an unreliable `ATRV` voltage readout, and 12 V drain if left plugged in.
 
 ## Prior art & credits
 

@@ -866,9 +866,9 @@ class _WaitingState extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                'No signals responded yet. If this is a Lyriq on a generic '
-                'clone, the 29-bit battery bus may be unreachable — an OBDLink '
-                'CX/MX+ is recommended.',
+                'No signals responded yet. Check that the car is on or '
+                'charging, that the right vehicle is selected, and that no '
+                'other app is connected to the adapter.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
